@@ -59,8 +59,11 @@ def main (args):
     # __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     # gene_2_HPO_f = os.path.join(__location__, 'gene_2_HPO.p')
     # DG_f = os.path.join(__location__, 'DG.pk')
-    gene_2_HPO_f = '../../res/gene_2_HPO.p'
-    dg_f = '../../res/v2_ready_graph.pk'
+    
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    gene_2_HPO_f = os.path.join(script_path, '../../res/gene_2_HPO.p')
+    dg_f = os.path.join(script_path, '../../res/v2_ready_graph.pk')
+    hpo_dict_file = os.path.join(script_path, '../../res/HPO_gene_assiciation.p')
 
     gene_2_HPO = pickle.load(open(gene_2_HPO_f,'rb'))
     graph_nodes, graph_edges = pickle.load(open(dg_f, 'rb'))
@@ -84,7 +87,7 @@ def main (args):
         HPO_query = set()
         if os.path.isfile(args.white_list):
             with open(args.white_list,'r') as w:
-                HPO_dict  = pickle.load(open(os.path.join(__location__,'HPO_gene_assiciation.p'),'rb'))
+                HPO_dict  = pickle.load(open(hpo_dict_file,'rb'))
                 HPO_query = list()
                 for line in w:
                     HPO_term = line.rstrip('\n')
