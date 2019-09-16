@@ -4,7 +4,6 @@ import pprint
 import re
 from scipy.stats import poisson
 import os
-#import MySQLdb
 import shutil
 import pickle
 import networkx
@@ -14,14 +13,6 @@ from operator import itemgetter
 import get_HPO_similarity_score as gs
 
 # sys.setdefaultencoding('latin-1')
-
-# try:
-#     import xlsxwriter
-#     import xlrd
-#     writeXLS = True
-# except:
-#     writeXLS = False
-#     print('No XlS writer')
 
 parser = argparse.ArgumentParser(description = 'filter SNPs according to their family distribution')
 parser.add_argument('--infile', type=argparse.FileType('r'), dest='infile', required=True, help='Input annotated ranked file [required]')
@@ -44,7 +35,6 @@ parser.add_argument('--csvfile', dest='csvfile', required=False, help='csv file 
 args = parser.parse_args()
 
 
-
 def main (args):
 
     #pp = pprint.PrettyPrinter( indent=4) # DEBUG
@@ -53,13 +43,9 @@ def main (args):
     # read the gene exclusion list
     # an empty set will not filter out anything, if gene exclusion list is not provided
     genes2exclude = set()
-    genes_known   = set()
+    genes_known = set()
 
     ### HPO files load
-    # __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    # gene_2_HPO_f = os.path.join(__location__, 'gene_2_HPO.p')
-    # DG_f = os.path.join(__location__, 'DG.pk')
-    
     script_path = os.path.dirname(os.path.abspath(__file__))
     gene_2_HPO_f = os.path.join(script_path, '../../res/gene_2_HPO.p')
     dg_f = os.path.join(script_path, '../../res/v2_ready_graph.pk')
@@ -96,7 +82,6 @@ def main (args):
                     except:
                         print('%s not found in database' % (HPO_term))
             HPO_query= list(set(HPO_query))
-
         else:
             print('The specified HPO list %s is not a valid file' % (args.white_list))
             print('eDiVA will proceed as without any HPO list')
@@ -191,13 +176,14 @@ def main (args):
         except:
             # pp.pprint(line)
             pass
+
         try:
             # avoiding problems with NAs
             MAF = max(float(MAF1k), float(MAFevs),float(MAFexac))
-
         except:
             print ('Freq error 1k %s EVS %s ExAC %s')%(MAF1k,MAFevs,MAFexac)
             MAF = 0
+
         try :
             CADD = float(line[index_CADD])
         except:
@@ -214,6 +200,7 @@ def main (args):
             print(len(line))
             print(line)
             raise
+
         # read simple tandem repeat information
         tandem = line[index_str]
 
@@ -234,11 +221,11 @@ def main (args):
                 ####g_dist = gs.calc_distance(DG,gene_HPO_list,HPO_query)
                 (g_dist,query_dist) = gs.list_distance(DG,HPO_query,gene_HPO_list,query_dist)
                 gene_distances.append(g_dist)
-                processed_HPO_genes[gene_id]= g_dist
+                processed_HPO_genes[gene_id] = g_dist
         final_distance = str(max(gene_distances))
-        known=final_distance
-
+        known = final_distance
         judgement = int()
+
         ###
         # look for de novo variants
         ###
@@ -285,6 +272,7 @@ def main (args):
 
             judgement = xlinked(sampledata, family,names)
             filter_line(judgement,line,MAF,CADD,tandem,args.inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage,args.familytype)
+
         ###
         # look for compound heterozygous variants
         ###
@@ -419,7 +407,6 @@ def compound(sampledata, family,names,debug=False):
     check_samples = dict()
     sample_annot_size = int(len(sampledata)/len(names))
 
-
     for samp in family.keys():
         check_samples[samp] = 0
 
@@ -552,7 +539,6 @@ def compound(sampledata, family,names,debug=False):
                     print('857')
                 break
 
-
     for vals in check_samples.values():
         if vals == 0:
             judgement = 0
@@ -565,9 +551,8 @@ def compound(sampledata, family,names,debug=False):
         print(judgement)
     return(judgement)
 
+
 def compoundizer(variantlist, family, index_sample, names):
-
-
     sub_pp = pprint.PrettyPrinter(indent = 5)
 
     #sub_pp.pprint(variantlist)
@@ -666,6 +651,7 @@ def compoundizer(variantlist, family, index_sample, names):
 
 
     return(judgement)
+
 
 def denovo(sampledata, family,names):
     sub_pp = pprint.PrettyPrinter(indent = 8)
@@ -811,6 +797,7 @@ def denovo(sampledata, family,names):
             break
 
     return(judgement)
+
 
 def dominant(sampledata, family,names):
     sub_pp = pprint.PrettyPrinter(indent = 8)
@@ -958,12 +945,14 @@ def dominant(sampledata, family,names):
 
     return(judgement)
 
+
 def identifycolumns (header, question):
     try:
         index = header.index(question)
     except:
         exit("ERROR: %s column could not be identified in the annotated data" % question)
     return int(index)
+
 
 def recessive(sampledata, family, familytype,names):
     #sub_pp = pprint.PrettyPrinter(indent = 8)
@@ -1120,6 +1109,7 @@ def recessive(sampledata, family, familytype,names):
 
     return(judgement)
 
+
 def xlinked(sampledata, family,names):
     sub_pp = pprint.PrettyPrinter(indent = 8)
 
@@ -1273,6 +1263,7 @@ def xlinked(sampledata, family,names):
 
     return(judgement)
 
+
 def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,hpolist,compound_gene_storage,familytype='trio'):
     #deal with each line before writing to output
     #remember continue after
@@ -1324,7 +1315,6 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
     else:
         cause,result = ('NOT_' + args.inheritance,'filtered')
 
-
     line.append(cause)
     line.append(result)
     line.append(known)
@@ -1340,8 +1330,6 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
         else:
             compound_gene_storage.append(line)
 
-
     return compound_gene_storage
-
 
 main(args)
