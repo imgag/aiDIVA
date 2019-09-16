@@ -56,18 +56,21 @@ def main (args):
     genes_known   = set()
 
     ### HPO files load
-    __location__   = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    gene_2_HPO_f   = os.path.join(__location__, 'gene_2_HPO.p')
-    DG_f           = os.path.join(__location__, 'DG.pk')
-    gene_2_HPO     = pickle.load(open(gene_2_HPO_f,'rb'))
+    # __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    # gene_2_HPO_f = os.path.join(__location__, 'gene_2_HPO.p')
+    # DG_f = os.path.join(__location__, 'DG.pk')
+    gene_2_HPO_f = '../../res/gene_2_HPO.p'
+    dg_f = '../../res/v2_ready_graph.pk'
 
-    graph_nodes, graph_edges = pickle.load(open("v2_ready_graph.pk", "rb"))
+    gene_2_HPO = pickle.load(open(gene_2_HPO_f,'rb'))
+    graph_nodes, graph_edges = pickle.load(open(dg_f, 'rb'))
+
     DG = networkx.Graph()
     DG.add_nodes_from(graph_nodes)
     DG.add_edges_from(graph_edges)
 
-    # DG             = pickle.load(open(DG_f,'rb'))
-    query_dist     = 0
+    # DG = pickle.load(open(DG_f,'rb'))
+    query_dist = 0
     if args.geneexclusion:
         for gene in args.geneexclusion:
             gene = gene.rstrip()
