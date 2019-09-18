@@ -80,7 +80,7 @@ for record in reader:
 
     record_entries = record.INFO.get('CSQ')
 
-    record_entry = [record.CHROM, record.POS, record.REF, record.ALT, record.INFO.get('RANK')]
+    record_entry = [record.CHROM, record.POS, record.REF, ','.join([alt.serialize() for alt in record.ALT]), record.INFO.get('RANK')[0]]
     target_entry = []
     current_consequence = 100
 
