@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 
 import vcfpy
 
@@ -40,7 +41,7 @@ variant_consequences = {'transcript_ablation': 1,
                         'intergenic_variant': 36}
 
 
-reader = vcfpy.Reader.from_path('/home/dominic/PycharmProjects/Masterarbeit/res/train_data_sorted_vep.vcf')
+reader = vcfpy.Reader.from_path(sys.argv[1])
 # for entry in reader.header.lines:
 #     print(entry)
 
@@ -100,4 +101,4 @@ for record in reader:
     test_variant_pandas = test_variant_pandas.append(record_dict, ignore_index=True)
     # print(test_variant_pandas)
 
-test_variant_pandas.to_csv('train.csv', sep='\t', encoding='utf-8', index=False)
+test_variant_pandas.to_csv(sys.argv[2], sep='\t', encoding='utf-8', index=False)
