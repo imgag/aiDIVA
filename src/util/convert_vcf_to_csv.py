@@ -63,15 +63,10 @@ unique_biotype = set()
 header_entries = ['Chr', 'Pos', 'Ref', 'Alt', 'Rank']
 header_entries.extend(splitted_header)
 
-print(header_entries)
-print(len(header_entries))
-
 test_variant_pandas = pd.DataFrame(columns=header_entries)
 
-count = 0
+print("Extract data from VCF")
 for record in reader:
-    count += 1
-    print(count)
     if not record.is_snv():
         continue
 
@@ -101,4 +96,5 @@ for record in reader:
     test_variant_pandas = test_variant_pandas.append(record_dict, ignore_index=True)
     # print(test_variant_pandas)
 
+print("Write data to CSV")
 test_variant_pandas.to_csv(sys.argv[2], sep='\t', encoding='utf-8', index=False)
