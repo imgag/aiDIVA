@@ -1,7 +1,8 @@
 import pandas as pd
 import sys
-
-import vcfpy
+import tempfile
+from itertools import takewhile
+from operator import itemgetter
 
 variant_consequences = {'transcript_ablation': 1,
                         'splice_acceptor_variant': 2,
@@ -41,60 +42,98 @@ variant_consequences = {'transcript_ablation': 1,
                         'intergenic_variant': 36}
 
 
-reader = vcfpy.Reader.from_path(sys.argv[1])
-# for entry in reader.header.lines:
-#     print(entry)
+def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
+    vcf_file_to_reformat = open(filepath, 'r')
+    
+    comment_iterator = takewhile(lambda s: s.startswith('#'), vcf_file_to_reformat)
+    comment_lines = list(comment_iterator)
+        
+    vcf_header = comment_lines[-1].strip().split("\t")
+        
+    tmp = tempfile.NamedTemporaryFile(mode="w")
+    tmp.write(vcf_file_to_reformat.read().replace("_\n", "_").replace("(?<!:).\n", ".").replace("|\n", "|").replace(",\n", ",").replace("-\n", "-").replace("/\n", "/").replace(":\n", ":").replace(";\n", ";"))
+    
+    vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment='#', low_memory=False)
+    
+    vcf_file_to_reformat.close()
+    tmp.close()
+    
+    return comment_lines, vcf_as_dataframe
 
-# print(reader.header.get_info_field_info("CSQ").description)
 
-header = reader.header.get_info_field_info("CSQ").description
-header = header.split(":")[1]
-splitted_header = header.split('|')
+def extract_columns(cell):
+    info_fields = str(cell).split(";")
+    new_cols = []
+    for field in info_fields:
+        if field.startswith("CSQ"):
+            new_cols.append(field.split("CSQ=")[1])
+    
+    return new_cols
 
-# print(header)
 
-# print(reader.parser.parse_next_record().INFO.get("CSQ"))
+def extract_vep_annotation(cell, annotation_header):
+    annotation_fields = str(cell).split(",")
+    new_cols = []
+    consequences = []
+        
+    # take the most severe annotation variant
+    for field in annotation_fields:
+        consequences.append(min([variant_consequences.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
+    
+    target_index = min(enumerate(consequences), key=itemgetter(1))[0]
+    new_cols = annotation_fields[target_index].strip().split("|")
+    
+    return new_cols
 
-unique_consequence = set()
-unique_impact = set()
-unique_featuretype = set()
-unique_biotype = set()
 
-header_entries = ['Chr', 'Pos', 'Ref', 'Alt', 'Rank']
-header_entries.extend(splitted_header)
+def extract_sample_information(row, sample):
+    sample_header = str(row["FORMAT"]).strip().split(":")
+    sample_fields = str(row[sample + ".full"]).strip().split(":")
+    
+    if len(sample_header) != len(sample_fields):
+        num_missing_entries = abs(len(sample_header) - len(sample_fields))
+        for i in range(num_missing_entries):
+            sample_fields.append(".")
+                
+    sample_gt_information = sample_fields[sample_header.index("GT")]
+    sample_dp_information = sample_fields[sample_header.index("DP")]
+    sample_ref_information = sample_fields[sample_header.index("AD")].split(",")[0]
+    sample_alt_information = sample_fields[sample_header.index("AD")].split(",")[1]
+    sample_gq_information = sample_fields[sample_header.index("GQ")]
+    
+    if sample_ref_information != "." and sample_alt_information != ".":
+        divisor = (int(sample_ref_information) + int(sample_alt_information))
+        if divisor == 0:
+            sample_af_information = 0
+        else:
+            sample_af_information = (int(sample_alt_information) / divisor)
+    else:
+        sample_af_information = "."
+    
+    
+    sample_information = [sample_gt_information, sample_dp_information, sample_ref_information, 
+                          sample_alt_information, sample_af_information, sample_gq_information]
+    
+    return sample_information
 
-test_variant_pandas = pd.DataFrame(columns=header_entries)
 
-print("Extract data from VCF")
-for record in reader:
-    if not record.is_snv():
-        continue
+annotation_header = []
 
-    # print(record.INFO.get('CSQ'))
-    # print(record.INFO.get('RANK'))
-    # print(len(record.INFO.get('CSQ')))
+header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(sys.argv[1])
+annotation_header = [entry.strip().replace("\">", "").split(": ")[1].split("|") for entry in header if entry.startswith("##INFO=<ID=CSQ")][0]
 
-    record_entries = record.INFO.get('CSQ')
 
-    record_entry = [record.CHROM, record.POS, record.REF, ','.join([alt.serialize() for alt in record.ALT]), record.INFO.get('RANK')[0]]
-    target_entry = []
-    current_consequence = 100
+## TODO check for non SNVs and remove them (is this necessary?!?)
 
-    for entry in record_entries:
-        splitted_entry = entry.split('|')
+vcf_as_dataframe[["CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
-        consequences = [variant_consequences[consequence] for consequence in splitted_entry[1].split('&')]
+vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
+vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
 
-        if min(consequences) < current_consequence:
-            current_consequence = min(consequences)
-            target_entry = splitted_entry
+for sample in [col for col in vcf_as_dataframe if col.startswith('NA')]:
+    vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
+    sample_header = [sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
+    vcf_as_dataframe[sample_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample)), axis=1)
 
-    record_entry.extend(target_entry)
-    # print(len(record_entry))
-    record_dict = {header_entries[index]: record_entry[index] for index in range(len(header_entries))}
-
-    test_variant_pandas = test_variant_pandas.append(record_dict, ignore_index=True)
-    # print(test_variant_pandas)
-
-print("Write data to CSV")
-test_variant_pandas.to_csv(sys.argv[2], sep='\t', encoding='utf-8', index=False)
+vcf_as_dataframe.to_csv(sys.argv[2], sep='\t', encoding='utf-8', index=False)

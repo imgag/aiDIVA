@@ -78,7 +78,7 @@ def list_distance(DG,Q,G,Query_distances):
             if  k_q not in list(DG.nodes()):
                 #missing node (obsolete not updated or just wrong value)
                continue
-            k_q = DG.node[k_q].get('replaced_by',k_q)
+            k_q = DG.nodes[k_q].get('replaced_by',k_q)
             distance =  nx.shortest_path_length(DG,k_q,weight='dist')
             if Query_distances ==0:
                   Query_distances = {key: float(value)%offset for (key, value) in distance.items()}

@@ -27,13 +27,54 @@ recessive: detect recessive, homozygous variants (if trio is specified the scrip
 Xlinked: used for X linked recessive variants in trios only
 compound: detect compound heterozygous recessive variants
 """)
+
+# TODO add choice for single patient (handle as dominant inherited)
 parser.add_argument('--familytype', choices=['trio', 'family'], dest='familytype', required=True, help="choose if the data you provide is a trio or a larger family")
 parser.add_argument('--geneexclusion',  type=argparse.FileType('r'), dest='geneexclusion', required=False, help='[Analysis of DNA sequence variants detected by high-throughput sequencing; DOI: 10.1002/humu.22035]. [required]')
 parser.add_argument('--HPO_list','--white_list',type=str,dest='white_list',default=None,required=False,help='--HPO_list \t a .txt file with the list of HPO terms describing the disease. It will be used to flag all genes related to the HPO terms. It works with Refseq and UCSC naming.\n')
+
+# TODO remove the following argument
 parser.add_argument('--csvfile', dest='csvfile', required=False, help='csv file with username and user email address. [optional]')
 
 args = parser.parse_args()
 
+
+variant_consequences = {'transcript_ablation': 'non_exonic',
+                        'splice_acceptor_variant': 'exonic;splicing',
+                        'splice_donor_variant': 'exonic;splicing',
+                        'stop_gained': 'exonic',
+                        'frameshift_variant': 'exonic',
+                        'stop_lost': 'exonic',
+                        'start_lost': 'exonic',
+                        'transcript_amplification': 'non_exonic',
+                        'inframe_insertion': 'exonic',
+                        'inframe_deletion': 'exonic',
+                        'missense_variant': 'exonic',
+                        'protein_altering_variant': 'non_exonic',
+                        'splice_region_variant': 'splicing', # maybe not
+                        'incomplete_terminal_codon_variant': 'exonic',
+                        'start_retained_variant': 'exonic', # maybe not
+                        'stop_retained_variant': 'exonic', # maybe not
+                        'synonymous_variant': 'exonic',
+                        'coding_sequence_variant': 'exonic',
+                        'mature_miRNA_variant': 'non_exonic',
+                        '5_prime_UTR_variant': 'UTR_exonic',
+                        '3_prime_UTR_variant': 'UTR_exonic',
+                        'non_coding_transcript_exon_variant': 'non_exonic',
+                        'intron_variant': 'intronic',
+                        'NMD_transcript_variant': 'non_exonic',
+                        'non_coding_transcript_variant': 'non_exonic',
+                        'upstream_gene_variant': 'non_exonic',
+                        'downstream_gene_variant': 'non_exonic',
+                        'TFBS_ablation': 'non_exonic',
+                        'TFBS_amplification': 'non_exonic',
+                        'TF_binding_site_variant': 'non_exonic',
+                        'regulatory_region_ablation': 'non_exonic',
+                        'regulatory_region_amplification': 'non_exonic',
+                        'feature_elongation': 'non_exonic',
+                        'regulatory_region_variant': 'non_exonic',
+                        'feature_truncation': 'non_exonic',
+                        'intergenic_variant': 'non_exonic'}
 
 def main (args):
 
@@ -96,15 +137,15 @@ def main (args):
         family[splitline[0]] = splitline[1]
 
     # read all data
-    alldata = list(csv.reader(args.infile))
+    alldata = list(csv.reader(args.infile, delimiter="\t"))
     header = alldata.pop(0)
     if args.inheritance == 'compound' :
         alldata = sorted(alldata, key=itemgetter(0,1))
     header =[x.replace('#','',1) for x in header]
     #print header
     #raise
-    out = csv.writer(args.outfile)
-    outfiltered = csv.writer(args.filteredfile)
+    out = csv.writer(args.outfile, delimiter="\t")
+    outfiltered = csv.writer(args.filteredfile, delimiter="\t")
 
     ############
     # Filter out SNPs from filtered file where :
@@ -115,17 +156,32 @@ def main (args):
     #############
     # TODO:  adapt to new feature list
 
-    index_sample = min([identifycolumns(header,x) for x in family.keys()    ])#+identifycolumns(header, 'ExAC_SAS') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
-    index_MAF1k = identifycolumns(header, 'Total1000GenomesFrequency')
-    index_MAFevs = identifycolumns(header, 'TotalEVSFrequency')
-    index_MAF_exac = identifycolumns(header, 'ExAC_AF')
-    index_function = identifycolumns(header, 'Function(Refseq)')
-    index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
-    index_segdup = identifycolumns(header, 'SegMentDup')
-    index_gene = identifycolumns(header, 'Gene(Refseq)')
-    index_str = identifycolumns(header, 'SimpleTandemRepeatLength')
-    index_CADD = identifycolumns(header, 'Cadd2')
+    print(family)
+    print(header)
+
+    index_sample = min([identifycolumns(header,x) for x in family.keys()])#+identifycolumns(header, 'ExAC_SAS') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
+    index_MAF1k = identifycolumns(header, 'AF')
+    # index_MAFevs = identifycolumns(header, 'TotalEVSFrequency') # we don't have the information of EVS
+    index_MAF_gnomAD = identifycolumns(header, 'gnomAD_AF') # change from ExAC to gnomAD
+    # index_function = identifycolumns(header, 'Function(Refseq)') # use the consequences column
+    index_function = identifycolumns(header, 'Consequence')
+    index_varfunction = identifycolumns(header, 'Consequence') # this column doesn't exist anymore TODO remove
+    index_segdup = identifycolumns(header, 'SegDupMax') # either SegmentDuplication or SegDupMax, if the first one is chosen we need to choose the max. value if there are multiple
+    # index_gene = identifycolumns(header, 'Gene(Refseq)') # HGNC gene symbol
+    index_gene = identifycolumns(header, 'SYMBOL')
+    index_str = identifycolumns(header, 'SimpleTandemRepeatRegion') # use here Region instead of Length to match the new data
+    index_CADD = identifycolumns(header, 'CADD_PHRED')
     index_rank = identifycolumns(header, 'Rank')
+
+    print("Sample-index: ", index_sample)
+    print("AF-index: ", index_MAF1k)
+    print("nomAD_AF-index: ", index_MAF_gnomAD)
+    print("Consequence-index: ", index_function)
+    print("SegDup-index: ", index_segdup)
+    print("Gene-index: ", index_gene)
+    print("Repeat-index: ", index_str)
+    print("CADD-index: ", index_CADD)
+    print("Rank-index: ", index_rank)
 
     #print index_sample
     sample_annot_size = 6 # sampleid - DP - REF - ALT - AF - GQ
@@ -168,20 +224,22 @@ def main (args):
         # read minor allele frequencies
         try:
             MAF1k = line[index_MAF1k].replace('NA','0')
-            MAFevs = line[index_MAFevs].replace('NA','0')
-            if 'NA' == line[index_MAF_exac]:
-                MAFexac = '0'
+            # MAFevs = line[index_MAFevs].replace('NA','0')
+            if 'NA' == line[index_MAF_gnomAD]:
+                MAFgnomAD = '0'
             else:
-                MAFexac = line[index_MAF_exac]
+                MAFgnomAD = line[index_MAF_gnomAD]
         except:
             # pp.pprint(line)
             pass
 
         try:
             # avoiding problems with NAs
-            MAF = max(float(MAF1k), float(MAFevs),float(MAFexac))
+            # MAF = max(float(MAF1k), float(MAFevs),float(MAFgnomAD))
+            MAF = max(float(MAF1k), float(MAFgnomAD))
         except:
-            print ('Freq error 1k %s EVS %s ExAC %s')%(MAF1k,MAFevs,MAFexac)
+            # print ('Freq error 1k %s EVS %s ExAC %s')%(MAF1k,MAFevs,MAFgnomAD)
+            print ('Freq error 1k %s ExAC %s')%(MAF1k,MAFgnomAD)
             MAF = 0
 
         try :
@@ -276,6 +334,8 @@ def main (args):
         ###
         # look for compound heterozygous variants
         ###
+        elif args.inheritance == 'unknown':
+        
         elif args.inheritance == 'compound' :
 
             new_gene = re.sub('\(.*?\)','',line[index_gene])
@@ -325,38 +385,38 @@ def main (args):
                 compound_gene_storage = filter_line(judgement,line,MAF,CADD,tandem,'compound_single_sample',index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
             continue
 
-    else:
-        # clean up for last gene
-        if args.inheritance == 'compound':
-            if  len(names) ==3:
-                comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-                genecolumn   = re.sub('\(.*?\)','',line[index_gene])
-                genenames = set(genecolumn.split(';'))
-                if len(old_gene_set - new_gene_set) > 0:
+        else:
+            # clean up for last gene
+            if args.inheritance == 'compound':
+                if  len(names) ==3:
                     comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-                    extension = []
-                    pass_ = 0
-                    for row in compound_gene_storage:
-                        rrow = ','.join(row)
-                        if len(compound_gene_storage) == 1:
-                            rrow=rrow.replace(',compound,PASS',',NOT_compound,filtered')
-                        else:
-                            if comp_judgement==1:
-                               outfiltered.writerow(rrow.split(','))
-                            else:
+                    genecolumn   = re.sub('\(.*?\)','',line[index_gene])
+                    genenames = set(genecolumn.split(';'))
+                    if len(old_gene_set - new_gene_set) > 0:
+                        comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
+                        extension = []
+                        pass_ = 0
+                        for row in compound_gene_storage:
+                            rrow = ','.join(row)
+                            if len(compound_gene_storage) == 1:
                                 rrow=rrow.replace(',compound,PASS',',NOT_compound,filtered')
-                        out.writerow(rrow.split(',') )
-            elif len(names) == 1:
-                #just check there's more than one and print it
-                if len(compound_gene_storage) == 1:
-                    row = compound_gene_storage[0]
-                    rrow = ','.join(row).replace(',compound_single_sample,PASS','NOT_compound,filtered')
-                    out.writerow(rrow.split(','))
-                elif len(compound_gene_storage) > 1:
-                    for row in compound_gene_storage:
-                        rrow = ','.join(row)
-                        outfiltered.writerow(rrow.split(','))
+                            else:
+                                if comp_judgement==1:
+                                outfiltered.writerow(rrow.split(','))
+                                else:
+                                    rrow=rrow.replace(',compound,PASS',',NOT_compound,filtered')
+                            out.writerow(rrow.split(',') )
+                elif len(names) == 1:
+                    #just check there's more than one and print it
+                    if len(compound_gene_storage) == 1:
+                        row = compound_gene_storage[0]
+                        rrow = ','.join(row).replace(',compound_single_sample,PASS','NOT_compound,filtered')
                         out.writerow(rrow.split(','))
+                    elif len(compound_gene_storage) > 1:
+                        for row in compound_gene_storage:
+                            rrow = ','.join(row)
+                            outfiltered.writerow(rrow.split(','))
+                            out.writerow(rrow.split(','))
 
     exit(0)
 
@@ -1277,6 +1337,9 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
     conditions['compound'] = (0.02,-1)
     conditions['Xlinked'] = (0.01,-1)
     conditions['compound_single_sample'] = conditions['dominant_denovo']
+    #conditions['unknown'] = conditions['dominant_denovo']
+    
+    # TODO add case for UNKNOWN inheritance, given that we have only the patient data and nothing about family
 
     (MAF_threshold,CADD_threshold) = conditions[inheritance]
     if not familytype == 'trio' and inheritance=='Xlinked' :
@@ -1291,15 +1354,19 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
     elif judgement == 1 and CADD>0 and CADD < CADD_threshold :
          cause,result = (inheritance,'low CADD')
     elif judgement == 1 and MAF <= MAF_threshold:
-        if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
-            if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
-                if (line[index_segdup] == '0')  :
+        # TODO adapt following two conditions to match the possible values from the consequences column
+        #if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
+            #if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
+        found_consequences = [variant_consequences[consequence] for consequence in line[index_function].split("&")]
+        if ('exonic' in found_consequences or 'splicing' in found_consequences or 'exonic;splicing' in found_consequences):
+            if (line[index_function] != 'synonymous_variant' and line[index_function] != 'unknown' and line[index_function] != 'UNKNOWN'):
+                if (float(line[index_segdup]) == 0)  :
                     cause,result = (inheritance,'PASS')
-                    if len(hpolist) >1 and 'NONE' not in hpolist:
+                    if len(hpolist) > 1 and 'NONE' not in hpolist:
                         if float(known) > 0: ######## quota to include it in the output : '0'
                             cause,result = (inheritance,'PASS')
                         else:
-                            cause,result = (inheritance,'filterd_semantic_distamce')
+                            cause,result = (inheritance,'filterd_semantic_distance')
                 # e.g. intronic variants fitting the criteria
                 else:
                     cause,result = (inheritance,'filtered seg. dup region')
