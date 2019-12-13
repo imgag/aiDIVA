@@ -1,4 +1,6 @@
 import pandas as pd
+import argparse
+
 
 def get_abb_score(row, abb):
     if row.Chr == 'X':
@@ -35,13 +37,6 @@ def group_and_process_data(abb_data, data):
 
 
 if __name__=='__main__':
-    
-    #!/usr/bin/python3
-    import pandas as pd
-    import sys
-    import argparse
-    
-    
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_data', type=str, dest='in_data', metavar='in.csv', required=True, help='CSV file containing the data, you want to extend with the ABB score information\n')
     parser.add_argument('--abb_data', type=str, dest='abb_data', metavar='abb.csv', required=True, help='CSV file containing the ABB score information\n')

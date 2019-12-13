@@ -1,4 +1,6 @@
 import pandas as pd
+import argparse
+
 
 def extract_simple_repeats(row, current_repeat_table):        
     current_repeat_table_entries = current_repeat_table.loc[(current_repeat_table[2] <= int(row["Pos"])) & (current_repeat_table[3] >= int(row["Pos"]))]
@@ -126,12 +128,6 @@ def group_and_process_data(repeat_data, data):
 
 
 if __name__=='__main__':
-    
-    #!/usr/bin/python3
-    import pandas as pd
-    import argparse
-    
-    
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_data', type=str, dest='in_data', metavar='data.csv', required=True, help='CSV file containing the data, you want to extend with the simple repeat information\n')
     parser.add_argument('--repeat_data', type=str, dest='repeat_data', metavar='table.csv', required=True, help='CSV file containing the simple repeat information\n')

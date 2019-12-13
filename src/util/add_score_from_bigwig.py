@@ -1,5 +1,7 @@
 import pyBigWig as pw
 import pandas as pd
+import argparse
+
 
 def extract_value(row, bw_file):
     start = row["Pos"] - 1
@@ -32,13 +34,6 @@ def group_and_process_data(bigwig_data, input_data, feature_name):
 
 
 if __name__=='__main__':
-    
-    #!/usr/bin/python3
-    import pyBigWig as pw
-    import pandas as pd
-    import argparse
-    
-    
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_data', type=str, dest='in_data', metavar='in.csv', required=True, help='CSV file containing the data, you want to extend with the ABB score information\n')
     parser.add_argument('--bigwig_data', type=str, dest='bigwig_data', metavar='data.bw', required=True, help='Bigwig file containing the feature information you want to add\n')

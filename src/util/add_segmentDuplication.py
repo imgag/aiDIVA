@@ -1,4 +1,7 @@
 import pandas as pd
+import numpy as np
+import argparse
+
 
 def extract_seg_dups(row, current_seg_dup_table):
     filtered_seg_dup_table = current_seg_dup_table.loc[(current_seg_dup_table.index.get_level_values(2) <= int(row["Pos"])) & (current_seg_dup_table.index.get_level_values(3) >= int(row["Pos"]))]
@@ -9,18 +12,19 @@ def extract_seg_dups(row, current_seg_dup_table):
         value = filtered_seg_dup_table[26]
         value_rounded = ("%.6f" % round(value, 6))
         
-        return value_rounded
+        return value_rounded, value_rounded
     elif occurences > 1:        
         values = filtered_seg_dup_table[26].tolist() 
         values_rounded = [("%.6f" % round(value, 6)) for value in values]
         
-        return "&".join(values_rounded)
+        return "&".join(values_rounded), max(values_rounded)
     else:
-        return ""
+        return "", ""
 
 
 def extract_data(data, current_seg_dup_table):
-    data[["SegmentDuplication"]] = data.apply(lambda row: pd.Series(extract_seg_dups(row, current_seg_dup_table)), axis=1)
+    data[["SegmentDuplication", "SegDupMax"]] = data.apply(lambda row: pd.Series(extract_seg_dups(row, current_seg_dup_table)), axis=1)
+    data["SegDupMax"] = data["SegDupMax"].replace(r"^\s*$", np.nan, regex=True)
     
     return data
 
@@ -116,12 +120,6 @@ def group_and_process_data(seg_dup_table, data):
 
 
 if __name__=='__main__':
-    
-    #!/usr/bin/python3
-    import pandas as pd
-    import argparse
-    
-    
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_data', type=str, dest='in_data', metavar='data.csv', required=True, help='CSV file containing the data, you want to extend with the segment duplication information\n')
     parser.add_argument('--duplication_data', type=str, dest='duplication_data', metavar='table.csv', required=True, help='CSV file containing the segment duplication information\n')

@@ -1,8 +1,10 @@
 import pandas as pd
-import sys
+import numpy as np
 import tempfile
+import argparse
 from itertools import takewhile
 from operator import itemgetter
+
 
 variant_consequences = {'transcript_ablation': 1,
                         'splice_acceptor_variant': 2,
@@ -58,7 +60,19 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     vcf_file_to_reformat.close()
     tmp.close()
     
+    vcf_as_dataframe = vcf_as_dataframe.rename(columns={"#CHROM": "Chr",
+                                     "POS": "Pos",
+                                     "REF": "Ref",
+                                     "ALT": "Alt"})
+    vcf_as_dataframe = vcf_as_dataframe.drop(columns=["ID", "QUAL", "FILTER"])
+    
     return comment_lines, vcf_as_dataframe
+
+
+def extract_annotation_header(header):
+    annotation_header = [entry.strip().replace("\">", "").split(": ")[1].split("|") for entry in header if entry.startswith("##INFO=<ID=CSQ")][0]
+
+    return annotation_header
 
 
 def extract_columns(cell):
@@ -111,29 +125,62 @@ def extract_sample_information(row, sample):
         sample_af_information = "."
     
     
-    sample_information = [sample_gt_information, sample_dp_information, sample_ref_information, 
-                          sample_alt_information, sample_af_information, sample_gq_information]
+    sample_information = [sample_gt_information, sample_dp_information, sample_ref_information, sample_alt_information, sample_af_information, sample_gq_information]
     
     return sample_information
 
 
-annotation_header = []
+def add_INFO_fields_to_dataframe(vcf_as_dataframe):
+    vcf_as_dataframe[["CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+    vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
+    
+    return vcf_as_dataframe
 
-header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(sys.argv[1])
-annotation_header = [entry.strip().replace("\">", "").split(": ")[1].split("|") for entry in header if entry.startswith("##INFO=<ID=CSQ")][0]
+
+def add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header):
+    vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
+    vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
+    
+    return vcf_as_dataframe
 
 
-## TODO check for non SNVs and remove them (is this necessary?!?)
+def add_sample_information_to_dataframe(vcf_as_dataframe):
+    for sample in [col for col in vcf_as_dataframe if col.startswith('NA')]:
+        vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
+        sample_header = [sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
+        vcf_as_dataframe[sample_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample)), axis=1)
+        
+        vcf_as_dataframe = vcf_as_dataframe.drop(columns=[sample + ".full"])
+    
+    vcf_as_dataframe = vcf_as_dataframe.drop(columns=["FORMAT"])
+    
+    return vcf_as_dataframe
 
-vcf_as_dataframe[["CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
-vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
-vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
-vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
+def convert_vcf_to_pandas_dataframe(input_file):
+    header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
+    annotation_header = extract_annotation_header(header)
 
-for sample in [col for col in vcf_as_dataframe if col.startswith('NA')]:
-    vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
-    sample_header = [sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
-    vcf_as_dataframe[sample_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample)), axis=1)
+    vcf_as_dataframe = add_INFO_fields_to_dataframe(vcf_as_dataframe)
+    vcf_as_dataframe = add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header)
+    vcf_as_dataframe = add_sample_information_to_dataframe(vcf_as_dataframe)
+    
+    # replace empty strings or only spaces with NaN
+    vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True)
+    
+    return vcf_as_dataframe
 
-vcf_as_dataframe.to_csv(sys.argv[2], sep='\t', encoding='utf-8', index=False)
+
+def write_vcf_to_csv(vcf_as_dataframe, out_file):
+    vcf_as_dataframe.to_csv(out_file, sep='\t', encoding='utf-8', index=False)
+
+
+if __name__=='__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--in_data', type=str, dest='in_data', metavar='input.vcf', required=True, help='VCF file to convert file\n')
+    parser.add_argument('--out_data', type=str, dest='out_data', metavar='output.csv', required=True, help='CSV file containing the converted VCF file\n')
+    args = parser.parse_args()
+    
+    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data)
+    
+    write_vcf_to_csv(vcf_as_dataframe, args.out_data)
