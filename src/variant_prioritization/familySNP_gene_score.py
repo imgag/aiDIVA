@@ -10,7 +10,7 @@ import networkx
 import sys
 import pandas as pd
 from operator import itemgetter
-from . import get_HPO_similarity_score as gs
+import get_HPO_similarity_score as gs
 
 # sys.setdefaultencoding('latin-1')
 
@@ -210,6 +210,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
             new_gene_set = set(new_gene.split(';'))
             initializer = 1
 
+        # TODO change to use all population AFs
         # read minor allele frequencies
         try:
             MAF1k = line[index_MAF1k].replace('NA','0')
@@ -320,12 +321,10 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
 
             judgement = xlinked(sampledata, family,names)
             filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage,familytype)
-
+        
         ###
         # look for compound heterozygous variants
         ###
-        elif inheritance == 'unknown':
-            print()
         elif inheritance == 'compound' :
             new_gene = re.sub('\(.*?\)','',line[index_gene])
             new_gene_set = set(new_gene.split(';'))
@@ -372,6 +371,14 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
                 #then use the denovo filter strategy
                 judgement = denovo(sampledata, family,names)
                 compound_gene_storage = filter_line(judgement,line,MAF,CADD,tandem,'compound_single_sample',index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
+            continue
+        
+        ###
+        # in case of single sample data with unknown inheritance, skip the inheritance filtering and perform filtering only based on the other criteria
+        ###
+        elif inheritance == 'unknown':
+            judgement = 1
+            filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
             continue
 
         else:
@@ -1142,7 +1149,7 @@ def recessive(sampledata, family, familytype,names):
 
                 # for security reasons
                 judgement = 0
-                break
+                breakrecessive
 
         # do not accept missing values for affected individuals
         # they should be called hom alt by the SNP caller
@@ -1326,7 +1333,7 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
     conditions['compound'] = (0.02,-1)
     conditions['Xlinked'] = (0.01,-1)
     conditions['compound_single_sample'] = conditions['dominant_denovo']
-    #conditions['unknown'] = conditions['dominant_denovo']
+    conditions['unknown'] = conditions['dominant_inherited']
     
     # TODO add case for UNKNOWN inheritance, given that we have only the patient data and nothing about family
 
@@ -1395,7 +1402,7 @@ if __name__=='__main__':
     parser.add_argument('--outfile', type=str, dest='outfile', required=True, help='Output file wit all variants. [required]')
     parser.add_argument('--filteredoutfile', type=str, dest='filteredfile', required=True, help='filtered comma separated list of SNPs annotated with inheritance pattern, only reporting the requested variants. [required]')
     parser.add_argument('--family', type=str, dest='famfile', required=True, help='tab separated list of samples annotated with affection status. [required]')
-    parser.add_argument('--inheritance', type=str, choices=['dominant_denovo', 'dominant_inherited', 'recessive', 'Xlinked', 'compound'], dest='inheritance', required=True, help="""choose a inheritance model [required]
+    parser.add_argument('--inheritance', type=str, choices=['dominant_denovo', 'dominant_inherited', 'recessive', 'Xlinked', 'compound', 'unknown'], dest='inheritance', required=True, help="""choose a inheritance model [required]
     dominant_inherited: used for families
     dominant_denovo: apply to novel variants seen in the affected individuals
 
