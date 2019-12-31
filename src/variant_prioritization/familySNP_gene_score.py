@@ -129,7 +129,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
     alldata = list(csv.reader(infile, delimiter="\t"))
     header = alldata.pop(0)
         
-    if inheritance == 'compound':
+    if inheritance == 'COMPOUND':
         alldata = sorted(alldata, key=itemgetter(0,1)) # sorts alldata according to the first and second element of each row
     header =[x.replace('#','',1) for x in header]
     #print header
@@ -152,6 +152,25 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
     index_MAF1k = identifycolumns(header, 'AF')
     # index_MAFevs = identifycolumns(header, 'TotalEVSFrequency') # we don't have the information of EVS
     index_MAF_gnomAD = identifycolumns(header, 'gnomAD_AF') # change from ExAC to gnomAD
+    #gnomAD_AFR_AF	gnomAD_AMR_AF	gnomAD_ASJ_AF	gnomAD_EAS_AF	gnomAD_FIN_AF	gnomAD_NFE_AF	gnomAD_OTH_AF	gnomAD_SAS_AF
+
+    index_MAF1k_AA = identifycolumns(header, 'AA_AF')
+    index_MAF1k_AFR = identifycolumns(header, 'AFR_AF')
+    index_MAF1k_AMR = identifycolumns(header, 'AMR_AF')
+    index_MAF1k_EA = identifycolumns(header, 'EA_AF')
+    index_MAF1k_EAS = identifycolumns(header, 'EAS_AF')
+    index_MAF1k_EUR = identifycolumns(header, 'EUR_AF')
+    index_MAF1k_SAS = identifycolumns(header, 'SAS_AF')
+    
+    index_MAF_gnomAD_AFR = identifycolumns(header, 'gnomAD_AFR_AF')
+    index_MAF_gnomAD_AMR = identifycolumns(header, 'gnomAD_AMR_AF')
+    index_MAF_gnomAD_ASJ = identifycolumns(header, 'gnomAD_ASJ_AF')
+    index_MAF_gnomAD_EAS = identifycolumns(header, 'gnomAD_EAS_AF')
+    index_MAF_gnomAD_FIN = identifycolumns(header, 'gnomAD_FIN_AF')
+    index_MAF_gnomAD_NFE = identifycolumns(header, 'gnomAD_NFE_AF')
+    index_MAF_gnomAD_OTH = identifycolumns(header, 'gnomAD_OTH_AF')
+    index_MAF_gnomAD_SAS = identifycolumns(header, 'gnomAD_SAS_AF')
+
     # index_function = identifycolumns(header, 'Function(Refseq)') # use the consequences column
     index_function = identifycolumns(header, 'Consequence')
     index_varfunction = identifycolumns(header, 'Consequence') # this column doesn't exist anymore TODO remove
@@ -202,7 +221,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
     # start reading data
     for line in alldata:
          # init for compound
-        if inheritance == 'compound' and initializer == 0:
+        if inheritance == 'COMPOUND' and initializer == 0:
             compound_gene_storage = []
             old_gene   = re.sub('\(.*?\)','',line[index_gene]) # PKHD1L1(NM_177531:exon75:c.12330+1G>A) transformed to PKHD1L1. Also works for ";" separated multiple annotations
             old_gene_set = set(old_gene.split(';')) # try to remove double occurences of the same gene names
@@ -211,6 +230,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
             initializer = 1
 
         # TODO change to use all population AFs
+        # TODO the following can be removed since NAs are replaced in the scripts before
         # read minor allele frequencies
         try:
             MAF1k = line[index_MAF1k].replace('NA','0')
@@ -226,10 +246,29 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
         try:
             # avoiding problems with NAs
             # MAF = max(float(MAF1k), float(MAFevs),float(MAFgnomAD))
-            MAF = max(float(MAF1k), float(MAFgnomAD))
+            MAF1k_AA = line[index_MAF1k_AA]
+            MAF1k_AFR = line[index_MAF1k_AFR]
+            MAF1k_AMR = line[index_MAF1k_AMR]
+            MAF1k_EA = line[index_MAF1k_EA]
+            MAF1k_EAS = line[index_MAF1k_EAS]
+            MAF1k_EUR = line[index_MAF1k_EUR]
+            MAF1k_SAS = line[index_MAF1k_SAS]
+            
+            MAFgnomAD_AFR = line[index_MAF_gnomAD_AFR]
+            MAFgnomAD_AMR = line[index_MAF_gnomAD_AMR]
+            MAFgnomAD_ASJ = line[index_MAF_gnomAD_ASJ]
+            MAFgnomAD_EAS = line[index_MAF_gnomAD_EAS]
+            MAFgnomAD_FIN = line[index_MAF_gnomAD_FIN]
+            MAFgnomAD_NFE = line[index_MAF_gnomAD_NFE]
+            MAFgnomAD_OTH = line[index_MAF_gnomAD_OTH]
+            MAFgnomAD_SAS = line[index_MAF_gnomAD_SAS]
+            
+            #MAF = max(float(MAF1k), float(MAFgnomAD))
+            MAF = max(float(MAF1k_AA), float(MAF1k_AFR), float(MAF1k_AMR), float(MAF1k_EA), float(MAF1k_EAS), float(MAF1k_EUR), float(MAF1k_SAS), float(MAFgnomAD_AFR), float(MAFgnomAD_AMR), float(MAFgnomAD_ASJ), float(MAFgnomAD_EAS), float(MAFgnomAD_FIN), float(MAFgnomAD_NFE), float(MAFgnomAD_OTH), float(MAFgnomAD_SAS))
         except:
             # print ('Freq error 1k %s EVS %s ExAC %s')%(MAF1k,MAFevs,MAFgnomAD)
-            print ('Freq error 1k %s gnomAD %s')%(MAF1k,MAFgnomAD)
+            #print ('Freq error 1k %s gnomAD %s')%(MAF1k,MAFgnomAD)
+            print('Freq error 1k_AA %s 1k_AFR %s 1k_AMR %s 1k_EA %s 1k_EA %s 1k_EAS %s 1k_EUR %s 1k_SAS %s gnomAD_AFR %s gnomAD_AMR %s gnomAD_ASJ %s gnomAD_EAS %s gnomAD_FIN %s gnomAD_FIN %s gnomAD_NFE %s gnomAD_OTH %s gnomAD_SAS %s')%(MAF1k_AA, MAF1k_AFR, MAF1k_AMR, MAF1k_EA, MAF1k_EAS, MAF1k_EUR, MAF1k_SAS, MAFgnomAD_AFR, MAFgnomAD_AMR, MAFgnomAD_ASJ, MAFgnomAD_EAS, MAFgnomAD_FIN, MAFgnomAD_NFE, MAFgnomAD_OTH, MAFgnomAD_SAS)
             MAF = 0
 
         try :
@@ -277,7 +316,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
         ###
         # look for de novo variants
         ###
-        if inheritance == 'dominant_denovo':
+        if inheritance == 'DOMINANT_DENOVO':
             judgement = denovo(sampledata, family,names)
             filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
             continue
@@ -285,7 +324,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
         ###
         # look for familial dominant variants. (being tolerant for missing values)
         ###
-        elif inheritance == 'dominant_inherited':
+        elif inheritance == 'DOMINANT_INHERITED':
             judgement = dominant(sampledata, family,names)
             sample_annot_size = int(len(sampledata)/len(names))
             total_affected=0
@@ -293,16 +332,18 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
                 sam = sampledata[i]
                 features    = sampledata[i:i+sample_annot_size]#sam.split(':')
                 name        = names[int(i/sample_annot_size)]
-                total_affected += int(family[name] )
-                if total_affected==1:
-                    judgement *=0 #denovo mutation excluded
+                total_affected += int(family[name])
+
+                if total_affected == 1 and not familytype == 'SINGLE':
+                    judgement *= 0 #denovo mutation excluded if not single sample case
                 filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
                 continue
 
         ###
         # look for recessive variants (be aware of trio and family inheritance)
         ###
-        elif inheritance == 'recessive':
+        elif inheritance == 'RECESSIVE':
+            # TODO single sample case?
             judgement = recessive(sampledata, family, familytype,names)
             filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
             continue
@@ -310,7 +351,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
         ###
         # look for X linked recessive variants in trios
         ###
-        elif inheritance == 'Xlinked':
+        elif inheritance == 'XLINKED':
 
             index_chromosome = identifycolumns(header, 'Chr')
             # skip all variants not located
@@ -325,7 +366,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
         ###
         # look for compound heterozygous variants
         ###
-        elif inheritance == 'compound' :
+        elif inheritance == 'COMPOUND' :
             new_gene = re.sub('\(.*?\)','',line[index_gene])
             new_gene_set = set(new_gene.split(';'))
 
@@ -339,19 +380,19 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
                         rrow = ','.join(row)
 
                         if len(compound_gene_storage) == 1:
-                            rrow=rrow.replace(',compound,PASS','NOT_compound,filtered')
+                            rrow=rrow.replace(',COMPOUND,PASS','NOT_compound,filtered')
                         else:
                             if comp_judgement==1:
                                outfiltered.writerow(rrow.split(','))
                             else:
-                                rrow=rrow.replace(',compound,PASS','NOT_compound,filtered')
+                                rrow=rrow.replace(',COMPOUND,PASS','NOT_compound,filtered')
                         out.writerow(rrow.split(','))
 
                 elif len(names) == 1:
                     #just check there's more than one and print it
                     if len(compound_gene_storage) == 1:
                         row = compound_gene_storage[0]
-                        rrow = ','.join(row).replace(',compound_single_sample,PASS','NOT_compound,filtered')
+                        rrow = ','.join(row).replace(',COMPOUND_SINGLE_SAMPLE,PASS','NOT_compound,filtered')
                         out.writerow(rrow.split(','))
                     elif len(compound_gene_storage) > 1:
                         for row in compound_gene_storage:
@@ -370,20 +411,20 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
             elif len(names) == 1:
                 #then use the denovo filter strategy
                 judgement = denovo(sampledata, family,names)
-                compound_gene_storage = filter_line(judgement,line,MAF,CADD,tandem,'compound_single_sample',index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
+                compound_gene_storage = filter_line(judgement,line,MAF,CADD,tandem,'COMPOUND_SINGLE_SAMPLE',index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
             continue
         
         ###
         # in case of single sample data with unknown inheritance, skip the inheritance filtering and perform filtering only based on the other criteria
         ###
-        elif inheritance == 'unknown':
+        elif inheritance == 'UNKNOWN':
             judgement = 1
             filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
             continue
 
         else:
             # clean up for last gene
-            if inheritance == 'compound':
+            if inheritance == 'COMPOUND':
                 if  len(names) ==3:
                     comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
                     genecolumn   = re.sub('\(.*?\)','',line[index_gene])
@@ -395,18 +436,18 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
                         for row in compound_gene_storage:
                             rrow = ','.join(row)
                             if len(compound_gene_storage) == 1:
-                                rrow=rrow.replace(',compound,PASS',',NOT_compound,filtered')
+                                rrow=rrow.replace(',COMPOUND,PASS',',NOT_compound,filtered')
                             else:
                                 if comp_judgement==1:
                                     outfiltered.writerow(rrow.split(','))
                                 else:
-                                    rrow=rrow.replace(',compound,PASS',',NOT_compound,filtered')
+                                    rrow=rrow.replace(',COMPOUND,PASS',',NOT_compound,filtered')
                             out.writerow(rrow.split(',') )
                 elif len(names) == 1:
                     #just check there's more than one and print it
                     if len(compound_gene_storage) == 1:
                         row = compound_gene_storage[0]
-                        rrow = ','.join(row).replace(',compound_single_sample,PASS','NOT_compound,filtered')
+                        rrow = ','.join(row).replace(',COMPOUND_SINGLE_SAMPLE,PASS','NOT_compound,filtered')
                         out.writerow(rrow.split(','))
                     elif len(compound_gene_storage) > 1:
                         for row in compound_gene_storage:
@@ -1072,13 +1113,13 @@ def recessive(sampledata, family, familytype,names):
             continue
 
         # non-affected individuals might be hom ref, if a family is interrogated
-        elif zygosity == '0/0' and family[name] == '0' and familytype == 'family':
+        elif zygosity == '0/0' and family[name] == '0' and familytype == 'FAMILY':
             judgement = 1
             #sub_pp.pprint(['0/0 0 family', name])
             continue
 
         # non-affected individuals in a trio are the parents and have to be het
-        elif zygosity == '0/0' and family[name] == '0' and familytype == 'trio':
+        elif zygosity == '0/0' and family[name] == '0' and familytype == 'TRIO':
             judgement = 0
             #sub_pp.pprint(['0/0 0 trio', name])
             break
@@ -1137,12 +1178,12 @@ def recessive(sampledata, family, familytype,names):
             else:
 
                 # accept missing values in family interrogations
-                if familytype == 'family':
+                if familytype == 'FAMILY':
                     judgement = 1
                     #sub_pp.pprint(['family', name])
                     continue
                 # do not accept missing values in trio setups
-                elif familytype == 'trio':
+                elif familytype == 'TRIO':
                     judgement = 0
                     #sub_pp.pprint(['trio 0', name])
                     break
@@ -1320,25 +1361,25 @@ def xlinked(sampledata, family,names):
     return(judgement)
 
 
-def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,hpolist,compound_gene_storage,familytype='trio'):
+def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,hpolist,compound_gene_storage,familytype='TRIO'):
     #deal with each line before writing to output
     #remember continue after
     #remember continue after
     #remember continue after
     #remember continue after
     conditions=dict()
-    conditions['recessive'] = (0.03,-1)
-    conditions['dominant_denovo'] = (0.01,-1)
-    conditions['dominant_inherited'] = (0.01,-1)
-    conditions['compound'] = (0.02,-1)
-    conditions['Xlinked'] = (0.01,-1)
-    conditions['compound_single_sample'] = conditions['dominant_denovo']
-    conditions['unknown'] = conditions['dominant_inherited']
+    conditions['RECESSIVE'] = (0.03,-1)
+    conditions['DOMINANT_DENOVO'] = (0.01,-1)
+    conditions['DOMINANT_INHERITED'] = (0.01,-1)
+    conditions['COMPOUND'] = (0.02,-1)
+    conditions['XLINKED'] = (0.01,-1)
+    conditions['COMPOUND_SINGLE_SAMPLE'] = conditions['DOMINANT_DENOVO']
+    conditions['UNKNOWN'] = conditions['DOMINANT_INHERITED']
     
     # TODO add case for UNKNOWN inheritance, given that we have only the patient data and nothing about family
 
     (MAF_threshold,CADD_threshold) = conditions[inheritance]
-    if not familytype == 'trio' and inheritance=='Xlinked' :
+    if not familytype == 'TRIO' and inheritance=='XLINKED' :
         cause,result = ('trio_only','filtered')
 
     # exclude gene, if it is on the exclusion list
@@ -1387,7 +1428,7 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
     if result != 'PASS' :
         out.writerow(line)
     if result == 'PASS':
-        if inheritance !='compound' and inheritance != 'compound_single_sample':
+        if inheritance !='COMPOUND' and inheritance != 'COMPOUND_SINGLE_SAMPLE':
             out.writerow(line)
             outfiltered.writerow(line)
         else:
@@ -1402,17 +1443,16 @@ if __name__=='__main__':
     parser.add_argument('--outfile', type=str, dest='outfile', required=True, help='Output file wit all variants. [required]')
     parser.add_argument('--filteredoutfile', type=str, dest='filteredfile', required=True, help='filtered comma separated list of SNPs annotated with inheritance pattern, only reporting the requested variants. [required]')
     parser.add_argument('--family', type=str, dest='famfile', required=True, help='tab separated list of samples annotated with affection status. [required]')
-    parser.add_argument('--inheritance', type=str, choices=['dominant_denovo', 'dominant_inherited', 'recessive', 'Xlinked', 'compound', 'unknown'], dest='inheritance', required=True, help="""choose a inheritance model [required]
-    dominant_inherited: used for families
-    dominant_denovo: apply to novel variants seen in the affected individuals
-
-    recessive: detect recessive, homozygous variants (if trio is specified the script will require that all non-affected are heterozygous)
-    Xlinked: used for X linked recessive variants in trios only
-    compound: detect compound heterozygous recessive variants
+    parser.add_argument('--inheritance', type=str, choices=['DOMINANT_DENOVO', 'DOMINANT_INHERITED', 'RECESSIVE', 'XLINKED', 'COMPOUND', 'UNKNOWN'], dest='inheritance', required=True, help="""choose a inheritance model [required]
+    DOMINANT_INHERITED: used for families
+    DOMINANT_DENOVO: apply to novel variants seen in the affected individuals
+    RECESSIVE: detect recessive, homozygous variants (if trio is specified the script will require that all non-affected are heterozygous)
+    XLINKED: used for X linked recessive variants in trios only
+    COMPOUND: detect compound heterozygous recessive variants
+    UNKNOWN: skip inheritance filtering if not known
     """)
 
-    # TODO add choice for single patient (handle as dominant inherited)
-    parser.add_argument('--familytype', type=str, choices=['trio', 'family'], dest='familytype', required=True, help="choose if the data you provide is a trio or a larger family")
+    parser.add_argument('--familytype', type=str, choices=['TRIO', 'FAMILY', 'SINGLE'], dest='familytype', required=True, help="choose if the data you provide is a trio or a larger family")
     parser.add_argument('--geneexclusion', type=str, dest='geneexclusion', required=False, help='[Analysis of DNA sequence variants detected by high-throughput sequencing; DOI: 10.1002/humu.22035]. [required]')
     parser.add_argument('--HPO_list','--white_list',type=str,dest='white_list',default=None,required=False,help='--HPO_list \t a .txt file with the list of HPO terms describing the disease. It will be used to flag all genes related to the HPO terms. It works with Refseq and UCSC naming.\n')
 
