@@ -1,1 +1,1 @@
-# eDiVA_new
+# AIdiva - Augmented Intelligence Disease Variant Analysis
