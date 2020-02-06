@@ -9,7 +9,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     # add essential parameters
     vep_command = vep_command + "--offline" + " "
     vep_command = vep_command + "--cache" + " "
-    #vep_command = vep_command + "--dir_cache " + vep_annotation_dict["cache-path"] + " "
+    vep_command = vep_command + "--dir_cache " + vep_annotation_dict["cache-path"] + " "
     vep_command = vep_command + "--sift s" + " "
     vep_command = vep_command + "--polyphen s" + " "
     vep_command = vep_command + "--symbol" + " "
@@ -30,13 +30,14 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         vep_command = vep_command + "--plugin REVEL," + vep_annotation_dict["revel"] + " "
         vep_command = vep_command + "--plugin dbNSFP," + vep_annotation_dict["dbNSFP"] + ",MutationAssessor_score,Eigen-raw,Eigen-phred" + " "
     
-    # custom annotations that should be used during the annotation
-    print(additional_annotation_dict)
-    for key in additional_annotation_dict:
-        if additional_annotation_dict[key].endswith(".bw"):
-            vep_command = vep_command + "--custom " + additional_annotation_dict[key] + "," + key + ",bigwig,exact,0" + " "
-        else:
-            print("ERROR: Given file seems to be no bigwig file")
+        # custom annotations that should be used during the annotation
+        # TODO does not work at the moment need to do it manually
+        #print(additional_annotation_dict)
+        #for key in additional_annotation_dict:
+        #    if additional_annotation_dict[key].endswith(".bw"):
+        #        vep_command = vep_command + "--custom " + additional_annotation_dict[key] + "," + key + ",bigwig,exact,0" + " "
+        #    else:
+        #        print("ERROR: Given file seems to be no bigwig file")
     
     vep_command = vep_command + "-i " + input_vcf_file + " "
     vep_command = vep_command + "-o " + output_vcf_file + " "
@@ -44,8 +45,12 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = vep_command + "--vcf"
     
     print(vep_command)
+    print("Starting VEP annotation ...")
     
     subprocess.run(vep_command, shell=True, check=True)
+    
+    print("Finished VEP annotation!")
+    print("The annotated VCF is saved as %s" % (output_vcf_file))
 
 
 if __name__=='__main__':
@@ -76,7 +81,7 @@ if __name__=='__main__':
     print("Starting VEP annotation ...")
     call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, additional_annotation_dict)
     print("Finished VEP annotation!")
-    print("The annotated VCF is saved as %s".format(output_vcf_file))
+    print("The annotated VCF is saved as %s" % (output_vcf_file))
 
 
 
