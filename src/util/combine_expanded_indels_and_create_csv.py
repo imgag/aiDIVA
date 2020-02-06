@@ -101,8 +101,8 @@ def extract_columns(cell):
     for field in info_fields:
         #print("Hi: ", field)
         if "nan" in field:
-            print("NaN")
-            print(cell)
+            #print("NaN")
+            #print(cell)
             continue
         if field.startswith("CSQ"):
             csq = field.split("=")[1]
@@ -215,17 +215,30 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
 
 
 def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf):
-    #return grouped_expanded_vcf[["CADD_PHRED", "CADD_RAW", "Condel", "REVEL", "Eigen-phred", "Eigen-raw", "MutationAssessor_score", "ABB_SCORE", "SegDupMax", "phyloP46_primate", "phyloP46_mammal", "phastCons46_primate", "phastCons46_mammal"]].get_group(row.indel_ID)
+    return grouped_expanded_vcf[["CADD_PHRED", "CADD_RAW", "Condel", "REVEL", "Eigen-phred", "Eigen-raw", "MutationAssessor_score", "ABB_SCORE", "SegDupMax", "phyloP46_primate", "phyloP46_mammal", "phastCons46_primate", "phastCons46_mammal"]].get_group(row.indel_ID).mean()
     #print(grouped_expanded_vcf[["phyloP46_mammal", "phastCons46_mammal", "phastCons46_primate"]].get_group(row.indel_ID).shape)
     #print(grouped_expanded_vcf[["phyloP46_mammal"]].get_group(row.indel_ID).mean().shape)
     
-    return grouped_expanded_vcf[["phyloP46_mammal", "phastCons46_mammal", "phastCons46_primate"]].get_group(row.indel_ID).mean()
+    #return grouped_expanded_vcf[["phyloP46_mammal", "phastCons46_mammal", "phastCons46_primate"]].get_group(row.indel_ID).mean()
+
+
+def add_simple_repeat_annotation(row, grouped_expanded_vcf):
+    print("group:\n", grouped_expanded_vcf.get_group(row.indel_ID))
+
+    simple_tandem_repeat_region = grouped_expanded_vcf["SimpleTandemRepeatRegion"].get_group(row.indel_ID).unique().astype(str)
+    simple_tandem_repeat_length = grouped_expanded_vcf["SimpleTandemRepeatLength"].get_group(row.indel_ID).unique().astype(str)
+    
+    print("region:\n", "&".join(simple_tandem_repeat_region))
+    print("length:\n", "&".join(simple_tandem_repeat_length))
+
+    return "&".join(simple_tandem_repeat_region), "&".join(simple_tandem_repeat_length)
 
 
 def combine_vcf_dataframes(vcf_as_dataframe, expanded_vcf_as_dataframe):
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("indel_ID")
-    #vcf_as_dataframe[["CADD_PHRED_snps", "CADD_RAW_snps", "Condel", "REVEL", "Eigen-phred", "Eigen-raw", "MutationAssessor_score", "ABB_SCORE", "SegDupMax", "phyloP46_primate", "phyloP46_mammal", "phastCons46_primate", "phastCons46_mammal"]] = vcf_as_dataframe.apply(lambda row : annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf), axis=1)
-    vcf_as_dataframe[["phyloP46_mammal_snps", "phastCons46_mammal_snps", "phastCons46_primate_snps"]] = vcf_as_dataframe.apply(lambda row : annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf), axis=1)
+    
+    vcf_as_dataframe[["CADD_PHRED", "CADD_RAW", "Condel", "REVEL", "Eigen-phred", "Eigen-raw", "MutationAssessor_score", "ABB_SCORE", "SegDupMax", "phyloP46_primate", "phyloP46_mammal", "phastCons46_primate", "phastCons46_mammal"]] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf)), axis=1)
+    vcf_as_dataframe[["SimpleTandemRepeatRegion", "SimpleTandemRepeatLength"]] = vcf_as_dataframe.apply(lambda row : pd.Series(add_simple_repeat_annotation(row, grouped_expanded_vcf)), axis=1)
     
     return vcf_as_dataframe
 
