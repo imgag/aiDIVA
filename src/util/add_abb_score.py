@@ -15,7 +15,7 @@ def get_abb_score(row, abb):
 
 
 def extract_data(data, abb):
-    data["ABB_SCORE"] = data.apply(lambda row: get_abb_score(row, abb), axis=1)
+    data["ABB_SCORE"] = data.apply(lambda row: pd.Series(get_abb_score(row, abb)), axis=1)
     
     return data
 
