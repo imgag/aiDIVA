@@ -28,17 +28,13 @@ def read_input_data(input_file):
 
 # make sure to use the same features, that were used for the training of the model
 # TODO change features to final feature set (or do it dynamically through config file)
-def prepare_input_data(input_data):
-    #input_data[["SegDupMax"]] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["SegmentDuplication"]).split("&")])), axis=1)
-    #input_data["AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["AF"]).split("&")])), axis=1)
-    #input_data[["MaxAF"]] = input_data.apply(lambda row: pd.Series(np.max([row["AF"], row["gnomAD_AF"]])), axis=1)
-    
+def prepare_input_data(input_data):    
     # fill SegDup missing values with -> 0
     # fill ABB_SCORE missing values with -> 0
-    # fill Allele Frequence missing values with -> 0
     input_data['SegDupMax'].fillna(0, inplace=True)
-    input_data['ABB_SCORE'].fillna(1, inplace=True)
-    #input_data['MaxAF'].fillna(0, inplace=True) # remaining AF columns could also be filled with zeros
+    input_data['ABB_SCORE'].fillna(0, inplace=True)
+    
+    # fill Allele Frequence missing values with -> 0
     input_data['gnomAD_AF'].fillna(0, inplace=True)
     input_data['gnomAD_AFR_AF'].fillna(0, inplace=True)
     input_data['gnomAD_AMR_AF'].fillna(0, inplace=True)
@@ -57,6 +53,7 @@ def prepare_input_data(input_data):
     input_data['AA_AF'].fillna(0, inplace=True)
     input_data['EA_AF'].fillna(0, inplace=True)
     
+    # if multiple allele frequencies are reported only take the maximum
     input_data["gnomAD_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_AF"]).split("&")])), axis=1)
     input_data["gnomAD_AFR_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_AFR_AF"]).split("&")])), axis=1)
     input_data["gnomAD_AMR_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_AMR_AF"]).split("&")])), axis=1)
@@ -75,13 +72,11 @@ def prepare_input_data(input_data):
     input_data["AA_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["AA_AF"]).split("&")])), axis=1)
     input_data["EA_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["EA_AF"]).split("&")])), axis=1)
 
+    # compute maximum Minor Allele Frequency (MAF)
     input_data[["MaxAF"]] = input_data.apply(lambda row: pd.Series(max([float(row["AFR_AF"]), float(row["AMR_AF"]), float(row["EAS_AF"]), float(row["EUR_AF"]), float(row["SAS_AF"]), float(row["AA_AF"]), float(row["EA_AF"]), float(row["gnomAD_AFR_AF"]), float(row["gnomAD_AMR_AF"]), float(row["gnomAD_ASJ_AF"]), float(row["gnomAD_EAS_AF"]), float(row["gnomAD_FIN_AF"]), float(row["gnomAD_NFE_AF"]), float(row["gnomAD_OTH_AF"]), float(row["gnomAD_SAS_AF"])])), axis=1)
 
-    #input_data[["Condel_val"]] = input_data["Condel"].str.extract(r'\((.*)\)')
-
-    # fill remaining missing values in remaining columns with the median of the respective column        
+    # fill remaining missing values in remaining columns with the median of the respective column
     input_data['CADD_PHRED'].fillna(input_data['CADD_PHRED'].median(), inplace=True)
-    #input_data['Condel_val'].fillna(input_data['Condel_val'].median(), inplace=True)
     input_data['Condel'].fillna(input_data['Condel'].median(), inplace=True)
     input_data['phyloP46_primate'].fillna(input_data['phyloP46_primate'].median(), inplace=True)
     input_data['phyloP46_mammal'].fillna(input_data['phyloP46_mammal'].median(), inplace=True)
@@ -90,56 +85,58 @@ def prepare_input_data(input_data):
     input_data['Eigen-phred'].fillna(input_data['Eigen-phred'].median(), inplace=True)
     input_data['MutationAssessor_score'].fillna(input_data['MutationAssessor_score'].median(), inplace=True)
 
-
-    print(input_data[['CADD_PHRED','Condel','SegDupMax','phyloP46_primate','phyloP46_mammal', 'phastCons46_primate', 'phastCons46_mammal', 'Eigen-phred','MaxAF','MutationAssessor_score','ABB_SCORE']].isna().sum())
-    
     input_features = np.asarray(input_data[['CADD_PHRED','Condel','SegDupMax','phyloP46_primate','phyloP46_mammal', 'phastCons46_primate', 'phastCons46_mammal', 'Eigen-phred','MaxAF','MutationAssessor_score','ABB_SCORE']])
-    
-    #input_data['Cadd2'].fillna(0, inplace=True)
-    #input_data['Condel'].fillna(0, inplace=True)
-    #input_data['SegMentDup'].fillna(0, inplace=True)
-    #input_data['PrimatesPhyloP'].fillna(0, inplace=True)
-    #input_data['PlacentalMammalPhyloP'].fillna(0, inplace=True)
-    #input_data['PrimatesPhastCons'].fillna(0, inplace=True)
-    #input_data['PlacentalMammalPhastCons'].fillna(0, inplace=True)
-    #input_data['Eigen_Phred'].fillna(0, inplace=True)
-    #input_data['ExAC_AF'].fillna(0, inplace=True)
-    #input_data['MutAss'].fillna(input_data['MutAss'].median(), inplace=True)
-    #input_data['ABB_score'].fillna(0, inplace=True)
 
-    #input_features = np.asarray(input_data[['Cadd2','Condel','SegMentDup','PrimatesPhyloP','PlacentalMammalPhyloP', 'PrimatesPhastCons', 'PlacentalMammalPhastCons', 'Eigen_Phred','ExAC_AF','MutAss','ABB_score']])
-    
     return input_data, input_features
 
 
-def predict_rank(rf_model, input_data, input_features):
-    class_prediction = rf_model.predict(input_features)
-    score_prediction = pd.DataFrame(rf_model.predict_proba(input_features), columns=["Probability_Benign", "Probability_Pathogenic"])
+def predict_rank(rf_model_snps, rf_model_indel, input_data_snps, input_features_snps, input_data_indel, input_features_indel):
+    class_prediction_snps = rf_model_snps.predict(input_features_snps)
+    score_prediction_snps = pd.DataFrame(rf_model.predict_proba(input_features_snps), columns=["Probability_Benign", "Probability_Pathogenic"])
 
-    input_data["Rank"] = score_prediction["Probability_Pathogenic"]
+    class_prediction_indel = rf_model_indel.predict(input_features_indel)
+    score_prediction_indel = pd.DataFrame(rf_model_indel.predict_proba(input_features_indel), columns=["Probability_Benign", "Probability_Pathogenic"])
+
+    input_data_snps["Rank"] = score_prediction_snps["Probability_Pathogenic"]
+    input_data_indel["Rank"] = score_prediction_indel["Probability_Pathogenic"]
     
-    return input_data
+    return input_data_snps, input_data_indel
 
 
-def perform_pathogenicity_score_prediction(input_data, rf_model):
-    prepared_input_data, input_features = prepare_input_data(input_data)
-    rf_model_imported = import_model(rf_model)
-    predicted_data = predict_rank(rf_model_imported, prepared_input_data, input_features)
+def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf_model_snps, rf_model_indel):
+    prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps)
+    prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel)
+    rf_model_snps = import_model(rf_model_snps)
+    rf_model_indel = import_model(rf_model_indel)
+    predicted_data_snps, predicted_data_indel = predict_rank(rf_model_snps, rf_model_indel, prepared_input_data, input_features, prepared_input_data_indel, input_features_indel)
     
-    return predicted_data
+    return predicted_data_snps, predicted_data_indel
 
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_data', type=str, dest='in_data', metavar='in.csv', required=True, help='CSV file containing the training data, used to train the random forest model\n')
     parser.add_argument('--out_data', type=str, dest='out_data', metavar='out.csv', required=True, help='CSV file containing the test data, used to compute the model statistics\n')
-    parser.add_argument('--model', type=str, dest='model', metavar='model.pkl', required=True, help='Specifies the name of the trained model to import\n')
+    parser.add_argument('--model_snps', type=str, dest='model_snps', metavar='model_snps.pkl', required=True, help='Specifies the name of the trained snps model to import\n')
+    parser.add_argument('--model_indel', type=str, dest='model_indel', metavar='model_indel.pkl', required=True, help='Specifies the name of the trained indel model to import\n')
     args = parser.parse_args()
     
-    rf_model = import_model(args.model)
+    rf_model_snps = import_model(args.model_snps)
+    rf_model_indel = import_model(args.model_indel)
     input_data = read_input_data(args.in_data)
-    prepared_input_data, input_features = prepare_input_data(input_data)
-    predicted_data = predict_rank(rf_model, prepared_input_data, input_features)
-    predicted_data.to_csv(args.out_data, index=False, sep="\t", na_rep="NA")
     
-    #essential_data = input_data[['Chr', 'Pos', 'Ref', 'Alt', 'QUAL', 'FILTER', 'Consequence', 'SYMBOL', 'AF', 'gnomAD_AF', 'MaxAF', 'SegDupMax', 'phyloP46_mammal', 'phyloP46_primates', 'phastCons46_mammal', 'phastCons46_primates', 'MutationAssessor_score', 'Condel', 'CADD_PHRED', 'Eigen-phred', 'ABB_SCORE', 'SimpleTandemRepeatLength', 'SimpleTandemRepeatRegion', 'NA12878', 'DP.NA12878', 'REF.NA12878', 'ALT.NA12878', 'AF.NA12878', 'GQ.NA12878', 'NA12891', 'DP.NA12891', 'REF.NA12891', 'ALT.NA12891', 'AF.NA12891', 'GQ.NA12891', 'NA12892', 'DP.NA12892', 'REF.NA12892', 'ALT.NA12892', 'AF.NA12892', 'GQ.NA12892', 'Rank']]
+    # if multiple alleles are reported consider only the first one
+    # TODO decide how to handle allele ambiguity
+    input_data["Alt"] = input_data["Alt"].map(lambda x: x.split(",")[0])
+    
+    input_data_snps = input_data[(input_data["Ref"].apply(len) == 1) & (input_data["Alt"].apply(len) == 1)]
+    input_data_indel = input_data[(input_data["Ref"].apply(len) > 1) | (input_data["Alt"].apply(len) > 1)]
+    
+    #TODO add indel handling call functions from other script to expand and then call vep and afterwards combine
+    
+    predicted_data_snps, predicted_data_indel = perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf_model_snps, rf_model_indel)
+    
+    predicted_data_combined = pd.concat([predicted_data_snps, predicted_data_indel])
+    predicted_data_combined.sort_values(['Chr', 'Pos'], ascending=[True, True])
+    
+    predicted_data_combined.to_csv(args.out_data, index=False, sep="\t", na_rep="NA")
