@@ -5,12 +5,18 @@
 Analysis-Input:
     # if inheritance should be considered and family information is provided, make sure that the vcf file contains sample informations for all family members,
     # else sample will be treated as single patient with unknown inheritance
-    vcf: /home/dominic/Masterarbeit/test_complete_pipeline/trio_variant_call_simulated_variant_recessive_stripped_vep.vcf
+    vcf: /home/dominic/Masterarbeit/small_test_set_10snps_6indels.vcf
+    
+    # path to the working directory
+    work-dir: /home/dominic/Masterarbeit/test_work_dir/
+    
+    # path to the reference assembly used during the expansion of the indels
+    ref-path: /home/dominic/Masterarbeit/databases/grch37_assembly_dna/
     
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snps: /home/dominic/Masterarbeit/test_complete_pipeline/rf-clf_ownDB_origModel_origFeatures.pkl
-    #scoring-model-indels: data/rf_model_indels.pkl
+    scoring-model-snps: data/rf_model_snps.pkl
+    scoring-model-indels: data/rf_model_indels.pkl
     
     inheritance-information:
         # file containing the HPO terms that are associated with the disease (one term per line)
@@ -18,11 +24,11 @@ Analysis-Input:
         
         # inheritance of the disease if known and family type not SINGLE is given
         # possible values: [RECESSIVE, COMPOUND, DOMINANT_DENOVO, DOMINANT_INHERITED, XLINKED, UNKNOWN]
-        inheritance: recessive
+        inheritance: RECESSIVE
         
         # family type, shows the structure of the given family inforamtion
         # possible values: [TRIO, FAMILY, SINGLE]
-        family-type: trio
+        family-type: TRIO
         
         # file with the family information
         family-file: /home/dominic/Masterarbeit/test_complete_pipeline/family.txt
@@ -30,6 +36,30 @@ Analysis-Input:
         # List of genes that should be excluded in the analysis, because they are normally false positives
         # a default list is given in the res/ folder (gene_exclusion_list.txt), the file can be empty
         gene-exclusion: /home/dominic/Masterarbeit/test_complete_pipeline/empty_list.txt
+
+VEP-Annotation:
+    # VEP: path to the VEP executable
+    vep: /home/dominic/Tools/ensembl-vep/vep
+    
+    # threads to use during the annotation
+    num-threads: 4
+    
+    # Cache directory and plugin directory
+    cache-path: /mnt/users/ahbranl1/data_vep/cache
+    plugin-path: /mnt/users/ahboced1/data_vep/plugins
+    
+    # CADD: paths to the CADD database files
+    cadd-snps: /mnt/share/data/dbs/CADD/whole_genome_SNVs.tsv.gz
+    cadd-indel: /mnt/share/data/dbs/CADD/InDels.tsv.gz
+    
+    # Condel: path to the Condel config 
+    condel: /mnt/users/ahboced1/Tools/vep_data/plugins/config/Condel/config
+    
+    # REVEL: 
+    revel: /mnt/share/data/dbs/REVEl/revel_all_chromosomes.tsv.gz
+    
+    # dbNSFP
+    dbNSFP: /mnt/users/ahbranl1/data_vep/dbNSFP/dbNSFP_hg19_3.5.gz
 
 Additional-Annotation:
     # ABB_score
@@ -44,16 +74,19 @@ Additional-Annotation:
     # additional annotations the key is used as feature name for the prediction
     additional-bigwig-files:
         phyloP46_mammal: /home/dominic/Masterarbeit/databases/phastCons46way.placentalMammal.complete.onlyChrom.bw
-        phyloP46_primate: /home/dominic/Masterarbeit/databases/phastCons46way.primate.complete.onlyChrom.bw
-        phyloP46_vertebrate: /home/dominic/Masterarbeit/databases/phastCons46way.vertebrate.complete.onlyChrom.bw
+        #phyloP46_primate: /home/dominic/Masterarbeit/databases/phastCons46way.primate.complete.onlyChrom.bw
+        #phyloP46_vertebrate: /home/dominic/Masterarbeit/databases/phastCons46way.vertebrate.complete.onlyChrom.bw
         phastCons46_mammal: /home/dominic/Masterarbeit/databases/phastCons46way.placentalMammal.complete.onlyChrom.bw
         phastCons46_primate: /home/dominic/Masterarbeit/databases/phastCons46way.primate.complete.onlyChrom.bw
-        phastCons46_vertebrate: /home/dominic/Masterarbeit/databases/phastCons46way.vertebrate.complete.onlyChrom.bw
+        #phastCons46_vertebrate: /home/dominic/Masterarbeit/databases/phastCons46way.vertebrate.complete.onlyChrom.bw
 
     
 Analysis-Output:
     tsv: /home/dominic/Masterarbeit/test_complete_pipeline/test_recessive_full_tempfile.tsv
     tsv-filt: /home/dominic/Masterarbeit/test_complete_pipeline/test_recessive_full_filtered_tempfile.tsv
 
-    
+# the following parameters should only be changed if the module structure is changed and these files are not in res folder present
 Internal-Parameters:
+    gene2hpo-mapping: ../../res/gene_2_HPO.p
+    hpo-graph: ../../res/v2_ready_graph.pk
+    hpo2gene-association: ../../res/HPO_gene_assiciation.p

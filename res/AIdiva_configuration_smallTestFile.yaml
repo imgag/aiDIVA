@@ -1,0 +1,92 @@
+## AIdiva -- Augmented Intelligence Disease Variant Analysis
+# Configuration file specifiying all the parameters that are needed to run AIdiva in the different modes
+# if you modify the key names make sure to also update them in the run_AIdiva.py script
+---
+Analysis-Input:
+    # if inheritance should be considered and family information is provided, make sure that the vcf file contains sample informations for all family members,
+    # else sample will be treated as single patient with unknown inheritance
+    vcf: /mnt/users/ahboced1/Masterarbeit/test_data/small_test_set_10snps_6indels.vcf
+    
+    # path to the working directory
+    work-dir: /mnt/users/ahboced1/Masterarbeit/test_work_dir/
+    
+    # path to the reference assembly used during the expansion of the indels
+    ref-path: /mnt/users/ahboced1/Masterarbeit/databases/grch37/
+    
+    # trained scoring models used to predict the pathogenicity score
+    # if no trained model is present you can use the train_model.py script to train a new custom model
+    scoring-model-snps: data/baseline_rf_model_vep_snps.pkl
+    scoring-model-indels: data/baseline_rf_model_vep_indel.pkl
+    
+    inheritance-information:
+        # file containing the HPO terms that are associated with the disease (one term per line)
+        hpo-file: /mnt/users/ahboced1/Masterarbeit/test_data/recessive_HPO.txt
+        
+        # inheritance of the disease if known and family type not SINGLE is given
+        # possible values: [RECESSIVE, COMPOUND, DOMINANT_DENOVO, DOMINANT_INHERITED, XLINKED, UNKNOWN]
+        inheritance: RECESSIVE
+        
+        # family type, shows the structure of the given family inforamtion
+        # possible values: [TRIO, FAMILY, SINGLE]
+        family-type: TRIO
+        
+        # file with the family information
+        family-file: /mnt/users/ahboced1/Masterarbeit/test_data/family.txt
+        
+        # List of genes that should be excluded in the analysis, because they are normally false positives
+        # a default list is given in the res/ folder (gene_exclusion_list.txt), the file can be empty
+        gene-exclusion: /mnt/users/ahboced1/Masterarbeit/test_data/empty_list.txt
+
+VEP-Annotation:
+    # VEP: path to the VEP executable
+    vep: /mnt/users/ahbranl1/data_vep/ensembl-vep-release-98.3/vep
+    
+    # threads to use during the annotation
+    num-threads: 4
+    
+    # Cache directory and plugin directory
+    cache-path: /mnt/users/ahbranl1/data_vep/ensembl-vep-cache/cache
+    plugin-path: /mnt/users/ahboced1/Tools/vep_data/plugins
+    
+    # CADD: paths to the CADD database files
+    cadd-snps: /mnt/share/data/dbs/CADD/whole_genome_SNVs.tsv.gz
+    cadd-indel: /mnt/share/data/dbs/CADD/InDels.tsv.gz
+    
+    # Condel: path to the Condel config 
+    condel: /mnt/users/ahboced1/Tools/vep_data/plugins/config/Condel/config
+    
+    # REVEL: 
+    revel: /mnt/share/data/dbs/REVEl/revel_all_chromosomes.tsv.gz
+    
+    # dbNSFP
+    dbNSFP: /mnt/users/ahbranl1/data_vep/dbNSFP/dbNSFP_hg19_3.5.gz
+
+Additional-Annotation:
+    # ABB_score
+    abb-score: /mnt/users/ahboced1/Masterarbeit/databases/ABB_SCORE.txt
+    
+    # Simple tandem repeats
+    simple-repeats: /mnt/users/ahboced1/Masterarbeit/databases/simpleRepeat.txt
+    
+    # Segment Duplication
+    segment-duplication: /mnt/users/ahboced1/Masterarbeit/databases/genomicSuperDups.txt
+    
+    # additional annotations the key is used as feature name for the prediction
+    additional-bigwig-files:
+        phyloP46_mammal: /mnt/users/ahboced1/Masterarbeit/databases/phyloP46mammal.bw
+        phyloP46_primate: /mnt/users/ahboced1/Masterarbeit/databases/phyloP46primate.bw
+        #phyloP46_vertebrate: /mnt/users/ahboced1/Masterarbeit/databases/phyloP46vertebrate.bw
+        phastCons46_mammal: /mnt/users/ahboced1/Masterarbeit/databases/phastCons46mammal.bw
+        phastCons46_primate: /mnt/users/ahboced1/Masterarbeit/databases/phastCons46primate.bw
+        #phastCons46_vertebrate: /mnt/users/ahboced1/Masterarbeit/databases/phastCons46vertebrate.bw
+
+    
+Analysis-Output:
+    tsv: /mnt/users/ahboced1/Masterarbeit/test_work_dir/test_small_tempfile.tsv
+    tsv-filt: /mnt/users/ahboced1/Masterarbeit/test_work_dir/test_small_tempfile.tsv
+
+# the following parameters should only be changed if the module structure is changed and these files are not in res folder present
+Internal-Parameters:
+    gene2hpo-mapping: ../../res/gene_2_HPO.p
+    hpo-graph: ../../res/v2_ready_graph.pk
+    hpo2gene-association: ../../res/HPO_gene_assiciation.p
