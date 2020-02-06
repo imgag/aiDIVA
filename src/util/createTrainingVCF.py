@@ -47,7 +47,7 @@ def write_data_information_to_file(outfile, input_data):
                     '.' + '\t' + 
                     '.' + '\t' + 
                     #'AF=' + str(row['AlleleFrequency'])[:6] + ';' + 
-                    'RANK=' + str(row['rank'])[:6] + '\t' + '\n')
+                    'RANK=' + str(row['rank'])[:6] + '\n')
 
 
 def import_csv_data(in_data):
