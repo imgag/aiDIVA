@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import argparse
 import random
-import pyfastx
 from Bio import SeqIO
 
 
@@ -42,12 +41,13 @@ def write_header(out_file):
 
 # TODO include FORMAT and SAMPLE information
 def write_data_information_to_file(outfile, input_data, ref_folder):
-    print(input_data.columns)
+    #print(input_data.columns)
     data_grouped = [group for key, group in input_data.groupby("Chr")]
     
     random.seed(14038)
     
     for group in data_grouped:
+        #print(group)
         ref_seq = str(SeqIO.read(ref_folder + "Homo_sapiens.GRCh37.dna.chromosome." + str(group["Chr"].iloc[0]) + ".fa", "fasta").seq)
         for row in group.itertuples():
             window_start = int(row.Pos) - 3
