@@ -4,12 +4,25 @@ import argparse
 
 
 def extract_value(row, bw_file):
-    start = row["Pos"] - 1
-    end = row["Pos"]
-    
-    value = str(bw_file.values("chr" + str(row["Chr"]), start, end)[0])
+    if len(row["Ref"]) == 1 & len(row["Alt"]) == 1:
+        start = row["Pos"] - 1
+        end = row["Pos"]
+        
+        return bw_file.values("chr" + str(row["Chr"]), start, end)[0]
 
-    return value
+    elif len(row["Ref"]) > 1 | len(row["Alt"]) > 1:
+        # for indels take 2 positions before and 2 afterwards also into account
+        start = row["Pos"] - 3
+        end = row["Pos"] + len(row["Ref"]) + 2
+        
+        return mean(bw_file.values("chr" + str(row["Chr"]), start, end))
+
+    else:
+        print("ERROR: Something went wrong the Ref or Alt entry was invalid!")
+        print("Ref: ", row["Ref"])
+        print("Alt: ", row["Alt"])
+        
+        exit(1)
 
 
 def extract_data(data, feature_name, bw_file):
