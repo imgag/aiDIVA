@@ -82,7 +82,7 @@ def train_model_with_gridsearch(training_features, training_labels):
                       "min_samples_leaf": [1],
                       "bootstrap": [True],
                       "class_weight": [None],
-                      "oob_score": [False],
+                      "oob_score": [False]
                       }
 
     rf_clf = RandomForestClassifier(random_state = random_seed)
