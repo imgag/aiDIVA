@@ -10,7 +10,7 @@ import networkx
 import sys
 import pandas as pd
 from operator import itemgetter
-import get_HPO_similarity_score as gs
+from . import get_HPO_similarity_score as gs
 
 # sys.setdefaultencoding('latin-1')
 
