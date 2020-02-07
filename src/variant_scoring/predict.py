@@ -108,7 +108,7 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
     prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel)
     rf_model_snps = import_model(rf_model_snps)
     rf_model_indel = import_model(rf_model_indel)
-    predicted_data_snps, predicted_data_indel = predict_rank(rf_model_snps, rf_model_indel, prepared_input_data, input_features, prepared_input_data_indel, input_features_indel)
+    predicted_data_snps, predicted_data_indel = predict_rank(rf_model_snps, rf_model_indel, prepared_input_data_snps, input_features_snps, prepared_input_data_indel, input_features_indel)
     
     return predicted_data_snps, predicted_data_indel
 
