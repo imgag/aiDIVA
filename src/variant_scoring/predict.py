@@ -120,10 +120,13 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
     rf_model_snps = import_model(rf_model_snps)
     rf_model_indel = import_model(rf_model_indel)
     predicted_data_snps, predicted_data_indel = predict_rank(rf_model_snps, rf_model_indel, prepared_input_data_snps, input_features_snps, prepared_input_data_indel, input_features_indel)
+<<<<<<< HEAD
     
     # set the score for frameshift variants always to 1.0
     # the following line might produce an SettingWithCopyWarning this Warning should be a false positive in this case
     predicted_data_indel.loc[(abs(predicted_data_indel.Ref.str.len() - predicted_data_indel.Alt.str.len()) % 3 != 0), "Rank"] = 1.0
+=======
+>>>>>>> 1680284ad52044398b63a79bdf044fdafe5e8bbe
     
     return predicted_data_snps, predicted_data_indel
 
