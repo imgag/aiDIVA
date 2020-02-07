@@ -21,7 +21,7 @@ def import_model(model_file):
 
 
 def read_input_data(input_file):
-    input_data = pd.read_csv(input_file, sep=',', low_memory=False)
+    input_data = pd.read_csv(input_file, sep="\t", low_memory=False)
     
     return input_data
 
@@ -74,6 +74,7 @@ def prepare_input_data(input_data):
 
     # compute maximum Minor Allele Frequency (MAF)
     input_data[["MaxAF"]] = input_data.apply(lambda row: pd.Series(max([float(row["AFR_AF"]), float(row["AMR_AF"]), float(row["EAS_AF"]), float(row["EUR_AF"]), float(row["SAS_AF"]), float(row["AA_AF"]), float(row["EA_AF"]), float(row["gnomAD_AFR_AF"]), float(row["gnomAD_AMR_AF"]), float(row["gnomAD_ASJ_AF"]), float(row["gnomAD_EAS_AF"]), float(row["gnomAD_FIN_AF"]), float(row["gnomAD_NFE_AF"]), float(row["gnomAD_OTH_AF"]), float(row["gnomAD_SAS_AF"])])), axis=1)
+    input_data[["MaxAF"]].fillna(0, inplace=True)
 
     # fill remaining missing values in remaining columns with the median of the respective column
     input_data['CADD_PHRED'].fillna(input_data['CADD_PHRED'].median(), inplace=True)
@@ -87,12 +88,15 @@ def prepare_input_data(input_data):
 
     input_features = np.asarray(input_data[['CADD_PHRED','Condel','SegDupMax','phyloP46_primate','phyloP46_mammal', 'phastCons46_primate', 'phastCons46_mammal', 'Eigen-phred','MaxAF','MutationAssessor_score','ABB_SCORE']])
 
+    # TODO add workaround to handle the rare case that for one of the features only NaNs are present and therefor the median leads also to a nan
+    # in that case the input features contains NaNs and lead to an error
+
     return input_data, input_features
 
 
 def predict_rank(rf_model_snps, rf_model_indel, input_data_snps, input_features_snps, input_data_indel, input_features_indel):
     class_prediction_snps = rf_model_snps.predict(input_features_snps)
-    score_prediction_snps = pd.DataFrame(rf_model.predict_proba(input_features_snps), columns=["Probability_Benign", "Probability_Pathogenic"])
+    score_prediction_snps = pd.DataFrame(rf_model_snps.predict_proba(input_features_snps), columns=["Probability_Benign", "Probability_Pathogenic"])
 
     class_prediction_indel = rf_model_indel.predict(input_features_indel)
     score_prediction_indel = pd.DataFrame(rf_model_indel.predict_proba(input_features_indel), columns=["Probability_Benign", "Probability_Pathogenic"])
@@ -106,16 +110,28 @@ def predict_rank(rf_model_snps, rf_model_indel, input_data_snps, input_features_
 def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf_model_snps, rf_model_indel):
     prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps)
     prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel)
+    
+    print(prepared_input_data_snps)
+    print(input_features_snps)
+    
+    print(prepared_input_data_indel)
+    print(input_features_indel)
+    
     rf_model_snps = import_model(rf_model_snps)
     rf_model_indel = import_model(rf_model_indel)
-    predicted_data_snps, predicted_data_indel = predict_rank(rf_model_snps, rf_model_indel, prepared_input_data, input_features, prepared_input_data_indel, input_features_indel)
+    predicted_data_snps, predicted_data_indel = predict_rank(rf_model_snps, rf_model_indel, prepared_input_data_snps, input_features_snps, prepared_input_data_indel, input_features_indel)
+    
+    # set the score for frameshift variants always to 1.0
+    # the following line might produce an SettingWithCopyWarning this Warning should be a false positive in this case
+    predicted_data_indel.loc[(abs(predicted_data_indel.Ref.str.len() - predicted_data_indel.Alt.str.len()) % 3 != 0), "Rank"] = 1.0
     
     return predicted_data_snps, predicted_data_indel
 
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--in_data', type=str, dest='in_data', metavar='in.csv', required=True, help='CSV file containing the training data, used to train the random forest model\n')
+    parser.add_argument('--in_data_snps', type=str, dest='in_data_snps', metavar='in.csv', required=True, help='CSV file containing the training data, used to train the random forest model\n')
+    parser.add_argument('--in_data_indel', type=str, dest='in_data_indel', metavar='in.csv', required=True, help='CSV file containing the training data, used to train the random forest model\n')
     parser.add_argument('--out_data', type=str, dest='out_data', metavar='out.csv', required=True, help='CSV file containing the test data, used to compute the model statistics\n')
     parser.add_argument('--model_snps', type=str, dest='model_snps', metavar='model_snps.pkl', required=True, help='Specifies the name of the trained snps model to import\n')
     parser.add_argument('--model_indel', type=str, dest='model_indel', metavar='model_indel.pkl', required=True, help='Specifies the name of the trained indel model to import\n')
@@ -123,20 +139,25 @@ if __name__=='__main__':
     
     rf_model_snps = import_model(args.model_snps)
     rf_model_indel = import_model(args.model_indel)
-    input_data = read_input_data(args.in_data)
+    
+    input_data_snps = read_input_data(args.in_data_snps)
+    input_data_indel = read_input_data(args.in_data_indel)
     
     # if multiple alleles are reported consider only the first one
     # TODO decide how to handle allele ambiguity
-    input_data["Alt"] = input_data["Alt"].map(lambda x: x.split(",")[0])
+    #input_data["Alt"] = input_data["Alt"].map(lambda x: x.split(",")[0])
     
-    input_data_snps = input_data[(input_data["Ref"].apply(len) == 1) & (input_data["Alt"].apply(len) == 1)]
-    input_data_indel = input_data[(input_data["Ref"].apply(len) > 1) | (input_data["Alt"].apply(len) > 1)]
+    #input_data_snps = input_data[(input_data["Ref"].apply(len) == 1) & (input_data["Alt"].apply(len) == 1)]
+    #input_data_indel = input_data[(input_data["Ref"].apply(len) > 1) | (input_data["Alt"].apply(len) > 1)]
     
     #TODO add indel handling call functions from other script to expand and then call vep and afterwards combine
     
-    predicted_data_snps, predicted_data_indel = perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf_model_snps, rf_model_indel)
+    prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps)
+    prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel)
     
-    predicted_data_combined = pd.concat([predicted_data_snps, predicted_data_indel])
+    predicted_data_snps, predicted_data_indel = predict_rank(rf_model_snps, rf_model_indel, prepared_input_data_snps, input_features_snps, prepared_input_data_indel, input_features_indel)
+    
+    predicted_data_combined = pd.concat([predicted_data_snps, predicted_data_indel], sort=False)
     predicted_data_combined.sort_values(['Chr', 'Pos'], ascending=[True, True])
     
     predicted_data_combined.to_csv(args.out_data, index=False, sep="\t", na_rep="NA")

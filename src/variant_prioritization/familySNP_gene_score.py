@@ -1386,7 +1386,7 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
     elif len(genes2exclude & genenames) > 0:
         cause,result= ('NOT_' + inheritance,'exclusionlist')
 
-    elif judgement == 1 and not (tandem == 'NA' or tandem ==''):
+    elif judgement == 1 and not (tandem == 'NA' or tandem =='' or tandem == 'nan'):
         cause,result = (inheritance,'tandem')
     elif judgement == 1 and CADD>0 and CADD < CADD_threshold :
          cause,result = (inheritance,'low CADD')
