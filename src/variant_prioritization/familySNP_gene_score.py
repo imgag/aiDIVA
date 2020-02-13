@@ -386,7 +386,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
                                outfiltered.writerow(rrow.split(','))
                             else:
                                 rrow=rrow.replace(',COMPOUND,PASS','NOT_compound,filtered')
-                        out.writerow(rrow.split(','))
+                                out.writerow(rrow.split(','))
 
                 elif len(names) == 1:
                     #just check there's more than one and print it
@@ -442,7 +442,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
                                     outfiltered.writerow(rrow.split(','))
                                 else:
                                     rrow=rrow.replace(',COMPOUND,PASS',',NOT_compound,filtered')
-                            out.writerow(rrow.split(',') )
+                                    out.writerow(rrow.split(',') )
                 elif len(names) == 1:
                     #just check there's more than one and print it
                     if len(compound_gene_storage) == 1:
