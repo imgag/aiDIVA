@@ -62,8 +62,8 @@ def calculate_variant(single_variant, number_mat_reads, number_pat_reads, number
         mat_info = '0/0' + ':' + str(mat_00_ref) + ',' + str(mat_00_alt) + ':' + str(number_mat_reads) + ':0:.'
         pat_info = '0/0' + ':' + str(pat_00_ref) + ',' + str(pat_00_alt) + ':' + str(number_pat_reads) + ':0:.'
         affected_info = '0/1' + ':' + str(affected_01_ref) + ',' + str(affected_01_alt) + ':' + str(number_affected_reads) + ':0:.'
+    
     elif single_variant[6] == 'Compound':             #M-P  0/1; P-M 0/0; C1/1
-        
         if compound_status==-1:
             mat_info = '0/1' + ':' + str(mat_01_ref) + ',' + str(mat_01_alt) + ':' + str(number_mat_reads) + ':0:.'
             pat_info = '0/0' + ':' + str(pat_00_ref) + ',' + str(pat_00_alt) + ':' + str(number_pat_reads) + ':0:.'
@@ -72,6 +72,7 @@ def calculate_variant(single_variant, number_mat_reads, number_pat_reads, number
             mat_info = '0/0' + ':' + str(mat_00_ref) + ',' + str(mat_00_alt) + ':' + str(number_mat_reads) + ':0:.'
             pat_info = '0/1' + ':' + str(pat_01_ref) + ',' + str(pat_01_alt) + ':' + str(number_pat_reads) + ':0:.'
             affected_info = '0/1' + ':' + str(affected_01_ref) + ',' + str(affected_01_alt) + ':' + str(number_affected_reads) + ':0:.'
+    
     else:
         print(single_variant)
         # raise

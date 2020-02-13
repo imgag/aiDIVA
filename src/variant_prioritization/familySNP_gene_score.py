@@ -28,7 +28,7 @@ variant_consequences = {'transcript_ablation': 'non_exonic',
                         'inframe_insertion': 'exonic',
                         'inframe_deletion': 'exonic',
                         'missense_variant': 'exonic',
-                        'protein_altering_variant': 'non_exonic',
+                        'protein_altering_variant': 'exonic',
                         'splice_region_variant': 'splicing', # maybe not
                         'incomplete_terminal_codon_variant': 'exonic',
                         'start_retained_variant': 'exonic', # maybe not
