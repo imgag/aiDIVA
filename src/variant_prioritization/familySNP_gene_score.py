@@ -382,6 +382,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
 
                         if len(compound_gene_storage) == 1:
                             rrow=rrow.replace(',COMPOUND,PASS','NOT_compound,filtered')
+                            out.writerow(rrow.split(','))
                         else:
                             if comp_judgement==1:
                                outfiltered.writerow(rrow.split(','))
@@ -438,6 +439,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
                             rrow = ','.join(row)
                             if len(compound_gene_storage) == 1:
                                 rrow=rrow.replace(',COMPOUND,PASS',',NOT_compound,filtered')
+                                out.writerow(rrow.split(','))
                             else:
                                 if comp_judgement==1:
                                     outfiltered.writerow(rrow.split(','))
