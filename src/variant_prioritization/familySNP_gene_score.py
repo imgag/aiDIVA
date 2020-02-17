@@ -354,7 +354,8 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
         elif inheritance == 'XLINKED':
 
             index_chromosome = identifycolumns(header, 'Chr')
-            # skip all variants not located
+            
+            # skip all variants not located on the X chromosome (both out files will only contain variants located on the X chromosome)
             if line[index_chromosome].lower() == 'x' or line[index_chromosome] == '23':
                 pass
             else:
@@ -440,6 +441,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
                             else:
                                 if comp_judgement==1:
                                     outfiltered.writerow(rrow.split(','))
+                                    out.writerow(rrow.split(',') )
                                 else:
                                     rrow=rrow.replace(',COMPOUND,PASS',',NOT_compound,filtered')
                                     out.writerow(rrow.split(',') )
