@@ -334,10 +334,10 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
                 name        = names[int(i/sample_annot_size)]
                 total_affected += int(family[name])
 
-                if total_affected == 1 and not familytype == 'SINGLE':
-                    judgement *= 0 #denovo mutation excluded if not single sample case
-                filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
-                continue
+            if total_affected == 1 and not familytype == 'SINGLE':
+                judgement *= 0 #denovo mutation excluded if not single sample case
+            filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
+            continue
 
         ###
         # look for recessive variants (be aware of trio and family inheritance)
