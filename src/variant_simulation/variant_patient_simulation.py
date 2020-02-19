@@ -8,10 +8,9 @@ import numpy
 
 
 def calculate_variant(single_variant, number_mat_reads, number_pat_reads, number_affected_reads, compound_status):
-    single_variant=single_variant.split('\t')
+    single_variant = single_variant.split('\t')
     
-    ###Calculating a binomial distribution for 0/1 or beta distribution for 1/1 and 0/0
-    
+    ### Calculating a binomial distribution for 0/1 or beta distribution for 1/1 and 0/0
     if number_mat_reads > 0:
         ### 0/1 heteroygous
         mat_01_ref = int(numpy.random.binomial(number_mat_reads, 0.5, 1))
@@ -37,7 +36,7 @@ def calculate_variant(single_variant, number_mat_reads, number_pat_reads, number
     
     if number_affected_reads > 0:
         affected_01_ref = int(numpy.random.binomial(number_affected_reads, 0.5, 1))
-        affected_01_alt = number_affected_reads - affected_01_ref  
+        affected_01_alt = number_affected_reads - affected_01_ref
         affected_11_alt = int(round(numpy.random.beta(number_affected_reads, 1) * number_affected_reads))
         affected_11_ref = number_affected_reads - affected_11_alt
         affected_00_alt = int(round(numpy.random.beta(1, number_affected_reads) * number_affected_reads))
@@ -45,26 +44,28 @@ def calculate_variant(single_variant, number_mat_reads, number_pat_reads, number
     else:
         affected_01_ref, affected_01_alt, affected_11_alt, affected_11_ref, affected_00_alt, affected_00_ref = (0, 0, 0, 0, 0, 0)
     
-    #print single_variant
-    
-    ###Inheritance modes
-    if single_variant[6] == 'Dominant':             #M 0/1; P 0/0; C0/1
+    ### Inheritance modes
+    # M 0/1; P 0/0; C0/1
+    if single_variant[6] == 'Dominant':
         mat_info = '0/1' + ':' + str(mat_01_ref) + ',' + str(mat_01_alt) + ':' + str(number_mat_reads) + ':0:.'
         pat_info = '0/0' + ':' + str(pat_00_ref) + ',' + str(pat_00_alt) + ':' + str(number_pat_reads) + ':0:.'
         affected_info = '0/1' + ':' + str(affected_01_ref) + ',' + str(affected_01_alt) + ':' + str(number_affected_reads) + ':0:.'
     
-    elif single_variant[6] == 'Recessive':          #M 0/1; P 0/1; C1/1
+    # M 0/1; P 0/1; C1/1
+    elif single_variant[6] == 'Recessive':
         mat_info = '0/1' + ':' + str(mat_01_ref) + ',' + str(mat_01_alt) + ':' + str(number_mat_reads) + ':0:.'
         pat_info = '0/1' + ':' + str(pat_01_ref) + ',' + str(pat_01_alt) + ':' + str(number_pat_reads) + ':0:.'
         affected_info = '1/1' + ':' + str(affected_11_ref) + ',' + str(affected_11_alt) + ':' + str(number_affected_reads) + ':0:.'
     
-    elif single_variant[6] == 'DeNovo':             #M 0/0; P 0/0; C1/1 or C0/1
+    # M 0/0; P 0/0; C1/1 or C0/1
+    elif single_variant[6] == 'DeNovo':
         mat_info = '0/0' + ':' + str(mat_00_ref) + ',' + str(mat_00_alt) + ':' + str(number_mat_reads) + ':0:.'
         pat_info = '0/0' + ':' + str(pat_00_ref) + ',' + str(pat_00_alt) + ':' + str(number_pat_reads) + ':0:.'
         affected_info = '0/1' + ':' + str(affected_01_ref) + ',' + str(affected_01_alt) + ':' + str(number_affected_reads) + ':0:.'
     
-    elif single_variant[6] == 'Compound':             #M-P  0/1; P-M 0/0; C1/1
-        if compound_status==-1:
+    # M-P 0/1; P-M 0/0; C1/1
+    elif single_variant[6] == 'Compound':
+        if compound_status == -1:
             mat_info = '0/1' + ':' + str(mat_01_ref) + ',' + str(mat_01_alt) + ':' + str(number_mat_reads) + ':0:.'
             pat_info = '0/0' + ':' + str(pat_00_ref) + ',' + str(pat_00_alt) + ':' + str(number_pat_reads) + ':0:.'
             affected_info = '0/1' + ':' + str(affected_01_ref) + ',' + str(affected_01_alt) + ':' + str(number_affected_reads) + ':0:.'
@@ -75,12 +76,11 @@ def calculate_variant(single_variant, number_mat_reads, number_pat_reads, number
     
     else:
         print(single_variant)
-        # raise
-        
+    
     ### Writing the variant line for the vcf
     CHR = single_variant[0]
     POS = single_variant[1]
-    ID  = single_variant[2]
+    ID = single_variant[2]
     REF = single_variant[3]
     ALT = single_variant[4]
     INFO = 'SIMULATED=true' 
@@ -106,22 +106,23 @@ if __name__=='__main__':
     compound_status = -1
     variant_list = open(args.varfile).read().splitlines()
     print(variant_list[0])
+    
     tmp = [x  for x in variant_list if not(x.startswith('#'))]
     variant_list = tmp
-    #single_variant = random.choice(variant_list)
     variant_position = 'variant_position.bed'
     open_script = open(variant_position, 'w')
     
     for var in variant_list:
         if not(var.startswith('#')):
-            # gather info from the variant list and store them in a bed file called variant_posi..   
+            # gather info from the variant list and store them in a bed file called variant_posi..
             single_variant = var.split()
             pos_1 = str(int(single_variant[1]) - 1)
             chr_pos = single_variant[0] + '\t' + pos_1 + '\t' + single_variant[1] + '\n'
             open_script.write(chr_pos)
-    open_script.close()    
+    open_script.close()
+    
     simulation_base_name = args.fam_vcf[0:-4]
-    ## open reads form mother and father and son
+    ## open reads from mother and father and son
     mat_reads = 'mat_reads'
     pat_reads = 'pat_reads'
     affected_reads = 'affected_reads'
@@ -140,7 +141,6 @@ if __name__=='__main__':
     pat_reads_dict = dict()
     affected_reads_dict = dict()
     
-    
     with open(mat_reads, 'r') as mat_reads, open(pat_reads, 'r') as pat_reads, open(affected_reads, 'r') as affected_reads:
         for line in mat_reads:
             fields = line.split('\t')
@@ -153,13 +153,13 @@ if __name__=='__main__':
             affected_reads_dict[';'.join([fields[0], fields[1]])] = max(0, int(fields[3]))
         pass
     
-    
     for i in range(len(variant_list)):
         var = variant_list[i]
         fields = var.split('\t')
         number_mat_reads =  mat_reads_dict.get(';'.join([fields[0], fields[1]]) ,0)
         number_pat_reads = pat_reads_dict.get(';'.join([fields[0], fields[1]]) ,0)
         number_affected_reads = affected_reads_dict.get(';'.join([fields[0], fields[1]]) ,0)
+        
         try:
             line_for_vcf = calculate_variant(var, number_mat_reads, number_pat_reads, number_affected_reads, compound_status)
         except:
@@ -167,15 +167,14 @@ if __name__=='__main__':
             print(number_affected_reads)
             print(number_mat_reads)
             raise
+        
         compound_status *= -1
         vcf_lines.append(line_for_vcf)
     
 
     
     #######
-    
-    ##  Results generation as output: 
-    
+    ##  Results generation as output:
     ######
     #simulated_vcf = 'simulated.vcf'
     #simulated_vcf = open(simulated_vcf, 'w')
@@ -210,15 +209,8 @@ if __name__=='__main__':
             else:
                 subprocess.call(['bcftools sort %s > %s'%('simulated_' + str(count) + '.vcf', simulation_base_name.split('/')[-1] + '_simulated_variant_' + str(count) + '.vcf')], stdout=subprocess.PIPE, shell=True)#!/usr/bin/env python
         
-            #subprocess.call(['gzip -9 %s'%('simulated_' + str(count) + '.vcf')], stdout=subprocess.PIPE, shell=True)#!/usr/bin/env python
             subprocess.call(['gzip -9 %s'%(simulation_base_name.split('/')[-1] + '_simulated_variant_' + str(count) + '.vcf')], stdout=subprocess.PIPE, shell=True)#!/usr/bin/env python
-        
             subprocess.call(['rm %s'%('simulated_' + str(count) + '.vcf')], stdout=subprocess.PIPE, shell=True)#!/usr/bin/env python
-        
-            count += 1
-        
-            if count == 4:
-                break
         
     else:
         for line_for_vcf in vcf_lines:
@@ -241,17 +233,5 @@ if __name__=='__main__':
             else:
                 subprocess.call(['bcftools sort %s > %s'%('simulated_' + str(count) + '.vcf', simulation_base_name.split('/')[-1] + '_simulated_variant_' + str(count) + '.vcf')], stdout=subprocess.PIPE, shell=True)#!/usr/bin/env python
         
-            #subprocess.call(['gzip -9 %s'%('simulated_' + str(count) + '.vcf')], stdout=subprocess.PIPE, shell=True)#!/usr/bin/env python
             subprocess.call(['gzip -9 %s'%(simulation_base_name.split('/')[-1] + '_simulated_variant_' + str(count) + '.vcf')], stdout=subprocess.PIPE, shell=True)#!/usr/bin/env python
-        
             subprocess.call(['rm %s'%('simulated_' + str(count) + '.vcf')], stdout=subprocess.PIPE, shell=True)#!/usr/bin/env python
-        
-            count += 1
-        
-            if count == 4:
-                break
-        
-        
-    #### SORTING THE RESULTS SO IT WORKS
-    #subprocess.call(['vcf-sort %s -c > %s'%('simulated.vcf', simulation_base_name + '_simulated_variant.vcf')], stdout=subprocess.PIPE, shell=True)#!/usr/bin/env python
-
