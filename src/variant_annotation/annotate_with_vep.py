@@ -44,11 +44,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = vep_command + "--fork " + str(vep_annotation_dict["num-threads"]) + " "
     vep_command = vep_command + "--vcf"
     
-    print("Starting VEP annotation ...")
-    
     subprocess.run(vep_command, shell=True, check=True)
-    
-    print("Finished VEP annotation!")
     print("The annotated VCF is saved as %s" % (output_vcf_file))
 
 

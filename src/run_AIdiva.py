@@ -76,58 +76,51 @@ if __name__=='__main__':
     #input_data_indel = input_data[(input_data["Ref"].apply(len) > 1) | (input_data["Alt"].apply(len) > 1)]
     
     # annotate with VEP
+    print("Starting VEP annotation ...")
     annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snps.vcf"), str(working_directory + input_filename + "_snps_annotated.vcf"), vep_annotation_dict, additional_bigwig_files, False)
     annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_annotated.vcf"), vep_annotation_dict, additional_bigwig_files, True)
     annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_annotated.vcf"), vep_annotation_dict, additional_bigwig_files, False)
+    print("Finished VEP annotation!")
     
     # convert annotated vcfs back to pandas dataframes
     input_data_snps_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snps_annotated.vcf"), False)
     input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_annotated.vcf"), True)
     input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_annotated.vcf"), True)
     
-    input_data_snps_additional_annotation = add_score.group_and_process_data(additional_bigwig_files["phyloP46_mammal"], input_data_snps_annotated, "phyloP46_mammal")
-    input_data_indel_expanded_additional_annotation = add_score.group_and_process_data(additional_bigwig_files["phyloP46_mammal"], input_data_indel_expanded_annotated, "phyloP46_mammal")
-        
-    input_data_snps_additional_annotation = add_score.group_and_process_data(additional_bigwig_files["phyloP46_primate"], input_data_snps_additional_annotation, "phyloP46_primate")
-    input_data_indel_expanded_additional_annotation = add_score.group_and_process_data(additional_bigwig_files["phyloP46_primate"], input_data_indel_expanded_additional_annotation, "phyloP46_primate")
-    
-    input_data_snps_additional_annotation = add_score.group_and_process_data(additional_bigwig_files["phastCons46_mammal"], input_data_snps_additional_annotation, "phastCons46_mammal")
-    input_data_indel_expanded_additional_annotation = add_score.group_and_process_data(additional_bigwig_files["phastCons46_mammal"], input_data_indel_expanded_additional_annotation, "phastCons46_mammal")
-    
-    input_data_snps_additional_annotation = add_score.group_and_process_data(additional_bigwig_files["phastCons46_primate"], input_data_snps_additional_annotation, "phastCons46_primate")
-    input_data_indel_expanded_additional_annotation = add_score.group_and_process_data(additional_bigwig_files["phastCons46_primate"], input_data_indel_expanded_additional_annotation, "phastCons46_primate")
-    
-    print(input_data_snps_additional_annotation)
-    print(input_data_indel_expanded_additional_annotation)
+    # add conservation scores from bigwig files
+    print("Starting conservation score annotation ...")
+    for key, value in additional_bigwig_files.items():
+        input_data_snps_additional_annotation = add_score.group_and_process_data(value, input_data_snps_additional_annotation, key)
+        input_data_indel_expanded_additional_annotation = add_score.group_and_process_data(value, input_data_indel_expanded_additional_annotation, key)
+    print("Finished conservation score annotation!")
     
     # add abb score to annotation
+    print("Starting ABB score annotation ...")
     input_data_snps_additional_annotation = add_abb.group_and_process_data(abb_score_file, input_data_snps_additional_annotation)
     input_data_indel_expanded_additional_annotation = add_abb.group_and_process_data(abb_score_file, input_data_indel_expanded_additional_annotation)
+    print("Finished ABB score annotation!")
     
     # add simple repeats to annotation
+    print("Starting ABB score annotation ...")
     input_data_snps_additional_annotation = add_repeats.group_and_process_data(simple_repeat_file, input_data_snps_additional_annotation)
     input_data_indel_expanded_additional_annotation = add_repeats.group_and_process_data(simple_repeat_file, input_data_indel_expanded_additional_annotation)
+    print("Finished ABB score annotation!")
     
     # add segment duplication to annotation
+    print("Starting ABB score annotation ...")
     input_data_snps_additional_annotation = add_segDup.group_and_process_data(segment_duplication_file, input_data_snps_additional_annotation)
     input_data_indel_expanded_additional_annotation = add_segDup.group_and_process_data(segment_duplication_file, input_data_indel_expanded_additional_annotation)
+    print("Finished ABB score annotation!")
     
+    # save annotated files
     input_data_snps_additional_annotation.to_csv(str(working_directory + input_filename + "_snps_annotated.csv"), sep="\t", index=False)
     input_data_indel_annotated.to_csv(str(working_directory + input_filename + "_indel_annotated.csv"), sep="\t", index=False)
     input_data_indel_expanded_additional_annotation.to_csv(str(working_directory + input_filename + "_indel_expanded_annotated.csv"), sep="\t", index=False)
     
-    # add annotation from addtional bigwig files
-    # TODO wrap with a if condition to only use if no VEP annotation (is now part of the VEP annotation)
-    #for key, value in additional_bigwig_files.items():
-    #    input_data_snps_additional_annotation = add_score.group_and_process_data(value, input_data_snps_additional_annotation, key)
-    #    input_data_indel_additional_annotation = add_score.group_and_process_data(value, input_data_indel_additional_annotation, key)
-    
     # Workaround to make it work directly passing the tables to the combine method does not work (Why??? - maybe an error in pandas)
+    # TODO fix this small bug
     input_data_indel_annotated = pd.read_csv(str(working_directory + input_filename + "_indel_annotated.csv"), sep="\t", low_memory=False)
     input_data_indel_expanded_additional_annotation = pd.read_csv(str(working_directory + input_filename + "_indel_expanded_annotated.csv"), sep="\t", low_memory=False)
-    
-    print(input_data_indel_annotated)
-    print(input_data_indel_expanded_additional_annotation)
     
     # combine the two indel sets
     input_data_indel_combined_additional_annotation = combine_expanded_indels.combine_vcf_dataframes(input_data_indel_annotated, input_data_indel_expanded_additional_annotation)
@@ -145,14 +138,12 @@ if __name__=='__main__':
     predicted_data_complete = pd.concat([predicted_data_snps, predicted_data_indel], sort=False)
     predicted_data_complete.sort_values(['Chr', 'Pos'], ascending=[True, True])
 
-    #input_data_predicted.to_csv("tmp.predicted.tsv", index=False, sep="\t")
-    
-    #tmp = tempfile.NamedTemporaryFile(mode="w")
-    #predicted_data_combined.to_csv(tmp.name, index=False, sep="\t")
+    # score pathogenicity of the variants
+    print("Score variants ...")
     predicted_data_complete.to_csv(str(working_directory + input_filename + "_complete_annotated_predicted.csv"), index=False, sep="\t")
     
-    #prio.main_program("tmp.predicted.tsv", output_tsv, output_filtered_tsv, family_file, inheritance, family_type, hpo_file, gene_exclusion_file)
-    
+    # prioritize and filter variants
+    print("Filter variants and finalize score ...")
     prio.main_program(str(working_directory + input_filename + "_complete_annotated_predicted.csv"), output_tsv, output_filtered_tsv, family_file, inheritance, family_type, hpo_file, gene_exclusion_file)
-    #tmp.close()
-
+    
+    print("Pipeline successfully finsished!")
