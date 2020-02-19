@@ -44,7 +44,6 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = vep_command + "--fork " + str(vep_annotation_dict["num-threads"]) + " "
     vep_command = vep_command + "--vcf"
     
-    print(vep_command)
     print("Starting VEP annotation ...")
     
     subprocess.run(vep_command, shell=True, check=True)
@@ -78,10 +77,7 @@ if __name__=='__main__':
                                   "pastCons46primate": "/home/dominic/Masterarbeit/databases/phastCons46way.primate.complete.onlyChrom.bw",
                                   "pastCons46vertebrate": "/home/dominic/Masterarbeit/databases/phastCons46way.vertebrate.complete.onlyChrom.bw"}
     
-    print("Starting VEP annotation ...")
     call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, additional_annotation_dict)
-    print("Finished VEP annotation!")
-    print("The annotated VCF is saved as %s" % (output_vcf_file))
 
 
 

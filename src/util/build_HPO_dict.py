@@ -10,9 +10,9 @@
 import pickle
 import argparse
 
+
 parser = argparse.ArgumentParser(description='Generate eDiVA HPO - gene association database from HPO database download')
-parser.add_argument('--db_file','-db',dest='db', type=str,
-                    help='HPO database downloaded from http://compbio.charite.de/jenkins/job/hpo.annotations.monthly/lastStableBuild/artifact/annotation/ALL_SOURCES_TYPICAL_FEATURES_phenotype_to_genes.txt')
+parser.add_argument('--db_file','-db',dest='db', type=str, help='HPO database downloaded from http://compbio.charite.de/jenkins/job/hpo.annotations.monthly/lastStableBuild/artifact/annotation/ALL_SOURCES_TYPICAL_FEATURES_phenotype_to_genes.txt')
 args = parser.parse_args()
 
 HPO_association = dict()

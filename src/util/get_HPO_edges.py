@@ -3,6 +3,8 @@
 #then call this python ... hp.obo myHPO_edges.pk
 import sys
 import pickle
+
+
 listfile = sys.argv[1]
 
 out_HPO = dict()
@@ -22,4 +24,4 @@ with open(listfile) as rd:
             
             
 out_HPO[name]=parents
-pickle.dump( out_HPO, open( sys.argv[2],'wb'))
+pickle.dump( out_HPO, open( sys.argv[2], 'wb'))
