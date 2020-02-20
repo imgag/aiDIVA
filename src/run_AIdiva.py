@@ -90,8 +90,8 @@ if __name__=='__main__':
     # add conservation scores from bigwig files
     print("Starting conservation score annotation ...")
     for key, value in additional_bigwig_files.items():
-        input_data_snps_additional_annotation = add_score.group_and_process_data(value, input_data_snps_additional_annotation, key)
-        input_data_indel_expanded_additional_annotation = add_score.group_and_process_data(value, input_data_indel_expanded_additional_annotation, key)
+        input_data_snps_additional_annotation = add_score.group_and_process_data(value, input_data_snps_annotated, key)
+        input_data_indel_expanded_additional_annotation = add_score.group_and_process_data(value, input_data_indel_expanded_annotated, key)
     print("Finished conservation score annotation!")
     
     # add abb score to annotation
