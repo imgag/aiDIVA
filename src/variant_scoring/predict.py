@@ -130,9 +130,9 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--in_data_snps', type=str, dest='in_data_snps', metavar='in.csv', required=True, help='CSV file containing the training data, used to train the random forest model\n')
-    parser.add_argument('--in_data_indel', type=str, dest='in_data_indel', metavar='in.csv', required=True, help='CSV file containing the training data, used to train the random forest model\n')
-    parser.add_argument('--out_data', type=str, dest='out_data', metavar='out.csv', required=True, help='CSV file containing the test data, used to compute the model statistics\n')
+    parser.add_argument('--in_data_snps', type=str, dest='in_data_snps', metavar='in.csv', required=True, help='CSV file containing the snp input features\n')
+    parser.add_argument('--in_data_indel', type=str, dest='in_data_indel', metavar='in.csv', required=True, help='CSV file containing the indel input features\n')
+    parser.add_argument('--out_data', type=str, dest='out_data', metavar='out.csv', required=True, help='CSV file where the predicted outpu should be stored\n')
     parser.add_argument('--model_snps', type=str, dest='model_snps', metavar='model_snps.pkl', required=True, help='Specifies the name of the trained snps model to import\n')
     parser.add_argument('--model_indel', type=str, dest='model_indel', metavar='model_indel.pkl', required=True, help='Specifies the name of the trained indel model to import\n')
     args = parser.parse_args()
