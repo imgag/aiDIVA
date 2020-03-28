@@ -48,10 +48,10 @@ def group_and_process_data(bigwig_data, input_data, feature_name):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--in_data', type=str, dest='in_data', metavar='in.csv', required=True, help='CSV file containing the data, you want to extend with the ABB score information\n')
+    parser.add_argument('--in_data', type=str, dest='in_data', metavar='in.csv', required=True, help='CSV file containing the data, you want to be annotated with the given score information\n')
     parser.add_argument('--bigwig_data', type=str, dest='bigwig_data', metavar='data.bw', required=True, help='Bigwig file containing the feature information you want to add\n')
     parser.add_argument('--feature_name', type=str, dest='feature_name', metavar='name', required=True, help='Name with whom the feature should appear in the feature table\n')
-    parser.add_argument('--out_data', type=str, dest='out_data', metavar='out.csv', required=True, help='Specifies the extended output file\n')
+    parser.add_argument('--out_data', type=str, dest='out_data', metavar='out.csv', required=True, help='Specifies the annotated output file\n')
     args = parser.parse_args()
 
     input_data = pd.read_csv(args.in_data, sep="\t", low_memory=False)
