@@ -154,5 +154,14 @@ if __name__=='__main__':
     #prio.main_program("tmp.predicted.tsv", output_tsv, output_filtered_tsv, family_file, inheritance, family_type, hpo_file, gene_exclusion_file)
     
     prio.main_program(str(working_directory + input_filename + "_complete_annotated_predicted.csv"), output_tsv, output_filtered_tsv, family_file, inheritance, family_type, hpo_file, gene_exclusion_file)
+    
+    results = pd.read_csv(output_tsv, sep="\t", low_memory=False)
+    filtered_results = pd.read_csv(output_filtered_tsv, sep="\t", low_memory=False)
+    
+    results = results.sort_values(by='Final_rank', ascending=False)
+    filtered_results = filtered_results.sort_values(by='Final_rank', ascending=False)
+    
+    results.to_csv(output_tsv, index=False, sep="\t")
+    filtered_results.to_csv(output_filtered_tsv, index=False, sep="\t")
     #tmp.close()
 
