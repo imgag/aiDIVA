@@ -26,7 +26,7 @@ To run the whole AIdiva pipeline one argument providing the configuration file i
 This configuration file is encoded in the YAML format. In the `res` folder an example file can be found.
 
 
-## Usage Example
+## Running AIdiva
 
 The following commands show how to call the program from the commandline
 
