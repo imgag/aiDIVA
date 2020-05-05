@@ -125,6 +125,10 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
     # the following line might produce an SettingWithCopyWarning this Warning should be a false positive in this case
     predicted_data_indel.loc[(abs(predicted_data_indel.Ref.str.len() - predicted_data_indel.Alt.str.len()) % 3 != 0), "Rank"] = 1.0
     
+    # TODO set splicing donor/acceptor variants to 1.0
+    #predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("splice_acceptor_variant") | predicted_data_indel.Consequence.str.contains("splice_donor_variant")), "Rank"] = 1.0
+    #predicted_data_snps.loc[(predicted_data_snps.Consequence.str.contains("splice_acceptor_variant") | predicted_data_snps.Consequence.str.contains("splice_donor_variant")), "Rank"] = 1.0
+    
     return predicted_data_snps, predicted_data_indel
 
 

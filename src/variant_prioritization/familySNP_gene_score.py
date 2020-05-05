@@ -119,18 +119,23 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
         family[splitline[0]] = splitline[1]
 
     # read all data
-    alldata = list(csv.reader(infile, delimiter="\t"))
-    header = alldata.pop(0)
-        
+    #alldata = list(csv.reader(infile, delimiter="\t"))
+    #header = alldata.pop(0)
+    
     if inheritance == 'COMPOUND':
         alldata = sorted(alldata, key=itemgetter(0,1)) # sorts alldata according to the first and second element of each row
-    header =[x.replace('#','',1) for x in header]
+        alldata = pd.DataFrame(alldata, columns=header)
+    else:
+        pd.read_csv(infile, sep="\t", low_memory=False)
+        
+    #header =[x.replace('#','',1) for x in header]
 
     out = csv.writer(outfile, delimiter="\t")
     outfiltered = csv.writer(filteredfile, delimiter="\t")
 
     ############
-    # Filter out SNPs from filtered file where :
+    # Filter out variants from filtered file where :
+    # in case of Xlinked inheritance only variants on the X chromosome are present
     # kick when variant function : synonymous,unknown => line[ExonicFunction(ENSEMBL)]
     # keep when function should be exonic,splicing => line[Function(ENSEMBL)]
     # kick when segmentdup should be 0 => line[SegMentDup]
@@ -139,6 +144,8 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
 
     print(family)
 
+
+    # TODO if the pandas integration works the indices are obsolete 
     index_sample = min([identifycolumns(header,x) for x in family.keys()])#+identifycolumns(header, 'ExAC_SAS') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
 
     index_MAF1k_AA = identifycolumns(header, 'AA_AF')
@@ -550,7 +557,6 @@ def compoundizer(variantlist, family, index_sample, names):
     judgement = 0
 
     # check line by line, if this variant could support a compound het
-
     for variantline in variantlist:
         # produce a list with all the sample data
         sample_annot_size = 6
@@ -1194,7 +1200,6 @@ def filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function,
          cause, result = (inheritance, 'low CADD')
          
     elif judgement == 1 and MAF <= MAF_threshold:
-        # TODO adapt following two conditions to match the possible values from the consequences column
         found_consequences = [variant_consequences[consequence] for consequence in line[index_function].split("&")]
         if ('exonic' in found_consequences or 'splicing' in found_consequences or 'exonic;splicing' in found_consequences):
             if (line[index_function] != 'synonymous_variant' and line[index_function] != 'unknown' and line[index_function] != 'UNKNOWN'):
