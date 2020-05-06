@@ -126,7 +126,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
         alldata = sorted(alldata, key=itemgetter(0,1)) # sorts alldata according to the first and second element of each row
         alldata = pd.DataFrame(alldata, columns=header)
     else:
-        pd.read_csv(infile, sep="\t", low_memory=False)
+        alldata = pd.read_csv(infile, sep="\t", low_memory=False)
         
     #header =[x.replace('#','',1) for x in header]
 
@@ -196,9 +196,12 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
     initializer = 0
     processed_HPO_genes=dict()
     compound_gene_storage = []
+    
+    alldata.apply()
+    
     # start reading data
     for line in alldata:
-         # init for compound
+        # init for compound
         if inheritance == 'COMPOUND' and initializer == 0:
             compound_gene_storage = []
             old_gene = re.sub('\(.*?\)','',line[index_gene]) # PKHD1L1(NM_177531:exon75:c.12330+1G>A) transformed to PKHD1L1. Also works for ";" separated multiple annotations
@@ -210,7 +213,7 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
         # read minor allele frequencies
         try:
             # avoiding problems with NAs (NAs should have been filled in the input data)
-            MAF1k_AA = line[index_MAF1k_AA]
+            MAF1k_AA = [index_MAF1k_AA]
             MAF1k_AFR = line[index_MAF1k_AFR]
             MAF1k_AMR = line[index_MAF1k_AMR]
             MAF1k_EA = line[index_MAF1k_EA]
