@@ -148,31 +148,6 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
     # TODO if the pandas integration works the indices are obsolete 
     index_sample = min([identifycolumns(header,x) for x in family.keys()])#+identifycolumns(header, 'ExAC_SAS') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
 
-    index_MAF1k_AA = identifycolumns(header, 'AA_AF')
-    index_MAF1k_AFR = identifycolumns(header, 'AFR_AF')
-    index_MAF1k_AMR = identifycolumns(header, 'AMR_AF')
-    index_MAF1k_EA = identifycolumns(header, 'EA_AF')
-    index_MAF1k_EAS = identifycolumns(header, 'EAS_AF')
-    index_MAF1k_EUR = identifycolumns(header, 'EUR_AF')
-    index_MAF1k_SAS = identifycolumns(header, 'SAS_AF')
-    
-    index_MAF_gnomAD_AFR = identifycolumns(header, 'gnomAD_AFR_AF')
-    index_MAF_gnomAD_AMR = identifycolumns(header, 'gnomAD_AMR_AF')
-    index_MAF_gnomAD_ASJ = identifycolumns(header, 'gnomAD_ASJ_AF')
-    index_MAF_gnomAD_EAS = identifycolumns(header, 'gnomAD_EAS_AF')
-    index_MAF_gnomAD_FIN = identifycolumns(header, 'gnomAD_FIN_AF')
-    index_MAF_gnomAD_NFE = identifycolumns(header, 'gnomAD_NFE_AF')
-    index_MAF_gnomAD_OTH = identifycolumns(header, 'gnomAD_OTH_AF')
-    index_MAF_gnomAD_SAS = identifycolumns(header, 'gnomAD_SAS_AF')
-
-    index_function = identifycolumns(header, 'Consequence')
-    index_varfunction = identifycolumns(header, 'Consequence') # this column doesn't exist anymore TODO remove
-    index_segdup = identifycolumns(header, 'SegDupMax') # either SegmentDuplication or SegDupMax, if the first one is chosen we need to choose the max. value if there are multiple
-    index_gene = identifycolumns(header, 'SYMBOL')
-    index_str = identifycolumns(header, 'SimpleTandemRepeatRegion')
-    index_CADD = identifycolumns(header, 'CADD_PHRED')
-    index_rank = identifycolumns(header, 'Rank')
-
     sample_annot_size = 6 # sampleid - DP - REF - ALT - AF - GQ
     print(family.keys())
     for i in range(index_sample,index_sample+sample_annot_size*len(family.keys()),sample_annot_size):
@@ -199,238 +174,239 @@ def main_program(infile, outfile, filteredfile, famfile, inheritance, familytype
     
     alldata.apply()
     
-    # start reading data
-    for line in alldata:
-        # init for compound
-        if inheritance == 'COMPOUND' and initializer == 0:
-            compound_gene_storage = []
-            old_gene = re.sub('\(.*?\)','',line[index_gene]) # PKHD1L1(NM_177531:exon75:c.12330+1G>A) transformed to PKHD1L1. Also works for ";" separated multiple annotations
-            old_gene_set = set(old_gene.split(';')) # try to remove double occurences of the same gene names
-            new_gene = re.sub('\(.*?\)','',line[index_gene])
-            new_gene_set = set(new_gene.split(';'))
-            initializer = 1
+    
+    exit(0)
+    
+def prioritize_data(line, ):
+    # init for compound
+    if inheritance == 'COMPOUND' and initializer == 0:
+        compound_gene_storage = []
+        old_gene = re.sub('\(.*?\)','',line[index_gene]) # PKHD1L1(NM_177531:exon75:c.12330+1G>A) transformed to PKHD1L1. Also works for ";" separated multiple annotations
+        old_gene_set = set(old_gene.split(';')) # try to remove double occurences of the same gene names
+        new_gene = re.sub('\(.*?\)','',line[index_gene])
+        new_gene_set = set(new_gene.split(';'))
+        initializer = 1
 
-        # read minor allele frequencies
-        try:
-            # avoiding problems with NAs (NAs should have been filled in the input data)
-            MAF1k_AA = [index_MAF1k_AA]
-            MAF1k_AFR = line[index_MAF1k_AFR]
-            MAF1k_AMR = line[index_MAF1k_AMR]
-            MAF1k_EA = line[index_MAF1k_EA]
-            MAF1k_EAS = line[index_MAF1k_EAS]
-            MAF1k_EUR = line[index_MAF1k_EUR]
-            MAF1k_SAS = line[index_MAF1k_SAS]
-            
-            MAFgnomAD_AFR = line[index_MAF_gnomAD_AFR]
-            MAFgnomAD_AMR = line[index_MAF_gnomAD_AMR]
-            MAFgnomAD_ASJ = line[index_MAF_gnomAD_ASJ]
-            MAFgnomAD_EAS = line[index_MAF_gnomAD_EAS]
-            MAFgnomAD_FIN = line[index_MAF_gnomAD_FIN]
-            MAFgnomAD_NFE = line[index_MAF_gnomAD_NFE]
-            MAFgnomAD_OTH = line[index_MAF_gnomAD_OTH]
-            MAFgnomAD_SAS = line[index_MAF_gnomAD_SAS]
-            
-            MAF = max(float(MAF1k_AA), float(MAF1k_AFR), float(MAF1k_AMR), float(MAF1k_EA), float(MAF1k_EAS), float(MAF1k_EUR), float(MAF1k_SAS), float(MAFgnomAD_AFR), float(MAFgnomAD_AMR), float(MAFgnomAD_ASJ), float(MAFgnomAD_EAS), float(MAFgnomAD_FIN), float(MAFgnomAD_NFE), float(MAFgnomAD_OTH), float(MAFgnomAD_SAS))
-        except:
-            print('Freq error 1k_AA %s 1k_AFR %s 1k_AMR %s 1k_EA %s 1k_EA %s 1k_EAS %s 1k_EUR %s 1k_SAS %s gnomAD_AFR %s gnomAD_AMR %s gnomAD_ASJ %s gnomAD_EAS %s gnomAD_FIN %s gnomAD_FIN %s gnomAD_NFE %s gnomAD_OTH %s gnomAD_SAS %s')%(MAF1k_AA, MAF1k_AFR, MAF1k_AMR, MAF1k_EA, MAF1k_EAS, MAF1k_EUR, MAF1k_SAS, MAFgnomAD_AFR, MAFgnomAD_AMR, MAFgnomAD_ASJ, MAFgnomAD_EAS, MAFgnomAD_FIN, MAFgnomAD_NFE, MAFgnomAD_OTH, MAFgnomAD_SAS)
-            MAF = 0
-
-        try :
-            CADD = float(line[index_CADD])
-        except:
-            CADD = 0
-
-        # read sample names and according zygosity NOW IT's a LIST
-        sampledata = line[index_sample:index_sample+sample_annot_size*len(family.keys())]
-
-        if len(sampledata) == 0:
-            print(line)
-            print(len(line))
-            raise
+    # read minor allele frequencies
+    try:
+        # avoiding problems with NAs (NAs should have been filled in the input data)
+        MAF1k_AA = line["AA_AF"]
+        MAF1k_AFR = line["AFR_AF"]
+        MAF1k_AMR = line["AMR_AF"]
+        MAF1k_EA = line["EA_AF"]
+        MAF1k_EAS = line["EAS_AF"]
+        MAF1k_EUR = line["EUR_AF"]
+        MAF1k_SAS = line["SAS_AF"]
         
-        elif sampledata[0] == '0':
-            print(len(line))
-            print(line)
-            raise
+        MAFgnomAD_AFR = line["gnomAD_AFR_AF"]
+        MAFgnomAD_AMR = line["gnomAD_AMR_AF"]
+        MAFgnomAD_ASJ = line["gnomAD_ASJ_AF"]
+        MAFgnomAD_EAS = line["gnomAD_EAS_AF"]
+        MAFgnomAD_FIN = line["gnomAD_FIN_AF"]
+        MAFgnomAD_NFE = line["gnomAD_NFE_AF"]
+        MAFgnomAD_OTH = line["gnomAD_OTH_AF"]
+        MAFgnomAD_SAS = line["gnomAD_SAS_AF"]
+        
+        MAF = max(float(MAF1k_AA), float(MAF1k_AFR), float(MAF1k_AMR), float(MAF1k_EA), float(MAF1k_EAS), float(MAF1k_EUR), float(MAF1k_SAS), float(MAFgnomAD_AFR), float(MAFgnomAD_AMR), float(MAFgnomAD_ASJ), float(MAFgnomAD_EAS), float(MAFgnomAD_FIN), float(MAFgnomAD_NFE), float(MAFgnomAD_OTH), float(MAFgnomAD_SAS))
+    except:
+        print('Freq error 1k_AA %s 1k_AFR %s 1k_AMR %s 1k_EA %s 1k_EA %s 1k_EAS %s 1k_EUR %s 1k_SAS %s gnomAD_AFR %s gnomAD_AMR %s gnomAD_ASJ %s gnomAD_EAS %s gnomAD_FIN %s gnomAD_FIN %s gnomAD_NFE %s gnomAD_OTH %s gnomAD_SAS %s')%(MAF1k_AA, MAF1k_AFR, MAF1k_AMR, MAF1k_EA, MAF1k_EAS, MAF1k_EUR, MAF1k_SAS, MAFgnomAD_AFR, MAFgnomAD_AMR, MAFgnomAD_ASJ, MAFgnomAD_EAS, MAFgnomAD_FIN, MAFgnomAD_NFE, MAFgnomAD_OTH, MAFgnomAD_SAS)
+        MAF = 0
 
-        # read simple tandem repeat information
-        tandem = line[index_str]
+    try :
+        CADD = float(line["CADD_PHRED"])
+    except:
+        CADD = 0
 
-        # check, if gene is on the gene exclusion list.
-        genenames = set()
-        genecolumn = re.sub('\(.*?\)','',line[index_gene])
-        genenames = set(genecolumn.split(';'))
+    # read sample names and according zygosity NOW IT's a LIST
+    sampledata = line[index_sample:index_sample+sample_annot_size*len(family.keys())]
 
-        #part of the distance of the query vs gene - HPO terms
-        gene_distances = []
-        for gene_id in genenames:
-            if gene_id in processed_HPO_genes.keys():
-                gene_distances.append(processed_HPO_genes[gene_id])
-            else:
-                #process ex novo
-                #get HPOs related to the gene
-                gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
-                (g_dist,query_dist) = gs.list_distance(DG, HPO_query, gene_HPO_list, query_dist)
-                gene_distances.append(g_dist)
-                processed_HPO_genes[gene_id] = g_dist
-        final_distance = str(max(gene_distances))
-        known = final_distance
-        judgement = int()
+    if len(sampledata) == 0:
+        print(line)
+        print(len(line))
+        raise
+    
+    elif sampledata[0] == '0':
+        print(len(line))
+        print(line)
+        raise
 
-        ###
-        # look for de novo variants
-        ###
-        if inheritance == 'DOMINANT_DENOVO':
-            judgement = denovo(sampledata, family,names)
-            filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
-            continue
+    # read simple tandem repeat information
+    tandem = line[index_str]
 
-        ###
-        # look for familial dominant variants. (being tolerant for missing values)
-        ###
-        elif inheritance == 'DOMINANT_INHERITED':
-            judgement = dominant(sampledata, family, names)
-            sample_annot_size = int(len(sampledata) / len(names))
-            total_affected = 0
-            for i in range(0, int(sample_annot_size * len(names)), sample_annot_size):
-                sam = sampledata[i]
-                features = sampledata[i:i+sample_annot_size]
-                name = names[int(i / sample_annot_size)]
-                total_affected += int(family[name])
+    # check, if gene is on the gene exclusion list.
+    genenames = set()
+    genecolumn = re.sub('\(.*?\)','',line[index_gene])
+    genenames = set(genecolumn.split(';'))
 
-            if total_affected == 1 and not familytype == 'SINGLE':
-                judgement *= 0 #denovo mutation excluded if not single sample case
-            filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
-            continue
+    #part of the distance of the query vs gene - HPO terms
+    gene_distances = []
+    for gene_id in genenames:
+        if gene_id in processed_HPO_genes.keys():
+            gene_distances.append(processed_HPO_genes[gene_id])
+        else:
+            #process ex novo
+            #get HPOs related to the gene
+            gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
+            (g_dist,query_dist) = gs.list_distance(DG, HPO_query, gene_HPO_list, query_dist)
+            gene_distances.append(g_dist)
+            processed_HPO_genes[gene_id] = g_dist
+    final_distance = str(max(gene_distances))
+    known = final_distance
+    judgement = int()
 
-        ###
-        # look for recessive variants (be aware of trio and family inheritance)
-        ###
-        elif inheritance == 'RECESSIVE':
-            # TODO single sample case?
-            judgement = recessive(sampledata, family, familytype, names)
-            filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
-            continue
+    ###
+    # look for de novo variants
+    ###
+    if inheritance == 'DOMINANT_DENOVO':
+        judgement = denovo(sampledata, family,names)
+        priorized = filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
+        return priorized
 
-        ###
-        # look for X linked recessive variants in trios
-        ###
-        elif inheritance == 'XLINKED':
-            index_chromosome = identifycolumns(header, 'Chr')
-            
-            # skip all variants not located on the X chromosome (both out files will only contain variants located on the X chromosome)
-            if line[index_chromosome] == 'X' or line[index_chromosome] == 'x' or line[index_chromosome] == '23':
-                pass
-            else:
-                continue
+    ###
+    # look for familial dominant variants. (being tolerant for missing values)
+    ###
+    elif inheritance == 'DOMINANT_INHERITED':
+        judgement = dominant(sampledata, family, names)
+        sample_annot_size = int(len(sampledata) / len(names))
+        total_affected = 0
+        for i in range(0, int(sample_annot_size * len(names)), sample_annot_size):
+            sam = sampledata[i]
+            features = sampledata[i:i+sample_annot_size]
+            name = names[int(i / sample_annot_size)]
+            total_affected += int(family[name])
 
+        if total_affected == 1 and not familytype == 'SINGLE':
+            judgement *= 0 #denovo mutation excluded if not single sample case
+        priorized = filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
+        return priorized
+
+    ###
+    # look for recessive variants (be aware of trio and family inheritance)
+    ###
+    elif inheritance == 'RECESSIVE':
+        # TODO single sample case?
+        judgement = recessive(sampledata, family, familytype, names)
+        priorized = filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
+        return priorized
+
+    ###
+    # look for X linked recessive variants in trios
+    ###
+    elif inheritance == 'XLINKED':
+        index_chromosome = identifycolumns(header, 'Chr')
+        
+        # skip all variants not located on the X chromosome (both out files will only contain variants located on the X chromosome)
+        if line[index_chromosome] == 'X' or line[index_chromosome] == 'x' or line[index_chromosome] == '23':
+            # TODO filter X variants only before processing variant table
+            return 0
+        else:
             judgement = xlinked(sampledata, family, names)
-            filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage, familytype)
-        
-        ###
-        # look for compound heterozygous variants
-        ###
-        elif inheritance == 'COMPOUND' :
-            new_gene = re.sub('\(.*?\)', '', line[index_gene])
-            new_gene_set = set(new_gene.split(';'))
+            priorized = filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage, familytype)
+            return priorized
+    
+    ###
+    # look for compound heterozygous variants
+    ###
+    elif inheritance == 'COMPOUND' :
+        new_gene = re.sub('\(.*?\)', '', line[index_gene])
+        new_gene_set = set(new_gene.split(';'))
 
-            if len(old_gene_set - new_gene_set) > 0:
+        if len(old_gene_set - new_gene_set) > 0:
 
-                if  len(names) == 3:
+            if  len(names) == 3:
+                comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
+                extension = []
+                pass_ = 0
+                
+                for row in compound_gene_storage:
+                    rrow = ','.join(row)
+
+                    if len(compound_gene_storage) == 1:
+                        rrow=rrow.replace(',COMPOUND,PASS', 'NOT_compound,filtered')
+                        out.writerow(rrow.split(','))
+                    else:
+                        if comp_judgement==1:
+                            outfiltered.writerow(rrow.split(','))
+                        else:
+                            rrow=rrow.replace(',COMPOUND,PASS', 'NOT_compound,filtered')
+                            out.writerow(rrow.split(','))
+
+            elif len(names) == 1:
+                #just check there's more than one and print it
+                if len(compound_gene_storage) == 1:
+                    row = compound_gene_storage[0]
+                    rrow = ','.join(row).replace(',COMPOUND_SINGLE_SAMPLE,PASS', 'NOT_compound,filtered')
+                    out.writerow(rrow.split(','))
+                    
+                elif len(compound_gene_storage) > 1:
+                    for row in compound_gene_storage:
+                        rrow = ','.join(row)
+                        outfiltered.writerow(rrow.split(','))
+                        out.writerow(rrow.split(','))
+
+            # reset values
+            compound_gene_storage = []
+            old_gene = new_gene
+            old_gene_set = new_gene_set
+
+        if len(names) == 3:
+            judgement = compound(sampledata, family, names)
+            compound_gene_storage = filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
+            
+        elif len(names) == 1:
+            #then use the denovo filter strategy
+            judgement = denovo(sampledata, family, names)
+            compound_gene_storage = filter_line(judgement, line, MAF, CADD, tandem, 'COMPOUND_SINGLE_SAMPLE', index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
+            
+        continue
+    
+    ###
+    # in case of single sample data with unknown inheritance, skip the inheritance filtering and perform filtering only based on the other criteria
+    ###
+    elif inheritance == 'UNKNOWN':
+        judgement = 1
+        priorized = filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
+        return priorized
+
+    else:
+        # clean up for last gene
+        if inheritance == 'COMPOUND':
+            if  len(names) ==3:
+                comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
+                genecolumn = re.sub('\(.*?\)', '', line[index_gene])
+                genenames = set(genecolumn.split(';'))
+                
+                if len(old_gene_set - new_gene_set) > 0:
                     comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
                     extension = []
                     pass_ = 0
                     
                     for row in compound_gene_storage:
                         rrow = ','.join(row)
-
                         if len(compound_gene_storage) == 1:
-                            rrow=rrow.replace(',COMPOUND,PASS', 'NOT_compound,filtered')
+                            rrow = rrow.replace(',COMPOUND,PASS', ',NOT_compound,filtered')
                             out.writerow(rrow.split(','))
                         else:
                             if comp_judgement==1:
-                               outfiltered.writerow(rrow.split(','))
+                                outfiltered.writerow(rrow.split(','))
+                                out.writerow(rrow.split(',') )
                             else:
-                                rrow=rrow.replace(',COMPOUND,PASS', 'NOT_compound,filtered')
-                                out.writerow(rrow.split(','))
-
-                elif len(names) == 1:
-                    #just check there's more than one and print it
-                    if len(compound_gene_storage) == 1:
-                        row = compound_gene_storage[0]
-                        rrow = ','.join(row).replace(',COMPOUND_SINGLE_SAMPLE,PASS', 'NOT_compound,filtered')
-                        out.writerow(rrow.split(','))
-                        
-                    elif len(compound_gene_storage) > 1:
-                        for row in compound_gene_storage:
-                            rrow = ','.join(row)
-                            outfiltered.writerow(rrow.split(','))
-                            out.writerow(rrow.split(','))
-
-                # reset values
-                compound_gene_storage = []
-                old_gene = new_gene
-                old_gene_set = new_gene_set
-
-            if len(names) == 3:
-                judgement = compound(sampledata, family, names)
-                compound_gene_storage = filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
-                
-            elif len(names) == 1:
-                #then use the denovo filter strategy
-                judgement = denovo(sampledata, family, names)
-                compound_gene_storage = filter_line(judgement, line, MAF, CADD, tandem, 'COMPOUND_SINGLE_SAMPLE', index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
-                
-            continue
-        
-        ###
-        # in case of single sample data with unknown inheritance, skip the inheritance filtering and perform filtering only based on the other criteria
-        ###
-        elif inheritance == 'UNKNOWN':
-            judgement = 1
-            filter_line(judgement, line, MAF, CADD, tandem, inheritance, index_function, index_varfunction, index_segdup, out, outfiltered, genes2exclude, genenames, known, index_rank, HPO_query, compound_gene_storage)
-            continue
-
-        else:
-            # clean up for last gene
-            if inheritance == 'COMPOUND':
-                if  len(names) ==3:
-                    comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-                    genecolumn = re.sub('\(.*?\)', '', line[index_gene])
-                    genenames = set(genecolumn.split(';'))
-                    
-                    if len(old_gene_set - new_gene_set) > 0:
-                        comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-                        extension = []
-                        pass_ = 0
-                        
-                        for row in compound_gene_storage:
-                            rrow = ','.join(row)
-                            if len(compound_gene_storage) == 1:
                                 rrow = rrow.replace(',COMPOUND,PASS', ',NOT_compound,filtered')
-                                out.writerow(rrow.split(','))
-                            else:
-                                if comp_judgement==1:
-                                    outfiltered.writerow(rrow.split(','))
-                                    out.writerow(rrow.split(',') )
-                                else:
-                                    rrow = rrow.replace(',COMPOUND,PASS', ',NOT_compound,filtered')
-                                    out.writerow(rrow.split(',') )
-                                    
-                elif len(names) == 1:
-                    #just check there's more than one and print it
-                    if len(compound_gene_storage) == 1:
-                        row = compound_gene_storage[0]
-                        rrow = ','.join(row).replace(',COMPOUND_SINGLE_SAMPLE,PASS', 'NOT_compound,filtered')
+                                out.writerow(rrow.split(',') )
+                                
+            elif len(names) == 1:
+                #just check there's more than one and print it
+                if len(compound_gene_storage) == 1:
+                    row = compound_gene_storage[0]
+                    rrow = ','.join(row).replace(',COMPOUND_SINGLE_SAMPLE,PASS', 'NOT_compound,filtered')
+                    out.writerow(rrow.split(','))
+                    
+                elif len(compound_gene_storage) > 1:
+                    for row in compound_gene_storage:
+                        rrow = ','.join(row)
+                        outfiltered.writerow(rrow.split(','))
                         out.writerow(rrow.split(','))
-                        
-                    elif len(compound_gene_storage) > 1:
-                        for row in compound_gene_storage:
-                            rrow = ','.join(row)
-                            outfiltered.writerow(rrow.split(','))
-                            out.writerow(rrow.split(','))
 
-    exit(0)
 
 
 ###################################################
