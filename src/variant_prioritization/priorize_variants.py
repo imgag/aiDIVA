@@ -74,6 +74,8 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
     HPO_graph.add_nodes_from(HPO_graph_nodes)
     HPO_graph.add_edges_from(HPO_graph_edges)
 
+    query_dist = 0
+
     if gene_exclusion:
         gene_exclusion = open(gene_exclusion, "r")
         for gene in gene_exclusion:
@@ -98,7 +100,7 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
                     except:
                         print('%s not found in database' % (HPO_term))
             HPO_query= list(set(HPO_query))
-            query_dist = gs.list_distance(HPO_graph, HPO_query, query_dist)
+            query_dist = gs.precompute_query_distances(HPO_graph, HPO_query, 0)
         else:
             print('The specified HPO list %s is not a valid file' % (white_list))
             print('eDiVA will proceed as without any HPO list')
@@ -120,8 +122,8 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
 
 
 
-    variant_data["HPO_RELATEDNESS", "FINAL_RANK"] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist)), axis=1)
-    variant_data["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "COMPOUND", "FILTER_PASSED"] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, family_type, names)), axis=1)
+    variant_data[["HPO_RELATEDNESS", "FINAL_RANK"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist)), axis=1)
+    variant_data[["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "COMPOUND", "FILTER_PASSED"]] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type)), axis=1)
 
     ## TODO: Chek recessive variants for possible compounds
     ## Compoundizer method applied on each gene set???
@@ -157,13 +159,19 @@ def compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, ge
 
 
 def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, familytype):
-    genecolumn = re.sub("\(.*?\)", "", variant["SYMBOL"])
+    genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     genenames = set(genecolumn.split(";"))
 
-    consequences = variant["Consequence"]
+    #print(variant["Chr"], variant["Pos"])
+    consequences = str(variant["Consequence"])
+    #print(consequences)
     seg_dup = float(variant["SegDupMax"])
-    tandem = variant["SimpleTandemRepeatRegion"]
-    cadd = variant["CADD_PHRED"]
+    #print(seg_dup)
+    tandem = str(variant["SimpleTandemRepeatRegion"])
+    #print(tandem)
+    #print(not (tandem == "NA" or tandem == "" or tandem == "nan"))
+    cadd = float(variant["CADD_PHRED"])
+    #print(cadd)
 
     try:
         maf = max(float(variant["AA_AF"]), float(variant["AFR_AF"]), float(variant["AMR_AF"]), float(variant["EA_AF"]), float(variant["EAS_AF"]), float(variant["EUR_AF"]), float(variant["SAS_AF"]), float(variant["gnomAD_AFR_AF"]), float(variant["gnomAD_AMR_AF"]), float(variant["gnomAD_ASJ_AF"]), float(variant["gnomAD_EAS_AF"]), float(variant["gnomAD_FIN_AF"]), float(variant["gnomAD_NFE_AF"]), float(variant["gnomAD_OTH_AF"]), float(variant["gnomAD_SAS_AF"]))
@@ -171,15 +179,18 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
         print("Allele frequency could not be identified, use 0.0 instead")
         maf = 0.0
 
-    dominant_denovo = denovo(family)
+    #print(maf)
+    dominant_denovo = check_denovo(variant, family)
 
     ## TODO: do we need a check for affected family members?
-    dominant_inherited = dominant(family)
+    dominant_inherited = check_dominant(variant, family)
     if variant["Chr"] == "X" or variant["Chr"] == "x" or variant["Chr"] == "23":
-        xlinked = xlinked(family)
+        xlinked = check_xlinked(variant, family)
     else:
         xlinked = 0
-    recessive = recessive(family, familytype)
+    recessive = check_recessive(variant, family, familytype)
+    
+    compound = 0
 
     found_consequences = [variant_consequences[consequence] for consequence in consequences.split("&")]
 
@@ -196,58 +207,73 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
 
     # exclude gene, if it is on the exclusion list
     if len(genes2exclude & genenames) > 0:
+        #print("geneexclusion")
         filter_passed = 0 # gene in exclusion list
-        return [recessive, dominant_denovo, dominant_inherited, xlinked, 0, filter_passed]
+        return [recessive, dominant_denovo, dominant_inherited, xlinked, compound, filter_passed]
 
-    elif not (tandem == 'NA' or tandem == '' or tandem == 'nan'):
+    if tandem != "NA" and tandem != "" and tandem != "nan":
+        #print(tandem)
+        #print("tandem")
         filter_passed = 0 # tandem repeat
-        return [recessive, dominant_denovo, dominant_inherited, xlinked, 0, filter_passed]
+        return [recessive, dominant_denovo, dominant_inherited, xlinked, compound, filter_passed]
 
     ## TODO: remove
     #elif cadd > 0 and cadd < CADD_threshold :
     #     filter_passed = 0
 
     ## TODO: filter later compound only less than 0.01
-    elif maf <= 0.02:
+    if maf <= 0.02:
         if ('exonic' in found_consequences or 'splicing' in found_consequences or 'exonic;splicing' in found_consequences):
-            if (not "synonymous_variant" in consequences.split("&")) and ("unknown" != consequences) and ("UNKNOWN" != consequences):
+            if not "synonymous_variant" in consequences.split("&") and "unknown" != consequences and "UNKNOWN" != consequences:
                 if (seg_dup == 0):
                     filter_passed = 1
                     if len(HPO_list) > 1 and 'NONE' not in HPO_list:
+                        #print("hpo")
                         if float(variant["HPO_RELATEDNESS"]) > 0:
                             filter_passed = 1
                         else:
+                            #print("relatedness")
                             filter_passed = 0 # no relation to reported HPO terms
                 # e.g. intronic variants fitting the criteria
                 else:
+                    #print("segdup")
                     filter_passed = 0 # segment duplication
             else:
+                #print("harmless")
                 filter_passed = 0 # synonymous variant  or unknown effect
         else:
+            #print("not exonic")
             filter_passed = 0 # not exonic
     else:
+        #print("high frequency")
         filter_passed = 0 # allele frequency to high
 
-    return [recessive, dominant_denovo, dominant_inherited, xlinked, 0, filter_passed]
+    return [recessive, dominant_denovo, dominant_inherited, xlinked, compound, filter_passed]
 
 
-def denovo(family):
+def check_denovo(variant, family):
     judgement = 0
     check_samples = dict()
 
     # create data structure for completeness check
     for name in family.keys():
-        check_samples[sam] = 0
+        check_samples[name] = 0
 
-        if "REF." + name in variant.columns() and "ALT." + name in variant.columns():
+        if "REF." + name in variant.index.tolist() and "ALT." + name in variant.index.tolist():
             zygosity = variant[name]
-            refcoverage = variant["REF." + str(name)].replace('.', '0') # could be numeric or .
-            altcoverage = variant["ALT." + str(name)].replace('.', '0') # could be numeric or .
+            if variant["REF." + name] == ".":
+                refcoverage = variant["REF." + name].replace('.', '0') # could be numeric or .
+            else:
+                refcoverage = variant["REF." + name]
+            if variant["ALT." + name] == ".":
+                altcoverage = variant["ALT." + name].replace('.', '0') # could be numeric or .
+            else:
+                altcoverage = variant["ALT." + name]
         else:
             #stick with genotype and the others are empty
             zygosity = variant[name]
-            refcoverage = '.'
-            altcoverage = '.'
+            refcoverage = "."
+            altcoverage = "."
 
         # check if sample is found in pedigree
         # sample info complete?
@@ -341,18 +367,24 @@ def denovo(family):
     return judgement
 
 
-def dominant(family):
+def check_dominant(variant, family):
     judgement = 0
     check_samples = dict()
 
     # create data structure for completeness check
     for name in family.keys():
-        check_samples[sam] = 0
+        check_samples[name] = 0
 
-        if "REF." + name in variant.columns() and "ALT." + name in variant.columns():
+        if "REF." + name in variant.index.tolist() and "ALT." + name in variant.index.tolist():
             zygosity = variant[name]
-            refcoverage = variant["REF." + str(name)].replace('.', '0') # could be numeric or .
-            altcoverage = variant["ALT." + str(name)].replace('.', '0') # could be numeric or .
+            if variant["REF." + name] == ".":
+                refcoverage = variant["REF." + name].replace('.', '0') # could be numeric or .
+            else:
+                refcoverage = variant["REF." + name]
+            if variant["ALT." + name] == ".":
+                altcoverage = variant["ALT." + name].replace('.', '0') # could be numeric or .
+            else:
+                altcoverage = variant["ALT." + name]
         else:
             #stick with genotype and the others are empty
             zygosity = variant[name]
@@ -458,18 +490,24 @@ def dominant(family):
 
     return judgement
 
-def recessive(family, familytype):
+def check_recessive(variant, family, familytype):
     judgement = 0
     check_samples = dict()
 
     # create data structure for completeness check
     for name in family.keys():
-        check_samples[sam] = 0
+        check_samples[name] = 0
 
-        if "REF." + name in variant.columns() and "ALT." + name in variant.columns():
+        if "REF." + name in variant.index.tolist() and "ALT." + name in variant.index.tolist():
             zygosity = variant[name]
-            refcoverage = variant["REF." + str(name)].replace('.', '0') # could be numeric or .
-            altcoverage = variant["ALT." + str(name)].replace('.', '0') # could be numeric or .
+            if variant["REF." + name] == ".":
+                refcoverage = variant["REF." + name].replace('.', '0') # could be numeric or .
+            else:
+                refcoverage = variant["REF." + name]
+            if variant["ALT." + name] == ".":
+                altcoverage = variant["ALT." + name].replace('.', '0') # could be numeric or .
+            else:
+                altcoverage = variant["ALT." + name]
         else:
             #stick with genotype and the others are empty
             zygosity = variant[name]
@@ -574,18 +612,25 @@ def recessive(family, familytype):
     return judgement
 
 
-def xlinked(family):
+def check_xlinked(variant, family):
     judgement = 0
     check_samples = dict()
+    inheritance_logic = dict()
 
     # create data structure for completeness check
     for name in family.keys():
-        check_samples[sam] = 0
+        check_samples[name] = 0
 
-        if "REF." + name in variant.columns() and "ALT." + name in variant.columns():
+        if "REF." + name in variant.index.tolist() and "ALT." + name in variant.index.tolist():
             zygosity = variant[name]
-            refcoverage = variant["REF." + str(name)].replace('.', '0') # could be numeric or .
-            altcoverage = variant["ALT." + str(name)].replace('.', '0') # could be numeric or .
+            if variant["REF." + name] == ".":
+                refcoverage = variant["REF." + name].replace('.', '0') # could be numeric or .
+            else:
+                refcoverage = variant["REF." + name]
+            if variant["ALT." + name] == ".":
+                altcoverage = variant["ALT." + name].replace('.', '0') # could be numeric or .
+            else:
+                altcoverage = variant["ALT." + name]
         else:
             #stick with genotype and the others are empty
             zygosity = variant[name]
