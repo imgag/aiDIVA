@@ -52,7 +52,7 @@ variant_consequences = {'transcript_ablation': 'non_exonic',
 
 # TODO use pandas dataframes instead of the csv library
 def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance, family_type, white_list, gene_exclusion):
-    variant_data = pd.read_csv(infile, sep="\t", low_memory=False)
+    variant_data = pd.read_csv(in_file, sep="\t", low_memory=False)
 
     # read the gene exclusion list
     # an empty set will not filter out anything, if gene exclusion list is not provided
@@ -105,7 +105,7 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
     # read family relationships
     # TODO change to ped file
     family = dict()
-    with open(fam_file, "r") as fam_file
+    with open(fam_file, "r") as fam_file:
         for line in fam_file:
             if line.startswith('sample'):
                 continue
@@ -118,8 +118,8 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
 
 
 
-    variant_data["HPO_RELATEDNESS", "FINAL_RANK"] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_rank(variant, genes2exclude, gene_2_HPO, HPO_query, query_dist)))
-    variant_data["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "COMPOUND", "FILTER_PASSED"] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, family_type, names)))
+    variant_data["HPO_RELATEDNESS", "FINAL_RANK"] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query)), axis=1)
+    variant_data["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "COMPOUND", "FILTER_PASSED"] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, family_type, names)), axis=1)
 
     ## TODO: Chek recessive variants for possible compounds
     ## Compoundizer method applied on each gene set???
@@ -129,8 +129,8 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
     variant_data[variant_data["FILTER_PASSED"] == 1].to_csv(filtered_file, sep='\t', encoding='utf-8', index=False)
 
 
-def compute_hpo_relatedness_and_final_rank(variant, genes2exclude, gene_2_HPO, HPO_query, query_dist):
-    genecolumn = re.sub("\(.*?\)", "", variant["SYMBOL"])
+def compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query):
+    genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     genenames = set(genecolumn.split(";"))
 
     query_dist = 0
@@ -174,7 +174,7 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
 
     ## TODO: do we need a check for affected family members?
     dominant_inherited = dominant(family)
-    if variant["Chr"] == "X" or variant["Chr"] == "x" variant["Chr"] == "23"
+    if variant["Chr"] == "X" or variant["Chr"] == "x" or variant["Chr"] == "23":
         xlinked = xlinked(family)
     else:
         xlinked = 0
@@ -209,8 +209,8 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
     ## TODO: filter later compound only less than 0.01
     elif maf <= 0.02:
         if ('exonic' in found_consequences or 'splicing' in found_consequences or 'exonic;splicing' in found_consequences):
-            if not "synonymous_variant" in consequences.split("&") and "unknown" != consequences and "UNKNOWN" != consequences):
-                if (seg_dup == 0)  :
+            if (not "synonymous_variant" in consequences.split("&")) and ("unknown" != consequences) and ("UNKNOWN" != consequences):
+                if (seg_dup == 0):
                     filter_passed = 1
                     if len(HPO_list) > 1 and 'NONE' not in HPO_list:
                         if float(variant["HPO_RELATEDNESS"]) > 0:
