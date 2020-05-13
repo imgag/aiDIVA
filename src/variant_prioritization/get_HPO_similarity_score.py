@@ -30,7 +30,7 @@ def list_distance(DG, Q, G, Query_distances):
             if k_q not in list(DG.nodes()):
                 # missing node (obsolete not updated or just wrong value)
                 continue
-           
+
             k_q = DG.nodes[k_q].get('replaced_by', k_q)
             distance =  nx.shortest_path_length(DG, k_q, weight='dist')
             if Query_distances == 0:
@@ -42,24 +42,51 @@ def list_distance(DG, Q, G, Query_distances):
                         Query_distances[k] = min([Query_distances[k] , float(distance[k]) % offset])
                     except:
                         Query_distances[k] = float(Query_distances[k]) % offset
-        
+
         if Query_distances == 0:
             # can happen when the original list has no updated HPO or wrong values
             return (0, 0)
-        
+
         Query_distances['maxval'] = 2 * (max([d['IC'] for n, d in DG.nodes(data=True)]))
-        
+
     # now I have the query distances value
     # map the genes HPO and extract values.
     # missing one : print it and add it to the db
     maxval = Query_distances['maxval']
     results = [Query_distances.get(q_g,maxval) for q_g in G]
     final_value = np.mean(results) / maxval
-    
+
     if final_value > 1:
         final_value = 1 # borderline cases where go up an down to get to the other node
-    
+
     return (1 - final_value, Query_distances)
+
+
+def precompute_query_distances(DG, Q, Query_distances):
+    for k_q in Q:
+        if k_q not in list(DG.nodes()):
+            # missing node (obsolete not updated or just wrong value)
+            continue
+
+        k_q = DG.nodes[k_q].get('replaced_by', k_q)
+        distance =  nx.shortest_path_length(DG, k_q, weight='dist')
+        if Query_distances == 0:
+            Query_distances = {key: float(value) % offset for (key, value) in distance.items()}
+            print('calc whole dist')
+        else:
+            for k in Query_distances.keys():
+                try:
+                    Query_distances[k] = min([Query_distances[k] , float(distance[k]) % offset])
+                except:
+                    Query_distances[k] = float(Query_distances[k]) % offset
+
+    if Query_distances == 0:
+        # can happen when the original list has no updated HPO or wrong values
+        return 0
+
+    Query_distances['maxval'] = 2 * (max([d['IC'] for n, d in DG.nodes(data=True)]))
+
+    return Query_distances
 
 
 def extract_HPO_related_to_gene(gene_2_HPO, gene):
@@ -69,5 +96,5 @@ def extract_HPO_related_to_gene(gene_2_HPO, gene):
     else:
         gene_2_HPO_dict = pickle.load(open(gene_2_HPO, 'rb'))
     outlist = gene_2_HPO_dict.get(gene, [])
-    
+
     return outlist

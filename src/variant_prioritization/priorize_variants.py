@@ -98,9 +98,11 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
                     except:
                         print('%s not found in database' % (HPO_term))
             HPO_query= list(set(HPO_query))
+            query_dist = gs.list_distance(HPO_graph, HPO_query, query_dist)
         else:
             print('The specified HPO list %s is not a valid file' % (white_list))
             print('eDiVA will proceed as without any HPO list')
+
 
     # read family relationships
     # TODO change to ped file
@@ -118,7 +120,7 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
 
 
 
-    variant_data["HPO_RELATEDNESS", "FINAL_RANK"] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query)), axis=1)
+    variant_data["HPO_RELATEDNESS", "FINAL_RANK"] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist)), axis=1)
     variant_data["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "COMPOUND", "FILTER_PASSED"] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, family_type, names)), axis=1)
 
     ## TODO: Chek recessive variants for possible compounds
@@ -129,11 +131,10 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
     variant_data[variant_data["FILTER_PASSED"] == 1].to_csv(filtered_file, sep='\t', encoding='utf-8', index=False)
 
 
-def compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query):
+def compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist):
     genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     genenames = set(genecolumn.split(";"))
 
-    query_dist = 0
     gene_distances = []
     processed_HPO_genes = dict()
     for gene_id in genenames:
