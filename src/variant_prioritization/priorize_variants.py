@@ -189,7 +189,8 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
     else:
         xlinked = 0
     recessive = check_recessive(variant, family, familytype)
-    
+
+    ## TODO: create method that checks per gene if there are two or more variants that could be a recessive compound
     compound = 0
 
     found_consequences = [variant_consequences[consequence] for consequence in consequences.split("&")]
@@ -249,6 +250,11 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
         filter_passed = 0 # allele frequency to high
 
     return [recessive, dominant_denovo, dominant_inherited, xlinked, compound, filter_passed]
+
+
+def check_compound(variant, family):
+
+    return None
 
 
 def check_denovo(variant, family):
