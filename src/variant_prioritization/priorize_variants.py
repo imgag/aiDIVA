@@ -123,12 +123,17 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
 
 
     variant_data[["HPO_RELATEDNESS", "FINAL_RANK"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist)), axis=1)
-    variant_data[["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "COMPOUND", "FILTER_PASSED"]] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type)), axis=1)
+    variant_data["COMPOUND"] = 0
+    variant_data[["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "FILTER_PASSED"]] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type)), axis=1)
 
-    ## TODO: Chek recessive variants for possible compounds
-    ## Compoundizer method applied on each gene set???
-    #variant_data["COMPOUND"] = variant_data.apply(lambda variant: pd.Series(check_compounds(variant)))
+    variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type)), axis=1)
 
+    variant_data_grouped = [group for key, group in variant_data.groupby("SYMBOL")]
+
+    for group in variant_data_grouped:
+        check_compound(group, family)
+
+    variant_data = pd.concat(variant_data_grouped)
     variant_data.to_csv(out_file, sep='\t', encoding='utf-8', index=False)
     variant_data[variant_data["FILTER_PASSED"] == 1].to_csv(filtered_file, sep='\t', encoding='utf-8', index=False)
 
@@ -190,9 +195,6 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
         xlinked = 0
     recessive = check_recessive(variant, family, familytype)
 
-    ## TODO: create method that checks per gene if there are two or more variants that could be a recessive compound
-    compound = 0
-
     found_consequences = [variant_consequences[consequence] for consequence in consequences.split("&")]
 
     #conditions = dict()
@@ -210,13 +212,13 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
     if len(genes2exclude & genenames) > 0:
         #print("geneexclusion")
         filter_passed = 0 # gene in exclusion list
-        return [recessive, dominant_denovo, dominant_inherited, xlinked, compound, filter_passed]
+        return [recessive, dominant_denovo, dominant_inherited, xlinked, filter_passed]
 
     if tandem != "NA" and tandem != "" and tandem != "nan":
         #print(tandem)
         #print("tandem")
         filter_passed = 0 # tandem repeat
-        return [recessive, dominant_denovo, dominant_inherited, xlinked, compound, filter_passed]
+        return [recessive, dominant_denovo, dominant_inherited, xlinked, filter_passed]
 
     ## TODO: remove
     #elif cadd > 0 and cadd < CADD_threshold :
@@ -249,12 +251,40 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
         #print("high frequency")
         filter_passed = 0 # allele frequency to high
 
-    return [recessive, dominant_denovo, dominant_inherited, xlinked, compound, filter_passed]
+    return [recessive, dominant_denovo, dominant_inherited, xlinked, filter_passed]
 
 
-def check_compound(variant, family):
+def check_compound(gene_variants, family):
+    num_variant_candidates = gene_variants.shape[0]
 
-    return None
+    affected_child = None
+    parent_1 = None
+    parent_2 = None
+
+    for name in family.keys():
+        if family[name] == 1:
+            affected_child = name
+            continue
+        elif family[name] == 0:
+            if parent_1 == None:
+                parent_1 == name
+                continue
+            else:
+                parent_2 = name
+
+    if num_variant_candidates > 1:
+        for i in range(num_variant_candidates):
+            for j in range(num_variant_candidates):
+                if i == j:
+                    continue
+                if ((gene_variants.loc[i, parent_1] == "0/0" and gene_variants.loc[i, parent_2] == "0/1" and gene_variants.loc[i, affected_child] == "0/1") and
+                   (gene_variants.loc[j, parent_1] == "0/1" and gene_variants.loc[j, parent_2] == "0/0" and gene_variants.loc[j, affected_child] == "0/1")) or
+                   ((gene_variants.loc[i, parent_1] == "0/1" and gene_variants.loc[i, parent_2] == "0/0" and gene_variants.loc[i, affected_child] == "0/1") and
+                   (gene_variants.loc[j, parent_1] == "0/0" and gene_variants.loc[j, parent_2] == "0/1" and gene_variants.loc[j, affected_child] == "0/1")):
+                    gene_variants.loc[i, "COMPOUND"] = 1
+                    gene_variants.loc[j, "COMPOUND"] = 1
+
+    #return gene_variants
 
 
 def check_denovo(variant, family):
