@@ -9,6 +9,7 @@ import networkx
 import sys
 import pandas as pd
 from operator import itemgetter
+from itertools import combinations
 import get_HPO_similarity_score as gs
 
 
@@ -257,34 +258,34 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
 def check_compound(gene_variants, family):
     num_variant_candidates = gene_variants.shape[0]
 
-    affected_child = None
-    parent_1 = None
-    parent_2 = None
+    affected_child = ""
+    parent_1 = ""
+    parent_2 = ""
 
     for name in family.keys():
-        if family[name] == 1:
+        if family[name] == "1":
             affected_child = name
-            continue
-        elif family[name] == 0:
-            if parent_1 == None:
+        elif family[name] == "0":
+            print("yes")
+            print(bool(parent_1))
+            print(bool(parent_2))
+            if not parent_1 and not parent_2:
                 parent_1 == name
-                continue
-            else:
+            print(parent_1)
+            if parent_1 and not parent_2:
                 parent_2 = name
+            else:
+                print("Something went wrong!")
+        print(name, family[name])
 
-    if num_variant_candidates > 1:
-        for i in range(num_variant_candidates):
-            for j in range(num_variant_candidates):
-                if i == j:
-                    continue
-                if ((gene_variants.loc[i, parent_1] == "0/0" and gene_variants.loc[i, parent_2] == "0/1" and gene_variants.loc[i, affected_child] == "0/1") and
-                   (gene_variants.loc[j, parent_1] == "0/1" and gene_variants.loc[j, parent_2] == "0/0" and gene_variants.loc[j, affected_child] == "0/1")) or
-                   ((gene_variants.loc[i, parent_1] == "0/1" and gene_variants.loc[i, parent_2] == "0/0" and gene_variants.loc[i, affected_child] == "0/1") and
-                   (gene_variants.loc[j, parent_1] == "0/0" and gene_variants.loc[j, parent_2] == "0/1" and gene_variants.loc[j, affected_child] == "0/1")):
-                    gene_variants.loc[i, "COMPOUND"] = 1
-                    gene_variants.loc[j, "COMPOUND"] = 1
+    print(affected_child, parent_1, parent_2)
 
-    #return gene_variants
+    if num_variant_candidates >= 2 and (affected_child and parent_1 and parent_2):
+        candidate_indices = [x for x in combinations(gene_variants.index.tolist(), 2)]
+        for index_pair in candidate_indices:
+            if ((gene_variants.loc[index_pair[0], parent_1] == "0/0" and gene_variants.loc[index_pair[0], parent_2] == "0/1" and gene_variants.loc[index_pair[0], affected_child] == "0/1") and (gene_variants.loc[index_pair[1], parent_1] == "0/1" and gene_variants.loc[index_pair[1], parent_2] == "0/0" and gene_variants.loc[index_pair[1], affected_child] == "0/1")) or ((gene_variants.loc[index_pair[0], parent_1] == "0/1" and gene_variants.loc[index_pair[0], parent_2] == "0/0" and gene_variants.loc[index_pair[0], affected_child] == "0/1") and (gene_variants.loc[index_pair[1], parent_1] == "0/0" and gene_variants.loc[index_pair[1], parent_2] == "0/1" and gene_variants.loc[index_pair[1], affected_child] == "0/1")):
+                gene_variants.loc[index_pair[0], "COMPOUND"] = 1
+                gene_variants.loc[index_pair[1], "COMPOUND"] = 1
 
 
 def check_denovo(variant, family):
