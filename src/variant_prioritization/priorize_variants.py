@@ -106,7 +106,6 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
             print('The specified HPO list %s is not a valid file' % (white_list))
             print('eDiVA will proceed as without any HPO list')
 
-
     # read family relationships
     # TODO change to ped file
     family = dict()
@@ -121,18 +120,34 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
 
     print(family)
 
-
-
     variant_data[["HPO_RELATEDNESS", "FINAL_RANK"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist)), axis=1)
     variant_data["COMPOUND"] = 0
     variant_data[["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "FILTER_PASSED"]] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type)), axis=1)
 
     variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type)), axis=1)
 
-    variant_data_grouped = [group for key, group in variant_data.groupby("SYMBOL")]
+    if family_type == "TRIO":
+        variant_data_grouped = [group for key, group in variant_data.groupby("SYMBOL")]
 
-    for group in variant_data_grouped:
-        check_compound(group, family)
+        affected_child = ""
+        parent_1 = ""
+        parent_2 = ""
+
+        for name in family.keys():
+            if family[name] == "1":
+                affected_child = name
+            elif family[name] == "0":
+                if not parent_1:
+                    parent_1 = name
+                    continue
+                if not parent_2:
+                    parent_2 = name
+                    continue
+                else:
+                    print("Something went wrong!")
+        if  affected_child and parent_1 and parent_2:
+            for group in variant_data_grouped:
+                check_compound(group, affected_child, parent_1, parent_2)
 
     variant_data = pd.concat(variant_data_grouped)
     variant_data.to_csv(out_file, sep='\t', encoding='utf-8', index=False)
@@ -153,7 +168,6 @@ def compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, ge
             #process ex novo
             #get HPOs related to the gene
             gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
-            ## TODO: calculate whole dict (query_dist) in the beginning and pass as parameter
             (g_dist,query_dist) = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, query_dist)
             gene_distances.append(g_dist)
             processed_HPO_genes[gene_id] = g_dist
@@ -168,16 +182,11 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
     genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     genenames = set(genecolumn.split(";"))
 
-    #print(variant["Chr"], variant["Pos"])
     consequences = str(variant["Consequence"])
-    #print(consequences)
+    found_consequences = [variant_consequences[consequence] for consequence in consequences.split("&")]
     seg_dup = float(variant["SegDupMax"])
-    #print(seg_dup)
     tandem = str(variant["SimpleTandemRepeatRegion"])
-    #print(tandem)
-    #print(not (tandem == "NA" or tandem == "" or tandem == "nan"))
     cadd = float(variant["CADD_PHRED"])
-    #print(cadd)
 
     try:
         maf = max(float(variant["AA_AF"]), float(variant["AFR_AF"]), float(variant["AMR_AF"]), float(variant["EA_AF"]), float(variant["EAS_AF"]), float(variant["EUR_AF"]), float(variant["SAS_AF"]), float(variant["gnomAD_AFR_AF"]), float(variant["gnomAD_AMR_AF"]), float(variant["gnomAD_ASJ_AF"]), float(variant["gnomAD_EAS_AF"]), float(variant["gnomAD_FIN_AF"]), float(variant["gnomAD_NFE_AF"]), float(variant["gnomAD_OTH_AF"]), float(variant["gnomAD_SAS_AF"]))
@@ -185,7 +194,6 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
         print("Allele frequency could not be identified, use 0.0 instead")
         maf = 0.0
 
-    #print(maf)
     dominant_denovo = check_denovo(variant, family)
 
     ## TODO: do we need a check for affected family members?
@@ -196,34 +204,16 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
         xlinked = 0
     recessive = check_recessive(variant, family, familytype)
 
-    found_consequences = [variant_consequences[consequence] for consequence in consequences.split("&")]
-
-    #conditions = dict()
-    #conditions['RECESSIVE'] = (0.03, -1)
-    #conditions['DOMINANT_DENOVO'] = (0.01, -1)
-    #conditions['DOMINANT_INHERITED'] = (0.01, -1)
-    #conditions['COMPOUND'] = (0.02, -1)
-    #conditions['XLINKED'] = (0.01, -1)
-    #conditions['COMPOUND_SINGLE_SAMPLE'] = conditions['DOMINANT_DENOVO']
-    #conditions['UNKNOWN'] = conditions['DOMINANT_INHERITED']
-
-    #(MAF_threshold,CADD_threshold) = conditions["DOMINANT_INHERITED"]
-
     # exclude gene, if it is on the exclusion list
     if len(genes2exclude & genenames) > 0:
-        #print("geneexclusion")
-        filter_passed = 0 # gene in exclusion list
-        return [recessive, dominant_denovo, dominant_inherited, xlinked, filter_passed]
+        for gene in genenames:
+            if gene in genes2exclude:
+                filter_passed = 0 # gene in exclusion list
+                return [recessive, dominant_denovo, dominant_inherited, xlinked, filter_passed]
 
     if tandem != "NA" and tandem != "" and tandem != "nan":
-        #print(tandem)
-        #print("tandem")
         filter_passed = 0 # tandem repeat
         return [recessive, dominant_denovo, dominant_inherited, xlinked, filter_passed]
-
-    ## TODO: remove
-    #elif cadd > 0 and cadd < CADD_threshold :
-    #     filter_passed = 0
 
     ## TODO: filter later compound only less than 0.01
     if maf <= 0.02:
@@ -232,55 +222,27 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
                 if (seg_dup == 0):
                     filter_passed = 1
                     if len(HPO_list) > 1 and 'NONE' not in HPO_list:
-                        #print("hpo")
                         if float(variant["HPO_RELATEDNESS"]) > 0:
                             filter_passed = 1
                         else:
-                            #print("relatedness")
                             filter_passed = 0 # no relation to reported HPO terms
                 # e.g. intronic variants fitting the criteria
                 else:
-                    #print("segdup")
                     filter_passed = 0 # segment duplication
             else:
-                #print("harmless")
                 filter_passed = 0 # synonymous variant  or unknown effect
         else:
-            #print("not exonic")
             filter_passed = 0 # not exonic
     else:
-        #print("high frequency")
         filter_passed = 0 # allele frequency to high
 
     return [recessive, dominant_denovo, dominant_inherited, xlinked, filter_passed]
 
 
-def check_compound(gene_variants, family):
+def check_compound(gene_variants, affected_child, parent_1, parent_2):
     num_variant_candidates = gene_variants.shape[0]
 
-    affected_child = ""
-    parent_1 = ""
-    parent_2 = ""
-
-    for name in family.keys():
-        if family[name] == "1":
-            affected_child = name
-        elif family[name] == "0":
-            print("yes")
-            print(bool(parent_1))
-            print(bool(parent_2))
-            if not parent_1 and not parent_2:
-                parent_1 == name
-            print(parent_1)
-            if parent_1 and not parent_2:
-                parent_2 = name
-            else:
-                print("Something went wrong!")
-        print(name, family[name])
-
-    print(affected_child, parent_1, parent_2)
-
-    if num_variant_candidates >= 2 and (affected_child and parent_1 and parent_2):
+    if num_variant_candidates >= 2:
         candidate_indices = [x for x in combinations(gene_variants.index.tolist(), 2)]
         for index_pair in candidate_indices:
             if ((gene_variants.loc[index_pair[0], parent_1] == "0/0" and gene_variants.loc[index_pair[0], parent_2] == "0/1" and gene_variants.loc[index_pair[0], affected_child] == "0/1") and (gene_variants.loc[index_pair[1], parent_1] == "0/1" and gene_variants.loc[index_pair[1], parent_2] == "0/0" and gene_variants.loc[index_pair[1], affected_child] == "0/1")) or ((gene_variants.loc[index_pair[0], parent_1] == "0/1" and gene_variants.loc[index_pair[0], parent_2] == "0/0" and gene_variants.loc[index_pair[0], affected_child] == "0/1") and (gene_variants.loc[index_pair[1], parent_1] == "0/0" and gene_variants.loc[index_pair[1], parent_2] == "0/1" and gene_variants.loc[index_pair[1], affected_child] == "0/1")):
