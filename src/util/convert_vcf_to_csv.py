@@ -54,9 +54,9 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
     tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
 
     #new_temp = open(tmp.name, 'r')
-    
+
     tmp.seek(0)
-    
+
     # extract header from vcf file
     indel_ID = 0
     for line in tmp:
@@ -69,11 +69,11 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
             outfile_snps.write(line)
             outfile_indel.write(line)
             continue
-            
+
         # skip empty lines if the VCF file is not correctly formatted (eg. if there are multiple blank lines in the end of the file)
         if line == "\n":
             continue
-        
+
         # remove variants with multiple alternative alleles reported (to make tests for the master thesis easier)
         # TODO decide how to handle them in general
         if "," in splitted_line[4]:
@@ -83,7 +83,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
         else:
             ref_length = len(splitted_line[3])
             alt_length = max([len(alt) for alt in splitted_line[4].split(",")])
-            
+
             if (ref_length == 1) & (alt_length == 1):
                 outfile_snps.write(line)
             elif (ref_length > 1) | (alt_length > 1):
@@ -96,7 +96,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
                 outfile_indel.write("\t".join(splitted_line))
             else:
                 print("Something was not rigtht!")
-    
+
     vcf_file_to_reformat.close()
     outfile_snps.close()
     outfile_indel.close()
@@ -107,12 +107,12 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
 def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     #comment_iterator = takewhile(lambda s: s.startswith('#'), vcf_file_to_reformat)
     #comment_lines = list(comment_iterator)
-        
+
     #vcf_header = comment_lines[-1].strip().split("\t")
-        
+
     #tmp = tempfile.NamedTemporaryFile(mode="w")
     #tmp.write(vcf_file_to_reformat.read().replace("_\n", "_").replace("(?<!:).\n", ".").replace("|\n", "|").replace(",\n", ",").replace("-\n", "-").replace("/\n", "/").replace(":\n", ":").replace(";\n", ";"))
-    
+
     header_line = ""
     comment_lines = []
 
@@ -135,22 +135,22 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
             break # now the variant entries are coming
         else:
             continue
-    
+
     if header_line == "":
         print("ERROR: The VCF file seems to be corrupted")
-    
+
     # reset file pointer to begin reading at the beginning
-    
-    vcf_header = header_line.strip().split("\t")    
-    
+
+    vcf_header = header_line.strip().split("\t")
+
     vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment='#', low_memory=False)
-    
+
     vcf_file_to_reformat.close()
     tmp.close()
-    
+
     vcf_as_dataframe = vcf_as_dataframe.rename(columns={"#CHROM": "Chr", "POS": "Pos", "REF": "Ref", "ALT": "Alt"})
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["ID", "QUAL", "FILTER"])
-    
+
     return comment_lines, vcf_as_dataframe
 
 
@@ -160,11 +160,15 @@ def extract_annotation_header(header):
     return annotation_header
 
 
+## TODO: Add flags to indicate indel_ID present and or RANK present
 def extract_columns(cell):
     if "indel_ID" in str(cell):
         info_fields = str(cell).split(";")
         new_cols = []
+
         for field in info_fields:
+            if field.startswith("RANK"):
+                new_cols.append(field.split("RANK=")[1])
             if field.startswith("indel_ID"):
                 new_cols.append(field.split("indel_ID=")[1])
             if field.startswith("CSQ"):
@@ -174,9 +178,11 @@ def extract_columns(cell):
         info_fields = str(cell).split(";")
         new_cols = []
         for field in info_fields:
+            if field.startswith("RANK"):
+                new_cols.append(field.split("RANK=")[1])
             if field.startswith("CSQ"):
                 new_cols.append(field.split("CSQ=")[1])
-        
+
         return new_cols
 
 
@@ -184,34 +190,32 @@ def extract_vep_annotation(cell, annotation_header):
     annotation_fields = str(cell).split(",")
     new_cols = []
     consequences = []
-    
-    #print(annotation_fields)
-    
+
     # take the most severe annotation variant
     for field in annotation_fields:
         consequences.append(min([variant_consequences.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
-    
+
     target_index = min(enumerate(consequences), key=itemgetter(1))[0]
     new_cols = annotation_fields[target_index].strip().split("|")
-    
+
     return new_cols
 
 
 def extract_sample_information(row, sample):
     sample_header = str(row["FORMAT"]).strip().split(":")
     sample_fields = str(row[sample + ".full"]).strip().split(":")
-    
+
     if len(sample_header) != len(sample_fields):
         num_missing_entries = abs(len(sample_header) - len(sample_fields))
         for i in range(num_missing_entries):
             sample_fields.append(".")
-                
+
     sample_gt_information = sample_fields[sample_header.index("GT")]
     sample_dp_information = sample_fields[sample_header.index("DP")]
     sample_ref_information = sample_fields[sample_header.index("AD")].split(",")[0]
     sample_alt_information = sample_fields[sample_header.index("AD")].split(",")[1]
     sample_gq_information = sample_fields[sample_header.index("GQ")]
-    
+
     if sample_ref_information != "." and sample_alt_information != ".":
         divisor = (int(sample_ref_information) + int(sample_alt_information))
         if divisor == 0:
@@ -220,29 +224,29 @@ def extract_sample_information(row, sample):
             sample_af_information = (int(sample_alt_information) / divisor)
     else:
         sample_af_information = "."
-    
-    
+
+
     sample_information = [sample_gt_information, sample_dp_information, sample_ref_information, sample_alt_information, sample_af_information, sample_gq_information]
-    
+
     return sample_information
 
 
 def add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set):
-    
+
     if indel_set:
         #print("Dataframe to convert:\n", vcf_as_dataframe)
-        vcf_as_dataframe[["indel_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["RANK", "indel_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     else:
-        vcf_as_dataframe[["CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["RANK", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
-    
+
     return vcf_as_dataframe
 
 
 def add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header):
     vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
-    
+
     return vcf_as_dataframe
 
 
@@ -251,11 +255,11 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
         vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
         sample_header = [sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
         vcf_as_dataframe[sample_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample)), axis=1)
-        
+
         vcf_as_dataframe = vcf_as_dataframe.drop(columns=[sample + ".full"])
-    
+
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["FORMAT"])
-    
+
     return vcf_as_dataframe
 
 
@@ -272,10 +276,10 @@ def convert_vcf_to_pandas_dataframe(input_file, indel_set):
         vcf_as_dataframe = add_sample_information_to_dataframe(vcf_as_dataframe)
     else:
         print("MISSING SAMPLE INFORMATION!")
-    
+
     # replace empty strings or only spaces with NaN
     vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True)
-    
+
     return vcf_as_dataframe
 
 
@@ -287,8 +291,9 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_data', type=str, dest='in_data', metavar='input.vcf', required=True, help='VCF file to convert file\n')
     parser.add_argument('--out_data', type=str, dest='out_data', metavar='output.csv', required=True, help='CSV file containing the converted VCF file\n')
+    parser.add_argument('--indel', action="store_true", required=False, help='Flag to indicate whether the file to convert consists of indel variants or not.\n')
     args = parser.parse_args()
-    
-    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, False)
-    
+
+    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel)
+
     write_vcf_to_csv(vcf_as_dataframe, args.out_data)

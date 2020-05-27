@@ -1,9 +1,11 @@
 #https://networkx.github.io/documentation/stable/tutorial.html#directed-graphs
 import networkx as nx
-import cPickle as pickle
+import pickle
 import sys
 import math
 
+## TODO: port to python3
+## TODO: Merge all the scripts for resource generation into one
 
 
 def check_qualtiy(DG):
@@ -14,11 +16,9 @@ def check_qualtiy(DG):
         ancestors_val = [DG.node[x]['count']  - DG.node[node]['count'] for x in ancestors]
         problematic = [i for i, e in enumerate(ancestors_val) if e > 0]
         for i in problematic:
-            print node
-            print list(ancestors)[i]
-            print ancestors_val[i]
-
-
+            print(node)
+            print(list(ancestors)[i])
+            print(ancestors_val[i])
 
 
 #usage: python me edges.pk ontology.txt graph.pk
@@ -38,11 +38,11 @@ with open(counts) as rd:
         counts_d[ff[0]] = int(ff[1])
         tot += int(ff[1])
 
-print tot
+print(tot)
 
 # load dict with edges
-edges =pickle.load(open(sys.argv[1],'rb'))
-print( len(edges.keys()))
+edges = pickle.load(open(sys.argv[1],'rb'))
+print(len(edges.keys()))
 
 #let's build a graph
 DG = nx.DiGraph()
@@ -55,13 +55,13 @@ for k in edges.keys():
 
 #nx.set_node_attributes(DG, 0,'count',)
 
-print 'edges'
-print DG.number_of_edges()
-print 'nodes'
-print DG.number_of_nodes()
+print('edges')
+print(DG.number_of_edges())
+print('nodes')
+print(DG.number_of_nodes())
 
 for k in DG.nodes():
-    DG.node[k]['count']=0.0
+    DG.node[k]['count'] = 0.0
 
 #populate with raw counts
 for k in counts_d.keys():
@@ -78,12 +78,11 @@ for k in edges.keys():
         count += DG.node[i]['count']
 
     if count >0 :
-        DG.node[k]['count'] =  -math.log(float(count)/tot)
+        DG.node[k]['count'] =  -math.log(float(count) / tot)
     else :
-        DG.node[k]['count'] = -math.log(1.0/tot) #missing nodes, set as rare as possible
+        DG.node[k]['count'] = -math.log(1.0 / tot) #missing nodes, set as rare as possible
         #print k
         #print DG.node[k]
 
 #count is the IC of the node then
-pickle.dump(DG,open('DG_temp.pk','wb'))
-     
+pickle.dump(DG,open(output,'wb'))

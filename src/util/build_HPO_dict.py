@@ -7,6 +7,8 @@
 
 ## Goal to use this dictionary within eDiVA to mark all genes related with HPO terms specified
 
+## TODO: Merge all the scripts for resource generation into one
+
 import pickle
 import argparse
 
@@ -28,6 +30,6 @@ with open(args.db) as rd:
                 HPO_association[key].append(value)
             except:
                 HPO_association[key] = [value]
-        
+
 print('Output will be written to "HPO_gene_association.p". Ensure to put this file in the eDiVA Prioritize folder')
 pickle.dump( HPO_association, open( "HPO_gene_assiciation.p", "wb" ) )
