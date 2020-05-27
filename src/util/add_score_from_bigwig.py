@@ -7,21 +7,30 @@ def extract_value(row, bw_file):
     if len(row["Ref"]) == 1 & len(row["Alt"]) == 1:
         start = row["Pos"] - 1
         end = row["Pos"]
-        
-        return bw_file.values("chr" + str(row["Chr"]), start, end)[0]
+        chrom = str(row["Chr"])
+
+        # make sure to use the right chromosome identifier
+        if chrom == "MT":
+            chrom = "M"
+
+        return bw_file.values("chr" + chrom, start, end)[0]
 
     elif len(row["Ref"]) > 1 | len(row["Alt"]) > 1:
         # for indels take 2 positions before and 2 afterwards also into account
         start = row["Pos"] - 3
         end = row["Pos"] + len(row["Ref"]) + 2
-        
-        return mean(bw_file.values("chr" + str(row["Chr"]), start, end))
+
+        # make sure to use the right chromosome identifier
+        if chrom == "MT":
+            chrom == "M"
+
+        return mean(bw_file.values("chr" + chrom, start, end))
 
     else:
         print("ERROR: Something went wrong the Ref or Alt entry was invalid!")
         print("Ref: ", row["Ref"])
         print("Alt: ", row["Alt"])
-        
+
         exit(1)
 
 
@@ -32,17 +41,17 @@ def extract_data(data, feature_name, bw_file):
 
 def group_and_process_data(bigwig_data, input_data, feature_name):
     bw_file = pw.open(bigwig_data)
-    
+
     if not bw_file.isBigWig():
         print("The given file is not in BigWig format!!!")
-    
+
     data_grouped = [group for key, group in input_data.groupby("Chr")]
-    
+
     for group in data_grouped:
         group = extract_data(group, feature_name, bw_file)
-    
+
     data_combined = pd.concat(data_grouped)
-    
+
     return data_combined
 
 
