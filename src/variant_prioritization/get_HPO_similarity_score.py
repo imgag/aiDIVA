@@ -63,11 +63,12 @@ def list_distance(DG, Q, G, Query_distances):
 
 
 def precompute_query_distances(DG, Q, Query_distances):
+    offset = 1000
     for k_q in Q:
         if k_q not in list(DG.nodes()):
             # missing node (obsolete not updated or just wrong value)
             continue
-
+        
         k_q = DG.nodes[k_q].get('replaced_by', k_q)
         distance =  nx.shortest_path_length(DG, k_q, weight='dist')
         if Query_distances == 0:
