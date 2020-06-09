@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import argparse
 
 
@@ -9,6 +10,8 @@ def get_abb_score(row, abb):
     elif row.Chr == 'Y':
         if (24, int(row.Pos)) in abb.index:
             return abb.loc[(24, int(row.Pos))].ABB
+    elif row.Chr == "MT" or row.Chr == "M":
+        return np.nan
     else:
         if (int(row.Chr), int(row.Pos)) in abb.index:
             return abb.loc[(int(row.Chr), int(row.Pos))].ABB
@@ -16,23 +19,23 @@ def get_abb_score(row, abb):
 
 def extract_data(data, abb):
     data["ABB_SCORE"] = data.apply(lambda row: pd.Series(get_abb_score(row, abb)), axis=1)
-    
+
     return data
 
 
-def group_and_process_data(abb_data, data): 
+def group_and_process_data(abb_data, data):
     abb = pd.read_csv(abb_data, sep="\t", low_memory=False)
     abb.set_index(["CHROM", "POS"], inplace=True)
     abb.sort_index(axis=0, inplace=True, sort_remaining=True)
     abb.sort_index(axis=1, inplace=True, sort_remaining=True)
-    
+
     data_grouped = [group for key, group in data.groupby("Chr")]
-    
+
     for group in data_grouped:
         group = extract_data(group, abb)
-    
+
     data_combined = pd.concat(data_grouped)
-    
+
     return data_combined
 
 
