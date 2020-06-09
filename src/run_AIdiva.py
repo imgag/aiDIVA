@@ -1,19 +1,18 @@
-import yaml
 import argparse
-import tempfile
 import os
 import pandas as pd
-import util.add_segmentDuplication as add_segDup
-import util.add_simpleRepeats as add_repeats
-import util.add_abb_score as add_abb
-import util.add_score_from_bigwig as add_score
-import variant_scoring.predict as predict
-import util.createTrainingVCF as vcf
-import util.convert_vcf_to_csv as convert_vcf
-import util.convert_indels_to_snps_and_create_vcf as expand_indels_and_create_vcf
+import tempfile
 import util.combine_expanded_indels_and_create_csv as combine_expanded_indels
+import util.convert_indels_to_snps_and_create_vcf as expand_indels_and_create_vcf
+import util.convert_vcf_to_csv as convert_vcf
+import variant_scoring.predict as predict
 import variant_prioritization.familySNP_gene_score as prio
+import variant_annotation.add_abb_score as add_abb
+import variant_annotation.add_score_from_bigwig as add_score
+import variant_annotation.add_segmentDuplication as add_segDup
+import variant_annotation.add_simpleRepeats as add_repeats
 import variant_annotation.annotate_with_vep as annotate
+import yaml
 
 
 if __name__=='__main__':
