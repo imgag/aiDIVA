@@ -1,6 +1,7 @@
 #get mapping gene -> HPOs
 #download from HPO charite ALL_FREQ gene to phenotype
 #wget http://compbio.charite.de/jenkins/job/hpo.annotations.monthly/lastStableBuild/artifact/annotation/ALL_SOURCES_ALL_FREQUENCIES_genes_to_phenotype.txt
+## TODO: New file http://compbio.charite.de/jenkins/job/hpo.annotations/lastStableBuild/artifact/util/annotation/phenotype_to_genes.txt
 import pickle
 import sys
 
@@ -16,6 +17,7 @@ with open(sys.argv[1]) as rd:
         else:
             ff = line.strip().split('\t')
             #format #Format: entrez-gene-id<tab>entrez-gene-symbol<tab>HPO-Term-Name<tab>HPO-Term-ID
+            ## TODO: Change to new fileformat #Format: HPO-id<tab>HPO label<tab>entrez-gene-id<tab>entrez-gene-symbol<tab>Additional Info from G-D source<tab>G-D source<tab>disease-ID for link
             key = ff[1]
             HPO =  ff[-1]
             to_add = gene_2_HPO.get(key,[])

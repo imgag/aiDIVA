@@ -43,9 +43,9 @@ def write_header(out_file):
 def write_data_information_to_file(outfile, input_data, ref_folder):
     #print(input_data.columns)
     data_grouped = [group for key, group in input_data.groupby("Chr")]
-    
+
     random.seed(14038)
-    
+
     for group in data_grouped:
         #print(group)
         ref_seq = str(SeqIO.read(ref_folder + "Homo_sapiens.GRCh37.dna.chromosome." + str(group["Chr"].iloc[0]) + ".fa", "fasta").seq)
@@ -53,7 +53,7 @@ def write_data_information_to_file(outfile, input_data, ref_folder):
             window_start = int(row.Pos) - 3
             window_end = int(row.Pos) + len(row.Ref) + 2
             extended_ref_seq = ref_seq[window_start:window_end]
-            
+
             for i in range(abs(window_end-window_start)):
                 alt_variant = ""
                 if (extended_ref_seq[i] == "A") | (extended_ref_seq[i] == "T"):
@@ -62,16 +62,16 @@ def write_data_information_to_file(outfile, input_data, ref_folder):
                     alt_variant = random.choice(["A", "T"])
                 else:
                     print("ERROR: Something went wrong!")
-                
-                outfile.write(str(row.Chr) + '\t' + 
-                            str(window_start + i + 1) + '\t' + 
-                            '.' + '\t' + 
-                            str(extended_ref_seq[i]) + '\t' + 
-                            str(alt_variant) + '\t' + 
-                            '.' + '\t' + 
-                            '.' + '\t' + 
+
+                outfile.write(str(row.Chr) + '\t' +
+                            str(window_start + i + 1) + '\t' +
+                            '.' + '\t' +
+                            str(extended_ref_seq[i]) + '\t' +
+                            str(alt_variant) + '\t' +
+                            '.' + '\t' +
+                            '.' + '\t' +
                             str(row.INFO) + '\n')
-    
+
     data_combined = pd.concat(data_grouped)
 
 
@@ -91,22 +91,22 @@ def import_csv_data(in_data):
             break # now the variant entries are coming
         else:
             continue
-    
+
     if header_line == "":
         print("ERROR: The VCF file seems to be corrupted")
-    
+
     # reset file pointer to begin reading at the beginning
     input_vcf.close()
-    
+
     data = pd.read_csv(in_data, names=header_line.split('\t'), sep='\t', comment='#', low_memory=False)
     data.fillna('.', inplace=True)
-    
+
     data = data.rename(columns={"#CHROM": "Chr", "POS": "Pos", "REF": "Ref", "ALT": "Alt"})
-    
+
     #if "indel_ID" not in data.columns:
     #    data["indel_ID"] = data.index + 1
     #    data["indel_ID"] = data.apply(lambda row: "indel_" + str(row["indel_ID"]), axis=1)
-    
+
     return data
 
 
@@ -118,13 +118,12 @@ def convert_csv_to_vcf(out_data, in_data, ref_folder):
     outfile.close()
 
 
-if __name__=='__main__':  
+if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_data', type=str, dest='in_data', metavar='input.csv', required=True, help='CSV file to convert to VCF\n')
     parser.add_argument('--out_data', type=str, dest='out_data', metavar='output.vcf', required=True, help='output VCF file\n')
     parser.add_argument('--hg19_path', type=str, dest='hg19_path', metavar='/path/to/hg19/Homo_sapiens.GRCh37.dna.chromosome.[ID].fa', required=True, help='Path were the reference hg19 is found.\n')
     args = parser.parse_args()
-    
+
     hg19_folder = args.hg19_path
     convert_csv_to_vcf(args.out_data, args.in_data, args.hg19_path)
- 
