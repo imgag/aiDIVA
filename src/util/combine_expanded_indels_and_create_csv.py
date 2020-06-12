@@ -215,6 +215,7 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
 
 
 def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf):
+    ## TODO: select features from given list and compute the median separately for each of the features
     return grouped_expanded_vcf[["CADD_PHRED", "CADD_RAW", "Condel", "REVEL", "Eigen-phred", "Eigen-raw", "MutationAssessor_score", "ABB_SCORE", "SegDupMax", "phyloP46_primate", "phyloP46_mammal", "phastCons46_primate", "phastCons46_mammal"]].get_group(row.indel_ID).mean()
     #print(grouped_expanded_vcf[["phyloP46_mammal", "phastCons46_mammal", "phastCons46_primate"]].get_group(row.indel_ID).shape)
     #print(grouped_expanded_vcf[["phyloP46_mammal"]].get_group(row.indel_ID).mean().shape)
