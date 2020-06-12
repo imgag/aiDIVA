@@ -37,6 +37,43 @@ Analysis-Input:
         # a default list is given in the res/ folder (gene_exclusion_list.txt), the file can be empty
         gene-exclusion: /mnt/users/ahboced1/Masterarbeit/test_data/empty_list.txt
 
+
+Model-Features:
+    # List containing the names of the allele frequency sources (populations) that are present in the data set
+    allele_frequency_list:
+        - gnomAD_AFR_AF
+        - gnomAD_ASJ_AF
+        - gnomAD_EAS_AF
+        - gnomAD_FIN_AF
+        - gnomAD_NFE_AF
+        - gnomAD_OTH_AF
+        - gnomAD_SAS_AF
+        - AA_AF
+        - EA_AF
+        - AFR_AF
+        - AMR_AF
+        - EAS_AF
+        - EUR_AF
+        - SAS_AF
+
+    # List containing the names of the features used for the model training
+    feature_list:
+        - SIFT
+        - PolyPhen
+        - CADD_PHRED
+        - ABB_SCORE
+        - segmentDuplication
+        - custom_EIGEN_PHRED
+        - fannsdb_CONDEL
+        - custom_FATHMM_XF
+        - custom_MutationAssessor
+        - phastCons46mammal
+        - phastCons46primate
+        - phastCons46vertebrate
+        - phyloP46mammal
+        - phyloP46primate
+        - phyloP46vertebrate
+        
 VEP-Annotation:
     # VEP: path to the VEP executable
     vep: /mnt/users/ahbranl1/data_vep/ensembl-vep-release-98.3/vep
