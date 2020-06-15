@@ -1,5 +1,4 @@
 import argparse
-import csv
 import re
 from scipy.stats import poisson
 import os
@@ -51,8 +50,8 @@ variant_consequences = {'transcript_ablation': 'non_exonic',
                         'intergenic_variant': 'non_exonic'}
 
 
-# TODO use pandas dataframes instead of the csv library
-def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance, family_type, white_list, gene_exclusion):
+#def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance, family_type, white_list, gene_exclusion):
+def prioritize_variants(in_file, out_file, filtered_out_file, prioritization_information_dict, internal_parameter_dict):
     variant_data = pd.read_csv(in_file, sep="\t", low_memory=False)
 
     # read the gene exclusion list
@@ -61,12 +60,9 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
     genes_known = set()
 
     ### HPO files load
-    script_path = os.path.dirname(os.path.abspath(__file__))
-
-    # TODO add these filepaths to the config file
-    gene_2_HPO_f = os.path.join(script_path, '../../res/gene_2_HPO.p')
-    HPO_graph_file = os.path.join(script_path, '../../res/v2_ready_graph.pk')
-    hpo_dict_file = os.path.join(script_path, '../../res/HPO_gene_assiciation.p')
+    gene_2_HPO_f = internal_parameter_dict["gene2hpo-mapping"]
+    HPO_graph_file = internal_parameter_dict["hpo-graph"]
+    hpo_dict_file = internal_parameter_dict["hpo2gene-association"]
 
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, 'rb'))
     HPO_graph_nodes, HPO_graph_edges = pickle.load(open(HPO_graph_file, 'rb'))
@@ -78,7 +74,7 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
     query_dist = 0
 
     if gene_exclusion:
-        gene_exclusion = open(gene_exclusion, "r")
+        gene_exclusion = open(prioritization_information_dict["gene-exclusion"], "r")
         for gene in gene_exclusion:
             gene = gene.rstrip()
             genes2exclude.add(gene)
@@ -92,7 +88,7 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
         HPO_query = set()
         if os.path.isfile(white_list):
             with open(white_list, 'r') as w:
-                HPO_dict = pickle.load(open(hpo_dict_file,'rb'))
+                HPO_dict = pickle.load(open(prioritization_information_dict["hpo-file"],'rb'))
                 HPO_query = list()
                 for line in w:
                     HPO_term = line.rstrip('\n')
@@ -109,7 +105,7 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
     # read family relationships
     # TODO change to ped file
     family = dict()
-    with open(fam_file, "r") as fam_file:
+    with open(prioritization_information_dict["family-file"], "r") as fam_file:
         for line in fam_file:
             if line.startswith('sample'):
                 continue
@@ -118,13 +114,17 @@ def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance,
             print(splitline)
             family[splitline[0]] = splitline[1]
 
+    family_type = prioritization_information_dict["family-type"]
+    cadd_identifer = prioritization_information_dict["cadd-identifier"]
+    duplication_identifier = prioritization_information_dict["duplication-identifier"]
+    repeat_identifier = prioritization_information_dict["repeat-identifier"]
     print(family)
 
     variant_data[["HPO_RELATEDNESS", "FINAL_RANK"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist)), axis=1)
     variant_data["COMPOUND"] = 0
-    variant_data[["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "FILTER_PASSED"]] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type)), axis=1)
+    variant_data[["RECESSIVE", "DOMINANT_DENOVO", "DOMINANT_INHERITED", "XLINKED", "FILTER_PASSED"]] = variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type, cadd_identifier, duplication_identifer, repeat_identifier)), axis=1)
 
-    variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type)), axis=1)
+    #variant_data.apply(lambda variant: pd.Series(check_inheritance_and_filters(variant, genes2exclude, HPO_query, family, family_type, cadd_identifier, duplication_identifier, repeat_identifier)), axis=1)
 
     if family_type == "TRIO":
         variant_data_grouped = [group for key, group in variant_data.groupby("SYMBOL")]
@@ -173,23 +173,24 @@ def compute_hpo_relatedness_and_final_rank(variant, genes2exclude, HPO_graph, ge
             processed_HPO_genes[gene_id] = g_dist
     hpo_relatedness = str(max(gene_distances))
 
-    final_rank = str((float(variant["Rank"]) + float(hpo_relatedness)) / 2)
+    final_rank = str((float(variant["RANK"]) + float(hpo_relatedness)) / 2)
 
     return [hpo_relatedness, final_rank]
 
 
-def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, familytype):
+def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, familytype, cadd_identifier, duplication_identifier, repeat_identifier):
     genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     genenames = set(genecolumn.split(";"))
 
     consequences = str(variant["Consequence"])
     found_consequences = [variant_consequences[consequence] for consequence in consequences.split("&")]
-    seg_dup = float(variant["SegDupMax"])
-    tandem = str(variant["SimpleTandemRepeatRegion"])
-    cadd = float(variant["CADD_PHRED"])
+    seg_dup = float(variant[duplication_identifier])
+    tandem = str(variant[repeat_identifier])
+    cadd = float(variant[cadd_identifier])
 
     try:
-        maf = max(float(variant["AA_AF"]), float(variant["AFR_AF"]), float(variant["AMR_AF"]), float(variant["EA_AF"]), float(variant["EAS_AF"]), float(variant["EUR_AF"]), float(variant["SAS_AF"]), float(variant["gnomAD_AFR_AF"]), float(variant["gnomAD_AMR_AF"]), float(variant["gnomAD_ASJ_AF"]), float(variant["gnomAD_EAS_AF"]), float(variant["gnomAD_FIN_AF"]), float(variant["gnomAD_NFE_AF"]), float(variant["gnomAD_OTH_AF"]), float(variant["gnomAD_SAS_AF"]))
+        #maf = max(float(variant["AA_AF"]), float(variant["AFR_AF"]), float(variant["AMR_AF"]), float(variant["EA_AF"]), float(variant["EAS_AF"]), float(variant["EUR_AF"]), float(variant["SAS_AF"]), float(variant["gnomAD_AFR_AF"]), float(variant["gnomAD_AMR_AF"]), float(variant["gnomAD_ASJ_AF"]), float(variant["gnomAD_EAS_AF"]), float(variant["gnomAD_FIN_AF"]), float(variant["gnomAD_NFE_AF"]), float(variant["gnomAD_OTH_AF"]), float(variant["gnomAD_SAS_AF"]))
+        maf = variant["MaxAF"]
     except Exception as e:
         print("Allele frequency could not be identified, use 0.0 instead")
         maf = 0.0
