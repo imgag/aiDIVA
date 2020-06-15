@@ -2,7 +2,7 @@ import subprocess
 import argparse
 
 
-def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, additional_annotation_dict, only_basic=False):
+def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, only_basic=False):
     # the path to the executable
     vep_command = vep_annotation_dict["vep"] + " "
     
@@ -16,7 +16,8 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = vep_command + "--biotype" + " "
     vep_command = vep_command + "--variant_class" + " "
     
-    # allele frequencies to include
+    # allele frequencies to include 
+    #vep_command = vep_command + "--max_af" + " "
     vep_command = vep_command + "--af" + " "
     vep_command = vep_command + "--af_1kg" + " "
     vep_command = vep_command + "--af_esp" + " "
@@ -25,19 +26,26 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     # vep plugins to use
     if not only_basic:
         vep_command = vep_command + "--dir_plugin " + vep_annotation_dict["plugin-path"] + " "
-        vep_command = vep_command + "--plugin Condel," + vep_annotation_dict["condel"] + ",s" + " "
+        #vep_command = vep_command + "--plugin Condel," + vep_annotation_dict["condel"] + ",s" + " "
         vep_command = vep_command + "--plugin CADD," + vep_annotation_dict["cadd-snps"] + "," + vep_annotation_dict["cadd-indel"] + " "
         vep_command = vep_command + "--plugin REVEL," + vep_annotation_dict["revel"] + " "
-        vep_command = vep_command + "--plugin dbNSFP," + vep_annotation_dict["dbNSFP"] + ",MutationAssessor_score,Eigen-raw,Eigen-phred" + " "
-    
-        # custom annotations that should be used during the annotation
-        # TODO does not work at the moment need to do it manually
-        #print(additional_annotation_dict)
-        #for key in additional_annotation_dict:
-        #    if additional_annotation_dict[key].endswith(".bw"):
-        #        vep_command = vep_command + "--custom " + additional_annotation_dict[key] + "," + key + ",bigwig,exact,0" + " "
-        #    else:
-        #        print("ERROR: Given file seems to be no bigwig file")
+        #vep_command = vep_command + "--plugin dbNSFP," + vep_annotation_dict["dbNSFP"] + ",MutationAssessor_score,Eigen-raw,Eigen-phred" + " "
+        
+        bed_annotation = vep_annotation_dict["custom"]["bed-files"]
+        vcf_annotation = vep_annotation_dict["custom"]["vcf-files"]
+        bigwig_annotation = vep_annotation_dict["custom"]["bigwig-files"]
+
+        if bed_annotation:
+            for key in bed_annotation:
+                vep_command = vep_command + "--custom " + bed_annotation[key]["file"]  + "," + key ",bed," + bed_annotation[key]["method"] + ",0" + " "
+
+        if vcf_annotation:
+            for key in vcf_annotation:
+                vep_command = vep_command + "--custom " + vcf_annotation[key]["file"] + "," vcf_annotation[key]["prefix"] + ",vcf," + vcf_annotation[key]["method"] + ",0," + key + " "
+
+        if bigwig_annotation:
+            for key in bigwig_annotation:
+                vep_command = vep_command + "--custom " + bigwig_annoation[key]["file"] + "," + key ",bigwig," + bigwig_annotation[key]["method"] + ",0" + " "
     
     vep_command = vep_command + "-i " + input_vcf_file + " "
     vep_command = vep_command + "-o " + output_vcf_file + " "
@@ -57,6 +65,7 @@ if __name__=='__main__':
     input_vcf_file = args.in_data
     output_vcf_file = args.out_data
     
+    ## TODO: change to readfrom yaml file
     vep_annotation_dict = {"vep": "/mnt/users/ahbranl1/data_vep/ensembl-vep-release-98.3/vep",
                            "cache-path": "/mnt/users/ahbranl1/data_vep/cache",
                            "plugin-path": "/mnt/users/ahboced1/data_vep/plugins",
@@ -66,14 +75,7 @@ if __name__=='__main__':
                            "revel": "/mnt/share/data/dbs/REVEl/revel_all_chromosomes.tsv.gz",
                            "dbNSFP": "/mnt/users/ahbranl1/data_vep/dbNSFP/dbNSFP_hg19_3.5.gz"}
     
-    additional_annotation_dict = {"phyloP46mammal": "/home/dominic/Masterarbeit/databases/phyloP46way.placentalMammal.complete.onlyChrom.bw",
-                                  "phyloP46primate": "/home/dominic/Masterarbeit/databases/phyloP46way.primate.complete.onlyChrom.bw",
-                                  "phyloP46vertebrate": "/home/dominic/Masterarbeit/databases/phyloP46way.vertebrate.complete.onlyChrom.bw",
-                                  "pastCons46mammal": "/home/dominic/Masterarbeit/databases/phastCons46way.placentalMammal.complete.onlyChrom.bw",
-                                  "pastCons46primate": "/home/dominic/Masterarbeit/databases/phastCons46way.primate.complete.onlyChrom.bw",
-                                  "pastCons46vertebrate": "/home/dominic/Masterarbeit/databases/phastCons46way.vertebrate.complete.onlyChrom.bw"}
-    
-    call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, additional_annotation_dict)
+    call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, False)
 
 
 
