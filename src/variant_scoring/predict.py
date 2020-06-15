@@ -27,67 +27,36 @@ def read_input_data(input_file):
 
 
 # make sure to use the same features, that were used for the training of the model
-# TODO change features to final feature set (or do it dynamically through config file)
-def prepare_input_data(input_data):    
+def prepare_input_data(input_data, allele_frequency_list, feature_list):    
     # fill SegDup missing values with -> 0
     # fill ABB_SCORE missing values with -> 0
-    input_data['SegDupMax'].fillna(0, inplace=True)
-    input_data['ABB_SCORE'].fillna(0, inplace=True)
-    
     # fill Allele Frequence missing values with -> 0
-    input_data['gnomAD_AF'].fillna(0, inplace=True)
-    input_data['gnomAD_AFR_AF'].fillna(0, inplace=True)
-    input_data['gnomAD_AMR_AF'].fillna(0, inplace=True)
-    input_data['gnomAD_ASJ_AF'].fillna(0, inplace=True)
-    input_data['gnomAD_EAS_AF'].fillna(0, inplace=True)
-    input_data['gnomAD_FIN_AF'].fillna(0, inplace=True)
-    input_data['gnomAD_NFE_AF'].fillna(0, inplace=True)
-    input_data['gnomAD_OTH_AF'].fillna(0, inplace=True)
-    input_data['gnomAD_SAS_AF'].fillna(0, inplace=True)
-    input_data['AF'].fillna(0, inplace=True)
-    input_data['AFR_AF'].fillna(0, inplace=True)
-    input_data['AMR_AF'].fillna(0, inplace=True)
-    input_data['EAS_AF'].fillna(0, inplace=True)
-    input_data['EUR_AF'].fillna(0, inplace=True)
-    input_data['SAS_AF'].fillna(0, inplace=True)
-    input_data['AA_AF'].fillna(0, inplace=True)
-    input_data['EA_AF'].fillna(0, inplace=True)
-    
-    # if multiple allele frequencies are reported only take the maximum
-    input_data["gnomAD_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_AF"]).split("&")])), axis=1)
-    input_data["gnomAD_AFR_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_AFR_AF"]).split("&")])), axis=1)
-    input_data["gnomAD_AMR_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_AMR_AF"]).split("&")])), axis=1)
-    input_data["gnomAD_ASJ_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_ASJ_AF"]).split("&")])), axis=1)
-    input_data["gnomAD_EAS_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_EAS_AF"]).split("&")])), axis=1)
-    input_data["gnomAD_FIN_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_FIN_AF"]).split("&")])), axis=1)
-    input_data["gnomAD_NFE_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_NFE_AF"]).split("&")])), axis=1)
-    input_data["gnomAD_OTH_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_OTH_AF"]).split("&")])), axis=1)
-    input_data["gnomAD_SAS_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["gnomAD_SAS_AF"]).split("&")])), axis=1)
-    input_data["AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["AF"]).split("&")])), axis=1)
-    input_data["AFR_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["AFR_AF"]).split("&")])), axis=1)
-    input_data["AMR_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["AMR_AF"]).split("&")])), axis=1)
-    input_data["EAS_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["EAS_AF"]).split("&")])), axis=1)
-    input_data["EUR_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["EUR_AF"]).split("&")])), axis=1)
-    input_data["SAS_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["SAS_AF"]).split("&")])), axis=1)
-    input_data["AA_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["AA_AF"]).split("&")])), axis=1)
-    input_data["EA_AF"] = input_data.apply(lambda row: pd.Series(max([float(i) for i in str(row["EA_AF"]).split("&")])), axis=1)
+    # fill missing values from other features with -> median
+
+    for allele_frequency in allele_frequency_list:
+        input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
+        input_data[allele_frequency] = input_data[allele_frequency].apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row).split("&")])), axis=1)
 
     # compute maximum Minor Allele Frequency (MAF)
-    input_data[["MaxAF"]] = input_data.apply(lambda row: pd.Series(max([float(row["AFR_AF"]), float(row["AMR_AF"]), float(row["EAS_AF"]), float(row["EUR_AF"]), float(row["SAS_AF"]), float(row["AA_AF"]), float(row["EA_AF"]), float(row["gnomAD_AFR_AF"]), float(row["gnomAD_AMR_AF"]), float(row["gnomAD_ASJ_AF"]), float(row["gnomAD_EAS_AF"]), float(row["gnomAD_FIN_AF"]), float(row["gnomAD_NFE_AF"]), float(row["gnomAD_OTH_AF"]), float(row["gnomAD_SAS_AF"])])), axis=1)
-    input_data[["MaxAF"]].fillna(0, inplace=True)
+    input_data[["MaxAF"]] = input_data[allele_frequency_list].apply(lambda row: pd.Series(max([float(frequency) for frequency in row.tolist()])), axis=1)
+    
+    for feature in feature_list:
+        if feature == "MaxAF":
+            input_data[feature] = input_data[feature].fillna(0)
+        elif feature == "segmentDuplication":
+            input_data[feature] = input_data[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))]))
+            input_data[feature] = input_data[feature].fillna(0)
+        elif feature == "ABB_SCORE":
+            input_data[feature] = input_data[feature].fillna(0)
+        elif feature.contains("SIFT"):
+            input_data[feature] = input_data[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))]))
+            input_data[feature] = input_data[feature].fillna(input_data[feature].median())
+        else:
+            input_data[feature] = input_data[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))]))
+            input_data[feature] = input_data[feature].fillna(input_data[feature].median())
 
-    # fill remaining missing values in remaining columns with the median of the respective column
-    input_data['CADD_PHRED'].fillna(input_data['CADD_PHRED'].median(), inplace=True)
-    input_data['Condel'].fillna(input_data['Condel'].median(), inplace=True)
-    input_data['phyloP46_primate'].fillna(input_data['phyloP46_primate'].median(), inplace=True)
-    input_data['phyloP46_mammal'].fillna(input_data['phyloP46_mammal'].median(), inplace=True)
-    input_data['phastCons46_primate'].fillna(input_data['phastCons46_primate'].median(), inplace=True)
-    input_data['phastCons46_mammal'].fillna(input_data['phastCons46_mammal'].median(), inplace=True)
-    input_data['Eigen-phred'].fillna(input_data['Eigen-phred'].median(), inplace=True)
-    input_data['MutationAssessor_score'].fillna(input_data['MutationAssessor_score'].median(), inplace=True)
-
-    input_features = np.asarray(input_data[['CADD_PHRED','Condel','SegDupMax','phyloP46_primate','phyloP46_mammal', 'phastCons46_primate', 'phastCons46_mammal', 'Eigen-phred','MaxAF','MutationAssessor_score','ABB_SCORE']])
-
+    input_features = np.asarray(input_data[feature_list])
+    
     # TODO add workaround to handle the rare case that for one of the features only NaNs are present and therefor the median leads also to a nan
     # in that case the input features contains NaNs and lead to an error
 
@@ -107,15 +76,9 @@ def predict_rank(rf_model_snps, rf_model_indel, input_data_snps, input_features_
     return input_data_snps, input_data_indel
 
 
-def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf_model_snps, rf_model_indel):
-    prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps)
-    prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel)
-    
-    print(prepared_input_data_snps)
-    print(input_features_snps)
-    
-    print(prepared_input_data_indel)
-    print(input_features_indel)
+def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf_model_snps, rf_model_indel, allele_frequency_list, feature_list):
+    prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps, allele_frequency_list, feature_list)
+    prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel, allele_frequency_list, feature_list)
     
     rf_model_snps = import_model(rf_model_snps)
     rf_model_indel = import_model(rf_model_indel)
@@ -139,6 +102,8 @@ if __name__=='__main__':
     parser.add_argument('--out_data', type=str, dest='out_data', metavar='out.csv', required=True, help='CSV file containing the test data, used to compute the model statistics\n')
     parser.add_argument('--model_snps', type=str, dest='model_snps', metavar='model_snps.pkl', required=True, help='Specifies the name of the trained snps model to import\n')
     parser.add_argument('--model_indel', type=str, dest='model_indel', metavar='model_indel.pkl', required=True, help='Specifies the name of the trained indel model to import\n')
+    parser.add_argument("--allele_frequency_list", type=str, dest="allele_frequency_list", metavar="frequency1,frequecy2,frequency3", required=False, help="Comma separated list of the allele frequency sources that should be used as basis to get the maximum allele frequency\n")
+    parser.add_argument("--feature_list", type=str, dest="feature_list", metavar="feature1,feature2,feature3", required=True, help="Comma separated list of the features used to train the model\n")
     args = parser.parse_args()
     
     rf_model_snps = import_model(args.model_snps)
@@ -146,6 +111,9 @@ if __name__=='__main__':
     
     input_data_snps = read_input_data(args.in_data_snps)
     input_data_indel = read_input_data(args.in_data_indel)
+
+    allele_frequency_list = args.allele_frequency_list.split(",")
+    feature_list = args.feature_list.split(",")
     
     # if multiple alleles are reported consider only the first one
     # TODO decide how to handle allele ambiguity
@@ -156,8 +124,8 @@ if __name__=='__main__':
     
     #TODO add indel handling call functions from other script to expand and then call vep and afterwards combine
     
-    prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps)
-    prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel)
+    prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps, allele_frequency_list, feature_list)
+    prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel, allele_frequency_list, feature_list)
     
     predicted_data_snps, predicted_data_indel = predict_rank(rf_model_snps, rf_model_indel, prepared_input_data_snps, input_features_snps, prepared_input_data_indel, input_features_indel)
     
