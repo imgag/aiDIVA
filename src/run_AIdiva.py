@@ -5,7 +5,7 @@ import tempfile
 import util.combine_expanded_indels_and_create_csv as combine_expanded_indels
 import util.convert_indels_to_snps_and_create_vcf as expand_indels_and_create_vcf
 import util.convert_vcf_to_csv as convert_vcf
-import variant_scoring.predict as predict
+import variant_scoring.score_variants as predict
 import variant_prioritization.prioritize_variants as prio
 import variant_annotation.add_abb_score as add_abb
 import variant_annotation.add_score_from_bigwig as add_score
