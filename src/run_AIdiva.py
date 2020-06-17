@@ -6,7 +6,7 @@ import util.combine_expanded_indels_and_create_csv as combine_expanded_indels
 import util.convert_indels_to_snps_and_create_vcf as expand_indels_and_create_vcf
 import util.convert_vcf_to_csv as convert_vcf
 import variant_scoring.predict as predict
-import variant_prioritization.familySNP_gene_score as prio
+import variant_prioritization.prioritize_variants as prio
 import variant_annotation.add_abb_score as add_abb
 import variant_annotation.add_score_from_bigwig as add_score
 import variant_annotation.add_segmentDuplication as add_segDup
@@ -15,10 +15,10 @@ import variant_annotation.annotate_with_vep as annotate
 import yaml
 
 
-if __name__=='__main__':
-    parser = argparse.ArgumentParser(description = 'AIdiva -- Augmented Intelligence Disease Variant Analysis')
-    parser.add_argument('--config', type=str, dest='config', metavar='config.yaml', required=True, help='Config file specifying the parameters for AIdiva [required]')
-    #parser.add_argument('--annotate', dest='annotate', action='store_true', required=False, help='Flag indicating that the annotation with VEP needs to be done')
+if __name__=="__main__":
+    parser = argparse.ArgumentParser(description = "AIdiva -- Augmented Intelligence Disease Variant Analysis")
+    parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
+    #parser.add_argument("--annotate", dest="annotate", action="store_true", required=False, help="Flag indicating that the annotation with VEP needs to be done")
     args = parser.parse_args()
 
     # parse configuration file
@@ -37,21 +37,25 @@ if __name__=='__main__':
     input_vcf = configuration["Analysis-Input"]["vcf"] # should already be annotated with VEP
     scoring_model_snps = configuration["Analysis-Input"]["scoring-model-snps"]
     scoring_model_indels = configuration["Analysis-Input"]["scoring-model-indels"]
+    coding_regions_file = configuration["Analysis-Input"]["coding-regions"]
 
     # parse output files
     out_file = configuration["Analysis-Output"]["out-file"]
     filtered_out_file = configuration["Analysis-Output"]["filtered-out-file"]
 
     # parse disease and inheritance information
-    hpo_file = configuration["Analysis-Input"]["inheritance-information"]["hpo-file"]
-    gene_exclusion_file = configuration["Analysis-Input"]["inheritance-information"]["gene-exclusion"]
-    inheritance = configuration["Analysis-Input"]["inheritance-information"]["inheritance"]
-    family_type = configuration["Analysis-Input"]["inheritance-information"]["family-type"]
-    family_file = configuration["Analysis-Input"]["inheritance-information"]["family-file"]
+    hpo_file = configuration["Analysis-Input"]["prioritization-information"]["hpo-list"]
+    gene_exclusion_file = configuration["Analysis-Input"]["prioritization-information"]["gene-exclusion"]
+    #inheritance = configuration["Analysis-Input"]["prioritization-information"]["inheritance"]
+    family_type = configuration["Analysis-Input"]["prioritization-information"]["family-type"]
+    family_file = configuration["Analysis-Input"]["prioritization-information"]["family-file"]
 
     vep_annotation_dict = configuration["VEP-Annotation"]
     prioritization_information_dict = configuration["Analysis-Input"]["prioritization-information"]
     internal_parameter_dict = configuration["Internal-Parameters"]
+
+    allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
+    feature_list = configuration["Model-Features"]["feature-list"]
 
     # parse additional annotation files
     abb_score_file = configuration["Additional-Annotation"]["abb-score"]
@@ -132,8 +136,10 @@ if __name__=='__main__':
     input_data_indel_annotated = pd.read_csv(str(working_directory + input_filename + "_indel_annotated.csv"), sep="\t", low_memory=False)
     input_data_indel_expanded_annotated = pd.read_csv(str(working_directory + input_filename + "_indel_expanded_annotated.csv"), sep="\t", low_memory=False)
 
+    ## TODO: get rid of multiple values in the feature columns
+
     # combine the two indel sets
-    input_data_indel_combined_annotated = combine_expanded_indels.combine_vcf_dataframes(input_data_indel_annotated, input_data_indel_expanded_annotated)
+    input_data_indel_combined_annotated = combine_expanded_indels.combine_vcf_dataframes(input_data_indel_annotated, input_data_indel_expanded_annotated, feature_list)
     input_data_indel_combined_annotated.to_csv(str(working_directory + input_filename + "_indel_combined_annotated.csv"), sep="\t", index=False)
 
     # TODO decide how to handle allele ambiguity (especially if there are exactly two reported)
@@ -143,11 +149,12 @@ if __name__=='__main__':
 
     # predict pathogenicity score
     print("Score variants ...")
-    predicted_data_snps, predicted_data_indel = predict.perform_pathogenicity_score_prediction(input_data_snps_annotated, input_data_indel_combined_annotated, scoring_model_snps, scoring_model_indels, allele_frequency_list, feature_list)
+    coding_regions = pd.read_csv(coding_regions_file, sep="\t", names=["CHROM", "START", "END"], low_memory=False)
+    predicted_data_snps, predicted_data_indel = predict.perform_pathogenicity_score_prediction(input_data_snps_annotated, input_data_indel_combined_annotated, scoring_model_snps, scoring_model_indels, allele_frequency_list, feature_list, coding_regions)
 
     # combine snps and indel data
     predicted_data_complete = pd.concat([predicted_data_snps, predicted_data_indel], sort=False)
-    predicted_data_complete.sort_values(['Chr', 'Pos'], ascending=[True, True])
+    predicted_data_complete.sort_values(["CHROM", "POS"], ascending=[True, True])
     predicted_data_complete.to_csv(str(working_directory + input_filename + "_complete_annotated_predicted.csv"), index=False, sep="\t")
 
     # prioritize and filter variants

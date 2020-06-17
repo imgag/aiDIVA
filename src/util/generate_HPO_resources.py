@@ -158,13 +158,13 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--hpo_ontology", type=str, dest="hpo_ontology", metavar="hp.obo", required=True, help="\n")
-    parser.add_argument("--gene_phenotype", type=str, dest="gene_phenotype", metavar="phenotype_to_genes.txt", required=True, help="\n")
+    parser = argparse.ArgumentParser("Script to generate the HPO resources needed in the prioritization step of AIdiva")
+    parser.add_argument("--hpo_ontology", type=str, dest="hpo_ontology", metavar="hp.obo", required=True, help="File containing the HPO ontology\n")
+    parser.add_argument("--gene_phenotype", type=str, dest="gene_phenotype", metavar="phenotype_to_genes.txt", required=True, help="File that contains information about the genes and the associated phenotypes\n")
     parser.add_argument("--gene_hpo", type=str, dest="gene_hpo", metavar="gene2hpo.pkl", required=True, help="File to save the generated gene2hpo_dict\n")
     parser.add_argument("--hpo_gene", type=str, dest="hpo_gene", metavar="hpo2gene.pkl", required=True, help="File to save the generated hpo2gene_dict\n")
     parser.add_argument("--hpo_edges", type=str, dest="hpo_edges", metavar="hpo_edges.pkl", required=True, help="File where the extracted hpo edges are stored\n")
-    parser.add_argument("--hpo_counts", type=str, dest="hpo_counts", metavar="HPO_counts.txt", required=True, help="\n")
+    parser.add_argument("--hpo_counts", type=str, dest="hpo_counts", metavar="HPO_counts.txt", required=True, help="File containing the hpo counts needed for the hpo graph construction\n")
     parser.add_argument("--hpo_graph", type=str, dest="hpo_graph", metavar="hpo_graph.pkl", required=True, help="File to save the generated hpo graph\n")
     args = parser.parse_args()
 

@@ -4,17 +4,17 @@ import argparse
 
 
 def get_abb_score(row, abb):
-    if row.Chr == 'X':
-        if (23, int(row.Pos)) in abb.index:
-            return abb.loc[(23, int(row.Pos))].ABB
-    elif row.Chr == 'Y':
-        if (24, int(row.Pos)) in abb.index:
-            return abb.loc[(24, int(row.Pos))].ABB
-    elif row.Chr == "MT" or row.Chr == "M":
+    if row.CHROM == "X":
+        if (23, int(row.POS)) in abb.index:
+            return abb.loc[(23, int(row.POS))].ABB
+    elif row.CHROM == "Y":
+        if (24, int(row.POS)) in abb.index:
+            return abb.loc[(24, int(row.POS))].ABB
+    elif row.CHROM == "MT" or row.CHROM == "M":
         return np.nan
     else:
-        if (int(row.Chr), int(row.Pos)) in abb.index:
-            return abb.loc[(int(row.Chr), int(row.Pos))].ABB
+        if (int(row.CHROM), int(row.POS)) in abb.index:
+            return abb.loc[(int(row.CHROM), int(row.POS))].ABB
 
 
 def extract_data(data, abb):
@@ -29,7 +29,7 @@ def group_and_process_data(abb_data, data):
     abb.sort_index(axis=0, inplace=True, sort_remaining=True)
     abb.sort_index(axis=1, inplace=True, sort_remaining=True)
 
-    data_grouped = [group for key, group in data.groupby("Chr")]
+    data_grouped = [group for key, group in data.groupby("CHROM")]
 
     for group in data_grouped:
         group = extract_data(group, abb)
@@ -39,11 +39,11 @@ def group_and_process_data(abb_data, data):
     return data_combined
 
 
-if __name__=='__main__':
+if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--in_data', type=str, dest='in_data', metavar='in.csv', required=True, help='CSV file containing the data, you want to extend with the ABB score information\n')
-    parser.add_argument('--abb_data', type=str, dest='abb_data', metavar='abb.csv', required=True, help='CSV file containing the ABB score information\n')
-    parser.add_argument('--out_data', type=str, dest='out_data', metavar='out.csv', required=True, help='Specifies the extended output file\n')
+    parser.add_argument("--in_data", type=str, dest="in_data", metavar="in.csv", required=True, help="CSV file containing the data, you want to extend with the ABB score information\n")
+    parser.add_argument("--abb_data", type=str, dest="abb_data", metavar="abb.csv", required=True, help="CSV file containing the ABB score information\n")
+    parser.add_argument("--out_data", type=str, dest="out_data", metavar="out.csv", required=True, help="Specifies the extended output file\n")
     args = parser.parse_args()
 
     input_data = pd.read_csv(args.in_data, sep="\t", low_memory=False)
