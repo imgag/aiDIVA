@@ -189,6 +189,6 @@ Analysis-Output:
 
 # make sure that the full path for the following files is present otherwise the prioritization step will fail
 Internal-Parameters:
-    gene2hpo-mapping: gene_2_HPO.p
-    hpo-graph: v2_ready_graph.pk
-    hpo2gene-association: HPO_gene_assiciation.p
+    gene2hpo-mapping: gene2hpo.pkl
+    hpo-graph: hpo_graph.pkl
+    hpo2gene-association: hpo2gene.pkl
