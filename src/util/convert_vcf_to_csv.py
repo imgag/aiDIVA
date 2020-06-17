@@ -52,9 +52,6 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
     # make sure that there are no unwanted linebreaks in the variant entries
     tmp = tempfile.NamedTemporaryFile(mode="w+")
     tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
-
-    #new_temp = open(tmp.name, "r")
-
     tmp.seek(0)
 
     # extract header from vcf file
@@ -101,18 +98,9 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
     outfile_snps.close()
     outfile_indel.close()
     tmp.close()
-    #new_tmp.close()
 
 
 def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
-    #comment_iterator = takewhile(lambda s: s.startswith("#"), vcf_file_to_reformat)
-    #comment_lines = list(comment_iterator)
-
-    #vcf_header = comment_lines[-1].strip().split("\t")
-
-    #tmp = tempfile.NamedTemporaryFile(mode="w")
-    #tmp.write(vcf_file_to_reformat.read().replace("_\n", "_").replace("(?<!:).\n", ".").replace("|\n", "|").replace(",\n", ",").replace("-\n", "-").replace("/\n", "/").replace(":\n", ":").replace(";\n", ";"))
-
     header_line = ""
     comment_lines = []
 
@@ -122,7 +110,6 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     # make sure that there are no unwanted linebreaks in the variant entries
     tmp = tempfile.NamedTemporaryFile(mode="w+")
     tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
-
     tmp.seek(0)
 
     # extract header from vcf file
@@ -139,10 +126,7 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     if header_line == "":
         print("ERROR: The VCF file seems to be corrupted")
 
-    # reset file pointer to begin reading at the beginning
-
     vcf_header = header_line.strip().split("\t")
-
     vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment="#", low_memory=False)
 
     vcf_file_to_reformat.close()
@@ -162,28 +146,30 @@ def extract_annotation_header(header):
 
 ## TODO: Add flags to indicate indel_ID present and or RANK present
 def extract_columns(cell):
+    info_fields = str(cell).split(";")
+    new_cols = []
+
+    rank = np.NaN
+    indel_ID = np.NaN
+    annotation = ""
+
     if "indel_ID" in str(cell):
-        info_fields = str(cell).split(";")
-        new_cols = []
-
         for field in info_fields:
             if field.startswith("RANK"):
-                new_cols.append(field.split("RANK=")[1])
+                rank = field.split("RANK=")[1]
             if field.startswith("indel_ID"):
-                new_cols.append(field.split("indel_ID=")[1])
+                indel_ID = field.split("indel_ID=")[1]
             if field.startswith("CSQ"):
-                new_cols.append(field.split("CSQ=")[1])
-        return new_cols
+                annotation = field.split("CSQ=")[1]
+        return [rank, indel_ID, annotation]
     else:
-        info_fields = str(cell).split(";")
-        new_cols = []
         for field in info_fields:
             if field.startswith("RANK"):
-                new_cols.append(field.split("RANK=")[1])
+                rank = field.split("RANK=")[1]
             if field.startswith("CSQ"):
-                new_cols.append(field.split("CSQ=")[1])
+                annotation = field.split("CSQ=")[1]
 
-        return new_cols
+        return [rank, annotation]
 
 
 def extract_vep_annotation(cell, annotation_header):
@@ -192,11 +178,7 @@ def extract_vep_annotation(cell, annotation_header):
     consequences = []
 
     # take the most severe annotation variant
-    #print("fields\n" + str(annotation_fields))
     for field in annotation_fields:
-        #print("field" + str(field))
-        #print("annotation\n" + str(field.split("|")[annotation_header.index("Consequence")]))
-        #print("number-consequence\n" + str([variant_consequences.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
         consequences.append(min([variant_consequences.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
 
     target_index = min(enumerate(consequences), key=itemgetter(1))[0]
@@ -238,7 +220,6 @@ def extract_sample_information(row, sample):
 def add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set):
 
     if indel_set:
-        #print("Dataframe to convert:\n", vcf_as_dataframe)
         vcf_as_dataframe[["RANK", "indel_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     else:
         vcf_as_dataframe[["RANK", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
@@ -271,8 +252,6 @@ def convert_vcf_to_pandas_dataframe(input_file, indel_set):
     print("input-file", input_file)
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
     annotation_header = extract_annotation_header(header)
-
-    #print("DataFreame:\n", vcf_as_dataframe)
 
     vcf_as_dataframe = add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set)
     vcf_as_dataframe = add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header)
