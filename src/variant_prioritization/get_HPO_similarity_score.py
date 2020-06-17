@@ -47,7 +47,8 @@ def list_distance(DG, Q, G, Query_distances):
             # can happen when the original list has no updated HPO or wrong values
             return (0, 0)
 
-        Query_distances["maxval"] = 2 * (max([d["IC"] for n, d in DG.nodes(data=True)]))
+        # IC stored as count
+        Query_distances["maxval"] = 2 * (max([d["count"] for n, d in DG.nodes(data=True)]))
 
     # now I have the query distances value
     # map the genes HPO and extract values.
@@ -85,7 +86,8 @@ def precompute_query_distances(DG, Q, Query_distances):
         # can happen when the original list has no updated HPO or wrong values
         return 0
 
-    Query_distances["maxval"] = 2 * (max([d["IC"] for n, d in DG.nodes(data=True)]))
+    # IC stored as count
+    Query_distances["maxval"] = 2 * (max([d["count"] for n, d in DG.nodes(data=True)]))
 
     return Query_distances
 

@@ -66,11 +66,12 @@ def prioritize_variants(in_file, out_file, filtered_out_file, prioritization_inf
     gene_exclusion_file = prioritization_information_dict["gene-exclusion"]
 
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
-    HPO_graph_nodes, HPO_graph_edges = pickle.load(open(HPO_graph_file, "rb"))
+    #HPO_graph_nodes, HPO_graph_edges = pickle.load(open(HPO_graph_file, "rb"))
+    HPO_graph = pickle.load(open(HPO_graph_file, "rb"))
 
-    HPO_graph = networkx.Graph()
-    HPO_graph.add_nodes_from(HPO_graph_nodes)
-    HPO_graph.add_edges_from(HPO_graph_edges)
+    #HPO_graph = networkx.Graph()
+    #HPO_graph.add_nodes_from(HPO_graph_nodes)
+    #HPO_graph.add_edges_from(HPO_graph_edges)
 
     query_dist = 0
 
@@ -150,7 +151,7 @@ def prioritize_variants(in_file, out_file, filtered_out_file, prioritization_inf
 
     variant_data = pd.concat(variant_data_grouped)
     variant_data.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
-    variant_data[variant_data["FILTER_PASSED"] == 1].to_csv(filtered_file, sep="\t", encoding="utf-8", index=False)
+    variant_data[variant_data["FILTER_PASSED"] == 1].to_csv(filtered_out_file, sep="\t", encoding="utf-8", index=False)
 
 
 def compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist):
