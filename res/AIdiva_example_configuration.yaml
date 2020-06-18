@@ -5,88 +5,190 @@
 Analysis-Input:
     # if inheritance should be considered and family information is provided, make sure that the vcf file contains sample informations for all family members,
     # else sample will be treated as single patient with unknown inheritance
-    vcf: /home/dominic/Masterarbeit/small_test_set_10snps_6indels.vcf
-    
+    vcf: input.vcf
+
     # path to the working directory
-    work-dir: /home/dominic/Masterarbeit/test_work_dir/
-    
+    work-dir: test_work_dir/
+
     # path to the reference assembly used during the expansion of the indels
-    ref-path: /home/dominic/Masterarbeit/databases/grch37_assembly_dna/
-    
+    ref-path: databases/grch37/
+
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snps: data/rf_model_snps.pkl
-    scoring-model-indels: data/rf_model_indels.pkl
-    
-    inheritance-information:
+    scoring-model-snps: data/baseline_rf_model_vep_snps.pkl
+    scoring-model-indels: data/baseline_rf_model_vep_indel.pkl
+
+    # bed file to distinguish between coding and non-coding variants
+    coding-regions: coding_regions.bed
+
+    prioritization-information:
         # file containing the HPO terms that are associated with the disease (one term per line)
-        hpo-file: /home/dominic/Masterarbeit/test_complete_pipeline/recessive_HPO.txt
-        
-        # inheritance of the disease if known and family type not SINGLE is given
-        # possible values: [RECESSIVE, COMPOUND, DOMINANT_DENOVO, DOMINANT_INHERITED, XLINKED, UNKNOWN]
-        inheritance: RECESSIVE
-        
+        hpo-file: recessive_HPO.txt
+
         # family type, shows the structure of the given family inforamtion
         # possible values: [TRIO, FAMILY, SINGLE]
         family-type: TRIO
-        
+
         # file with the family information
-        family-file: /home/dominic/Masterarbeit/test_complete_pipeline/family.txt
-        
+        family-file: family.txt
+
         # List of genes that should be excluded in the analysis, because they are normally false positives
         # a default list is given in the res/ folder (gene_exclusion_list.txt), the file can be empty
-        gene-exclusion: /home/dominic/Masterarbeit/test_complete_pipeline/empty_list.txt
+        # set to null if no genes should be excluded
+        gene-exclusion: null
+
+        # Identifier to get the score from the annotated file
+        cadd-identifier: CADD_PHRED
+        repeat-identifier: simpleRepeat
+        duplication-identifier: segmentDuplication
+
+
+Model-Features:
+    # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these)
+    allele_frequency_list:
+        - gnomAD_AFR_AF
+        - gnomAD_ASJ_AF
+        - gnomAD_EAS_AF
+        - gnomAD_FIN_AF
+        - gnomAD_NFE_AF
+        - gnomAD_OTH_AF
+        - gnomAD_SAS_AF
+        - AA_AF
+        - EA_AF
+        - AFR_AF
+        - AMR_AF
+        - EAS_AF
+        - EUR_AF
+        - SAS_AF
+
+    # List containing the names of the features used for the model training
+    feature_list:
+        - SIFT
+        - PolyPhen
+        - CADD_PHRED
+        - REVEL
+        - ABB_SCORE
+        - MaxAF
+        - segmentDuplication
+        - custom_EIGEN_PHRED
+        - fannsdb_CONDEL
+        - custom_FATHMM_XF
+        - custom_MutationAssessor
+        - phastCons46mammal
+        - phastCons46primate
+        - phastCons46vertebrate
+        - phyloP46mammal
+        - phyloP46primate
+        - phyloP46vertebrate
 
 VEP-Annotation:
+    # Flag indicating whether to annotate the input data with VEP or not, if False then AIdiva assumes that the data is already annotated
+    perform-vep-annotation: True
+
     # VEP: path to the VEP executable
-    vep: /home/dominic/Tools/ensembl-vep/vep
-    
+    vep: vep_data/ensembl-vep-release-98.3/vep
+
     # threads to use during the annotation
     num-threads: 4
-    
+
     # Cache directory and plugin directory
-    cache-path: /mnt/users/ahbranl1/data_vep/cache
-    plugin-path: /mnt/users/ahboced1/data_vep/plugins
-    
+    cache-path: vep_data/cache
+    plugin-path: vep_data/plugins
+
     # CADD: paths to the CADD database files
-    cadd-snps: /mnt/share/data/dbs/CADD/whole_genome_SNVs.tsv.gz
-    cadd-indel: /mnt/share/data/dbs/CADD/InDels.tsv.gz
-    
-    # Condel: path to the Condel config 
-    condel: /mnt/users/ahboced1/Tools/vep_data/plugins/config/Condel/config
-    
-    # REVEL: 
-    revel: /mnt/share/data/dbs/REVEl/revel_all_chromosomes.tsv.gz
-    
+    cadd-snps: CADD/whole_genome_SNVs.tsv.gz
+    cadd-indel: CADD/InDels.tsv.gz
+
+    # Condel: path to the Condel config
+    #condel: /mnt/users/ahboced1/Tools/vep_data/plugins/config/Condel/config
+
+    # REVEL: path to the REVEL database file
+    revel: revel_all_chromosomes.tsv.gz
+
     # dbNSFP
-    dbNSFP: /mnt/users/ahbranl1/data_vep/dbNSFP/dbNSFP_hg19_3.5.gz
+    #dbNSFP: /mnt/users/ahbranl1/data_vep/dbNSFP/dbNSFP_hg19_3.5.gz
+
+    custom:
+        # BED like files here the key of the dictionary is used as the name to present the feature in the annotated file
+        bed-files:
+            simpleRepeat:
+                file: simpleRepeats.bedGraph.gz
+                method: overlap
+            segmentDuplication:
+                file: segmentDuplication.bedGraph.gz
+                method: overlap
+            ABB_SCORE:
+                file: abb_score.bedGraph.gz
+                method: exact
+        # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
+        vcf-files:
+            EIGEN_PHRED:
+                file: Eigen_phred_hg19_chrom1-22.vcf.gz
+                method: exact
+                prefix: custom
+            CONDEL:
+                file: fannsdb_onlyCONDEL.vcf.gz
+                method: exact
+                prefix: fannsdb
+            FATHMM_XF:
+                file: fathmm_XF_onlyCoding.vcf.gz
+                method: exact
+                prefix: custom
+            MutationAssessor:
+                file: MA_scores_rel3_hg19_full.vcf.gz
+                method: exact
+                prefix: custom
+        # Bigwig files the key of the dictionary is used as the name to present the feature in the annotated file
+        bigwig-files:
+            phastCons46mammal:
+                file: phastCons46mammal.bw
+                method: exact
+            phastCons46primate:
+                file: phastCons46primate.bw
+                method: exact
+            phastCons46vertebrate:
+                file: phastCons46vertebrate.bw
+                method: exact
+            phyloP46mammal:
+                file: phyloP46mammal.bw
+                method: exact
+            phyloP46primate:
+                file: phyloP46primate.bw
+                method: exact
+            phyloP46vertebrate:
+                file: phyloP46vertebrate.bw
+                method: exact
+
 
 Additional-Annotation:
-    # ABB_score
-    abb-score: /home/dominic/Masterarbeit/databases/ABB_SCORE.txt
-    
-    # Simple tandem repeats
-    simple-repeats: /home/dominic/Masterarbeit/databases/simpleRepeat.txt
-    
-    # Segment Duplication
-    segment-duplication: /home/dominic/Masterarbeit/databases/genomicSuperDups.txt
-    
+    # Flag indicating whether to use the additional annotation scripts or not, if False it is assumed that the needed annoation was performed beforehand
+    perform-additional-annotation: True
+
+    # ABB_score ([path to the file] or null)
+    abb-score: null
+
+    # Simple tandem repeats ([path to the file] or null)
+    simple-repeats: null
+
+    # Segment Duplication ([path to the file] or null)
+    segment-duplication: null
+
     # additional annotations the key is used as feature name for the prediction
     additional-bigwig-files:
-        phyloP46_mammal: /home/dominic/Masterarbeit/databases/phastCons46way.placentalMammal.complete.onlyChrom.bw
-        #phyloP46_primate: /home/dominic/Masterarbeit/databases/phastCons46way.primate.complete.onlyChrom.bw
-        #phyloP46_vertebrate: /home/dominic/Masterarbeit/databases/phastCons46way.vertebrate.complete.onlyChrom.bw
-        phastCons46_mammal: /home/dominic/Masterarbeit/databases/phastCons46way.placentalMammal.complete.onlyChrom.bw
-        phastCons46_primate: /home/dominic/Masterarbeit/databases/phastCons46way.primate.complete.onlyChrom.bw
-        #phastCons46_vertebrate: /home/dominic/Masterarbeit/databases/phastCons46way.vertebrate.complete.onlyChrom.bw
+        phyloP46mammal: phyloP46mammal.bw
+        phyloP46primate: phyloP46primate.bw
+        phyloP46vertebrate: phyloP46vertebrate.bw
+        phastCons46mammal: phastCons46mammal.bw
+        phastCons46primate: phastCons46primate.bw
+        phastCons46vertebrate: phastCons46vertebrate.bw
 
-    
+
 Analysis-Output:
-    tsv: /home/dominic/Masterarbeit/test_complete_pipeline/test_recessive_full_tempfile.tsv
-    tsv-filt: /home/dominic/Masterarbeit/test_complete_pipeline/test_recessive_full_filtered_tempfile.tsv
+    out-file: out.csv
+    filtered-out-file: filtered_out.csv
 
-# the following parameters should only be changed if the module structure is changed and these files are not in res folder present
+# make sure that the full path for the following files is present otherwise the prioritization step will fail
 Internal-Parameters:
-    gene2hpo-mapping: ../../res/gene_2_HPO.p
-    hpo-graph: ../../res/v2_ready_graph.pk
-    hpo2gene-association: ../../res/HPO_gene_assiciation.p
+    gene2hpo-mapping: gene2hpo.pkl
+    hpo-graph: hpo_graph.pkl
+    hpo2gene-association: hpo2gene.pkl
