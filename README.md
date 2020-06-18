@@ -23,7 +23,7 @@ The following additional libraries need to be installed in order to use the prog
 ## Mandatory Commandline Arguments
 
 To run the whole AIdiva pipeline one argument providing the configuration file is required.
-This configuration file is encoded in the YAML format. In the `res` folder an example file can be found.
+This configuration file is encoded in the YAML format. In the `data` folder an example file can be found.
 
 
 ## Running AIdiva

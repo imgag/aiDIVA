@@ -2,9 +2,9 @@ import argparse
 import os
 import pandas as pd
 import tempfile
-import util.combine_expanded_indels_and_create_csv as combine_expanded_indels
-import util.convert_indels_to_snps_and_create_vcf as expand_indels_and_create_vcf
-import util.convert_vcf_to_csv as convert_vcf
+import helper_modules.combine_expanded_indels_and_create_csv as combine_expanded_indels
+import helper_modules.convert_indels_to_snps_and_create_vcf as expand_indels_and_create_vcf
+import helper_modules.convert_vcf_to_csv as convert_vcf
 import variant_scoring.score_variants as predict
 import variant_prioritization.prioritize_variants as prio
 import variant_annotation.add_abb_score as add_abb
