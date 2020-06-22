@@ -78,10 +78,12 @@ def predict_pathogenicity(rf_model_snps, rf_model_indel, input_data_snps, input_
 
 
 def check_coding(coding_regions, variant_to_check):
-    if coding_regions[(coding_regions.CHROM == variant_to_check["CHROM"]) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.START.ge(variant_to_check["POS"]))].empty:
-        return 0
-    else:
-        return 1
+    coding = 0
+
+    if not coding_regions[(coding_regions.CHROM.str.match(str(variant_to_check["CHROM"]))) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))].empty:
+        coding = 1
+
+    return coding
 
 
 def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf_model_snps, rf_model_indel, allele_frequency_list, feature_list, coding_regions):
