@@ -36,22 +36,29 @@ def write_header(out_file):
     out_file.write("##contig=<ID=X,length=155270560,assembly=hg19>\n")
     out_file.write("##contig=<ID=Y,length=59373566,assembly=hg19>\n")
     out_file.write("##contig=<ID=MT,length=16571,assembly=hg19>\n")
-    out_file.write("#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO\n")
+    out_file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
 
 
 # TODO include FORMAT and SAMPLE information
-def write_data_information_to_file(outfile, input_data, ref_folder):
+def write_data_information_to_file(input_data, outfile, ref_folder, header):
     #print(input_data.columns)
-    data_grouped = [group for key, group in input_data.groupby("Chr")]
+    data_grouped = [group for key, group in input_data.groupby("CHROM")]
 
     random.seed(14038)
 
+    for line in header:
+        if line.startswith("#CHROM"):
+            outfile.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+        else:
+            outfile.write(line)
+
+
     for group in data_grouped:
         #print(group)
-        ref_seq = str(SeqIO.read(ref_folder + "Homo_sapiens.GRCh37.dna.chromosome." + str(group["Chr"].iloc[0]) + ".fa", "fasta").seq)
+        ref_seq = str(SeqIO.read(ref_folder + "Homo_sapiens.GRCh37.dna.chromosome." + str(group["CHROM"].iloc[0]) + ".fa", "fasta").seq)
         for row in group.itertuples():
-            window_start = int(row.Pos) - 3
-            window_end = int(row.Pos) + len(row.Ref) + 2
+            window_start = int(row.POS) - 3
+            window_end = int(row.POS) + len(row.REF) + 2
             extended_ref_seq = ref_seq[window_start:window_end]
 
             for i in range(abs(window_end-window_start)):
@@ -63,14 +70,14 @@ def write_data_information_to_file(outfile, input_data, ref_folder):
                 else:
                     print("ERROR: Something went wrong!")
 
-                outfile.write(str(row.Chr) + "\t" +
-                            str(window_start + i + 1) + "\t" +
+                outfile.write(str(row.CHROM).strip() + "\t" +
+                            str(window_start + i + 1).strip() + "\t" +
                             "." + "\t" +
-                            str(extended_ref_seq[i]) + "\t" +
-                            str(alt_variant) + "\t" +
+                            str(extended_ref_seq[i]).strip() + "\t" +
+                            str(alt_variant).strip() + "\t" +
                             "." + "\t" +
                             "." + "\t" +
-                            str(row.INFO) + "\n")
+                            str(row.INFO).strip() + "\n")
 
     data_combined = pd.concat(data_grouped)
 
@@ -84,10 +91,10 @@ def import_csv_data(in_data):
     # extract header from vcf file
     for line in input_vcf:
         if line.strip().startswith("##"):
-            comment_lines.append(line.strip())
+            comment_lines.append(line)
         if line.strip().startswith("#CHROM"):
             header_line = line.strip()
-            comment_lines.append(header_line)
+            comment_lines.append(line)
             break # now the variant entries are coming
         else:
             continue
@@ -101,20 +108,20 @@ def import_csv_data(in_data):
     data = pd.read_csv(in_data, names=header_line.split("\t"), sep="\t", comment="#", low_memory=False)
     data.fillna(".", inplace=True)
 
-    data = data.rename(columns={"#CHROM": "Chr", "POS": "Pos", "REF": "Ref", "ALT": "Alt"})
+    data = data.rename(columns={"#CHROM": "CHROM"})
 
     #if "indel_ID" not in data.columns:
     #    data["indel_ID"] = data.index + 1
     #    data["indel_ID"] = data.apply(lambda row: "indel_" + str(row["indel_ID"]), axis=1)
 
-    return data
+    return data, comment_lines
 
 
-def convert_csv_to_vcf(out_data, in_data, ref_folder):
-    input_data = import_csv_data(in_data)
+def convert_csv_to_vcf(in_data, out_data, ref_folder):
+    input_data, header = import_csv_data(in_data)
     outfile = open(out_data, "w", newline="")
-    write_header(outfile)
-    write_data_information_to_file(outfile, input_data, ref_folder)
+    #write_header(outfile)
+    write_data_information_to_file(input_data, outfile, ref_folder, header)
     outfile.close()
 
 
@@ -126,4 +133,4 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     hg19_folder = args.hg19_path
-    convert_csv_to_vcf(args.out_data, args.in_data, args.hg19_path)
+    convert_csv_to_vcf(args.in_data, args.out_data, args.hg19_path)

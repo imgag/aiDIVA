@@ -139,7 +139,7 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
 
 
 def extract_annotation_header(header):
-    annotation_header = [entry.strip().replace("\">", "").split(": ")[1].split("|") for entry in header if entry.startswith("##INFO=<ID=CSQ")][0]
+    annotation_header = [entry.strip().replace("\">", "").split(": ")[1].split("|") for entry in header if entry.startswith("##INFO=<ID=CSQ,")][0]
 
     return annotation_header
 
@@ -156,18 +156,18 @@ def extract_columns(cell):
     if "indel_ID" in str(cell):
         for field in info_fields:
             if field.startswith("RANK"):
-                rank = field.split("RANK=")[1]
+                rank = field.split("=")[1]
             if field.startswith("indel_ID"):
-                indel_ID = field.split("indel_ID=")[1]
-            if field.startswith("CSQ"):
-                annotation = field.split("CSQ=")[1]
+                indel_ID = field.split("=")[1]
+            if field.startswith("CSQ="):
+                annotation = field.split("=")[1]
         return [rank, indel_ID, annotation]
     else:
         for field in info_fields:
             if field.startswith("RANK"):
-                rank = field.split("RANK=")[1]
-            if field.startswith("CSQ"):
-                annotation = field.split("CSQ=")[1]
+                rank = field.split("=")[1]
+            if field.startswith("CSQ="):
+                annotation = field.split("=")[1]
 
         return [rank, annotation]
 

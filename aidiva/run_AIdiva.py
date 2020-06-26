@@ -75,77 +75,85 @@ if __name__=="__main__":
     #split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel)
     #input_data = convert_vcf.convert_vcf_to_pandas_dataframe(input_vcf)
     convert_vcf.split_vcf_file_in_indel_and_snps_set(input_vcf, str(working_directory + input_filename + "_snps.vcf"), str(working_directory + input_filename + "_indel.vcf"))
-    expand_indels_and_create_vcf.convert_csv_to_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel.vcf"), ref_path)
+    if vep_annotation_dict["perform-vep-annotation"] or configuration["Additional-Annotation"]["perform-additional-annotation"]:
+        expand_indels_and_create_vcf.convert_csv_to_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel.vcf"), ref_path)
 
-    #input_data_snps = input_data[(input_data["Ref"].apply(len) == 1) & (input_data["Alt"].apply(len) == 1)]
-    #input_data_indel = input_data[(input_data["Ref"].apply(len) > 1) | (input_data["Alt"].apply(len) > 1)]
+        #input_data_snps = input_data[(input_data["Ref"].apply(len) == 1) & (input_data["Alt"].apply(len) == 1)]
+        #input_data_indel = input_data[(input_data["Ref"].apply(len) > 1) | (input_data["Alt"].apply(len) > 1)]
 
-    # annotate with VEP
-    if vep_annotation_dict["perform-vep-annotation"]:
-        print("Starting VEP annotation ...")
-        annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snps.vcf"), str(working_directory + input_filename + "_snps_annotated.vcf"), vep_annotation_dict, False)
-        annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_annotated.vcf"), vep_annotation_dict, True)
-        annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_annotated.vcf"), vep_annotation_dict, False)
-        print("Finished VEP annotation!")
+        # annotate with VEP
+        if vep_annotation_dict["perform-vep-annotation"]:
+            print("Starting VEP annotation ...")
+            annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snps.vcf"), str(working_directory + input_filename + "_snps_annotated.vcf"), vep_annotation_dict, False)
+            annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_annotated.vcf"), vep_annotation_dict, True)
+            annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_annotated.vcf"), vep_annotation_dict, False)
+            print("Finished VEP annotation!")
 
-        # convert annotated vcfs back to pandas dataframes
-        input_data_snps_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snps_annotated.vcf"), False)
-        input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_annotated.vcf"), True)
-        input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_annotated.vcf"), True)
-    else:
-        input_data_snps_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snps.vcf"), False)
-        input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel.vcf"), True)
-        input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded.vcf"), True)
+            # convert annotated vcfs back to pandas dataframes
+            input_data_snps_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snps_annotated.vcf"), False)
+            input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_annotated.vcf"), True)
+            input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_annotated.vcf"), True)
+        elif configuration["Additional-Annotation"]["perform-additional-annotation"]:
+            input_data_snps_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snps.vcf"), False)
+            input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel.vcf"), True)
+            input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded.vcf"), True)
 
-    # add conservation scores from bigwig files
-    if configuration["Additional-Annotation"]["perform-additional-annotation"]:
-        print("Starting conservation score annotation ...")
-        for key, value in additional_bigwig_files.items():
-            input_data_snps_annotated = add_score.group_and_process_data(value, input_data_snps_annotated, key)
-            input_data_indel_expanded_annotated = add_score.group_and_process_data(value, input_data_indel_expanded_annotated, key)
-        print("Finished conservation score annotation!")
+        # add conservation scores from bigwig files
+        if configuration["Additional-Annotation"]["perform-additional-annotation"]:
+            print("Starting conservation score annotation ...")
+            for key, value in additional_bigwig_files.items():
+                input_data_snps_annotated = add_score.group_and_process_data(value, input_data_snps_annotated, key)
+                input_data_indel_expanded_annotated = add_score.group_and_process_data(value, input_data_indel_expanded_annotated, key)
+            print("Finished conservation score annotation!")
 
-        # add abb score to annotation
-        if not abb_score_file is None:
-            print("Starting ABB score annotation ...")
-            input_data_snps_annotated = add_abb.group_and_process_data(abb_score_file, input_data_snps_annotated)
-            input_data_indel_expanded_annotated = add_abb.group_and_process_data(abb_score_file, input_data_indel_expanded_annotated)
-            print("Finished ABB score annotation!")
+            # add abb score to annotation
+            if not abb_score_file is None:
+                print("Starting ABB score annotation ...")
+                input_data_snps_annotated = add_abb.group_and_process_data(abb_score_file, input_data_snps_annotated)
+                input_data_indel_expanded_annotated = add_abb.group_and_process_data(abb_score_file, input_data_indel_expanded_annotated)
+                print("Finished ABB score annotation!")
 
-        # add simple repeats to annotation
-        if not simple_repeat_file is None:
-            print("Starting simpleRepeat annotation ...")
-            input_data_snps_annotated = add_repeats.group_and_process_data(simple_repeat_file, input_data_snps_annotated)
-            input_data_indel_expanded_annotated = add_repeats.group_and_process_data(simple_repeat_file, input_data_indel_expanded_annotated)
-            print("Finished simpleRepeat annotation!")
+            # add simple repeats to annotation
+            if not simple_repeat_file is None:
+                print("Starting simpleRepeat annotation ...")
+                input_data_snps_annotated = add_repeats.group_and_process_data(simple_repeat_file, input_data_snps_annotated)
+                input_data_indel_expanded_annotated = add_repeats.group_and_process_data(simple_repeat_file, input_data_indel_expanded_annotated)
+                print("Finished simpleRepeat annotation!")
 
-        # add segment duplication to annotation
-        if not segment_duplication_file is None:
-            print("Starting segmentDuplication annotation ...")
-            input_data_snps_annotated = add_segDup.group_and_process_data(segment_duplication_file, input_data_snps_annotated)
-            input_data_indel_expanded_annotated = add_segDup.group_and_process_data(segment_duplication_file, input_data_indel_expanded_annotated)
-            print("Finished segmentDuplication annotation!")
+            # add segment duplication to annotation
+            if not segment_duplication_file is None:
+                print("Starting segmentDuplication annotation ...")
+                input_data_snps_annotated = add_segDup.group_and_process_data(segment_duplication_file, input_data_snps_annotated)
+                input_data_indel_expanded_annotated = add_segDup.group_and_process_data(segment_duplication_file, input_data_indel_expanded_annotated)
+                print("Finished segmentDuplication annotation!")
 
-    # save annotated files
-    input_data_snps_annotated.to_csv(str(working_directory + input_filename + "_snps_annotated.csv"), sep="\t", index=False)
-    input_data_indel_annotated.to_csv(str(working_directory + input_filename + "_indel_annotated.csv"), sep="\t", index=False)
-    input_data_indel_expanded_annotated.to_csv(str(working_directory + input_filename + "_indel_expanded_annotated.csv"), sep="\t", index=False)
+        # save annotated files
+        #if vep_annotation_dict["perform-vep-annotation"] or configuration["Additional-Annotation"]["perform-additional-annotation"]:
+        input_data_snps_annotated.to_csv(str(working_directory + input_filename + "_snps_annotated.csv"), sep="\t", index=False)
+        input_data_indel_annotated.to_csv(str(working_directory + input_filename + "_indel_annotated.csv"), sep="\t", index=False)
+        input_data_indel_expanded_annotated.to_csv(str(working_directory + input_filename + "_indel_expanded_annotated.csv"), sep="\t", index=False)
 
-    # Workaround to make it work directly passing the tables to the combine method does not work (Why??? - maybe an error in pandas)
-    # TODO fix this small bug
-    input_data_indel_annotated = pd.read_csv(str(working_directory + input_filename + "_indel_annotated.csv"), sep="\t", low_memory=False)
-    input_data_indel_expanded_annotated = pd.read_csv(str(working_directory + input_filename + "_indel_expanded_annotated.csv"), sep="\t", low_memory=False)
+        # Workaround to make it work directly passing the tables to the combine method does not work (Why??? - maybe an error in pandas)
+        # TODO fix this small bug
+        #if vep_annotation_dict["perform-vep-annotation"] or configuration["Additional-Annotation"]["perform-additional-annotation"]:
+        input_data_indel_annotated = pd.read_csv(str(working_directory + input_filename + "_indel_annotated.csv"), sep="\t", low_memory=False)
+        input_data_indel_expanded_annotated = pd.read_csv(str(working_directory + input_filename + "_indel_expanded_annotated.csv"), sep="\t", low_memory=False)
 
-    ## TODO: get rid of multiple values in the feature columns
+        ## TODO: get rid of multiple values in the feature columns
 
-    # combine the two indel sets
-    input_data_indel_combined_annotated = combine_expanded_indels.combine_vcf_dataframes(input_data_indel_annotated, input_data_indel_expanded_annotated, feature_list)
-    input_data_indel_combined_annotated.to_csv(str(working_directory + input_filename + "_indel_combined_annotated.csv"), sep="\t", index=False)
+        # combine the two indel sets
+        #if vep_annotation_dict["perform-vep-annotation"] or configuration["Additional-Annotation"]["perform-additional-annotation"]:
+        input_data_indel_combined_annotated = combine_expanded_indels.combine_vcf_dataframes(input_data_indel_annotated, input_data_indel_expanded_annotated, feature_list)
+        input_data_indel_combined_annotated.to_csv(str(working_directory + input_filename + "_indel_combined_annotated.csv"), sep="\t", index=False)
 
     # TODO decide how to handle allele ambiguity (especially if there are exactly two reported)
     #input_data["Alt"] = input_data["Alt"].map(lambda x: x.split(",")[0])
     # for now just use the variants that have only one allele
     #input_data[input_data["Alt"].apply(lambda x: len(x.split(","))) == 1]
+
+    if not (vep_annotation_dict["perform-vep-annotation"] or configuration["Additional-Annotation"]["perform-additional-annotation"]):
+        input_data_snps_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snps.vcf"), False)
+        input_data_indel_combined_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel.vcf"), True)
 
     # predict pathogenicity score
     print("Score variants ...")

@@ -9,6 +9,34 @@ import argparse
 import pickle
 
 
+mean_dict = {"phastCons46mammal": 0.09691308336428194,
+             "phastCons46primate": 0.12353343703613741,
+             "phastCons46vertebrate": 0.1366339183101041,
+             "phyloP46mammal": -0.0063575303590607925,
+             "phyloP46primate": -0.012076641890840553,
+             "phyloP46vertebrate": 0.06761867323083483,
+             "phastCons100": 0.11273633387190414,
+             "phyloP100": 0.052907788505469275,
+             "custom_MutationAssessor": 1.7961304794577417,
+             "fannsdb_CONDEL": 0.49699016949707825,
+             "custom_EIGEN_PHRED": 4.342947928406315,
+             "CADD_PHRED": 4.471745325,
+             "custom_FATHMM_XF": 0.35846023623584666,
+             "SIFT": 0.35216996259535444,
+             "REVEL": 0.28019263637740743,
+             "PolyPhen": 0.5169017014355943}
+
+
+median_dict = {"custom_MutationAssessor": 1.87,
+               "fannsdb_CONDEL": 0.4805749233199981,
+               "custom_EIGEN_PHRED": 3.010301,
+               "CADD_PHRED": 3.99,
+               "custom_FATHMM_XF": 0.209614,
+               "SIFT": 0.153,
+               "REVEL": 0.193,
+               "PolyPhen": 0.547}
+
+
 random_seed = 14038
 
 
@@ -31,7 +59,7 @@ def prepare_input_data(input_data, allele_frequency_list, feature_list):
     # fill SegDup missing values with -> 0
     # fill ABB_SCORE missing values with -> 0
     # fill Allele Frequence missing values with -> 0
-    # fill missing values from other features with -> median
+    # fill missing values from other features with -> median or mean
 
     for allele_frequency in allele_frequency_list:
         input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
@@ -41,7 +69,7 @@ def prepare_input_data(input_data, allele_frequency_list, feature_list):
     input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
 
     for feature in feature_list:
-        if feature == "MaxAF":
+        if feature == "MaxAF" or feature == "MAX_AF":
             input_data[feature] = input_data[feature].fillna(0)
         elif feature == "segmentDuplication":
             input_data[feature] = input_data[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan))
@@ -49,12 +77,14 @@ def prepare_input_data(input_data, allele_frequency_list, feature_list):
         elif feature == "ABB_SCORE":
             input_data[feature] = input_data[feature].fillna(0)
         elif "SIFT" in feature:
-            (input_data[feature])
             input_data[feature] = input_data[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan))
-            input_data[feature] = input_data[feature].fillna(input_data[feature].median())
+            input_data[feature] = input_data[feature].fillna(median_dict["SIFT"])
         else:
             input_data[feature] = input_data[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan))
-            input_data[feature] = input_data[feature].fillna(input_data[feature].median())
+            if ("phastCons" in feature) | ("phyloP" in feature):
+                input_data[feature] = input_data[feature].fillna(mean_dict[feature])
+            else:
+                input_data[feature] = input_data[feature].fillna(median_dict[feature])
 
     input_features = np.asarray(input_data[feature_list])
 

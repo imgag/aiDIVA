@@ -17,7 +17,8 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = vep_command + "--variant_class" + " "
 
     # allele frequencies to include
-    #vep_command = vep_command + "--max_af" + " "
+    vep_command = vep_command + "--max_af" + " "
+    # the following AF annotations could be dropped since we only need the max AF
     vep_command = vep_command + "--af" + " "
     vep_command = vep_command + "--af_1kg" + " "
     vep_command = vep_command + "--af_esp" + " "
@@ -27,7 +28,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
     # vep plugins to use
     if not only_basic:
-        vep_command = vep_command + "--dir_plugin " + vep_annotation_dict["plugin-path"] + " "
+        #vep_command = vep_command + "--dir_plugin " + vep_annotation_dict["plugin-path"] + " "
         #vep_command = vep_command + "--plugin Condel," + vep_annotation_dict["condel"] + ",s" + " "
         vep_command = vep_command + "--plugin CADD," + vep_annotation_dict["cadd-snps"] + "," + vep_annotation_dict["cadd-indel"] + " "
         vep_command = vep_command + "--plugin REVEL," + vep_annotation_dict["revel"] + " "
