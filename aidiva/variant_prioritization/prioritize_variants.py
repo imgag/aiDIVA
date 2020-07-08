@@ -5,7 +5,9 @@ import pandas as pd
 import pickle
 import re
 
-from . import get_HPO_similarity_score as gs
+if not __name__=="__main__":
+    from . import get_HPO_similarity_score as gs
+
 from itertools import combinations
 from operator import itemgetter
 from scipy.stats import poisson
@@ -50,8 +52,8 @@ variant_consequences = {"transcript_ablation": "non_exonic",
 
 
 #def prioritize_variants(in_file, out_file, filtered_file, fam_file, inheritance, family_type, white_list, gene_exclusion):
-def prioritize_variants(in_file, out_file, filtered_out_file, prioritization_information_dict, internal_parameter_dict):
-    variant_data = pd.read_csv(in_file, sep="\t", low_memory=False)
+def prioritize_variants(variant_data, family_file, family_type, hpo_resources_folder, hpo_list, gene_exclusion_list):
+    #variant_data = pd.read_csv(in_file, sep="\t", low_memory=False)
 
     # read the gene exclusion list
     # an empty set will not filter out anything, if gene exclusion list is not provided
@@ -59,19 +61,14 @@ def prioritize_variants(in_file, out_file, filtered_out_file, prioritization_inf
     genes_known = set()
 
     ### HPO files load
-    gene_2_HPO_f = internal_parameter_dict["gene2hpo-mapping"]
-    HPO_graph_file = internal_parameter_dict["hpo-graph"]
-    hpo_dict_file = internal_parameter_dict["hpo2gene-association"]
-    hpo_list_file = prioritization_information_dict["hpo-list"]
-    gene_exclusion_file = prioritization_information_dict["gene-exclusion"]
+    gene_2_HPO_f = hpo_resources_folder + "gene2hpo.pkl"
+    HPO_graph_file = hpo_resources_folder + "hpo_graph.pkl"
+    hpo_dict_file = hpo_resources_folder + "hpo2gene.pkl"
+    hpo_list_file = hpo_list
+    gene_exclusion_file = gene_exclusion_list
 
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
-    #HPO_graph_nodes, HPO_graph_edges = pickle.load(open(HPO_graph_file, "rb"))
     HPO_graph = pickle.load(open(HPO_graph_file, "rb"))
-
-    #HPO_graph = networkx.Graph()
-    #HPO_graph.add_nodes_from(HPO_graph_nodes)
-    #HPO_graph.add_edges_from(HPO_graph_edges)
 
     query_dist = 0
 
@@ -107,19 +104,18 @@ def prioritize_variants(in_file, out_file, filtered_out_file, prioritization_inf
     # read family relationships
     # TODO change to ped file
     family = dict()
-    with open(prioritization_information_dict["family-file"], "r") as fam_file:
+    with open(family_file, "r") as fam_file:
         for line in fam_file:
             if line.startswith("sample"):
                 continue
             line = line.rstrip("\n")
             splitline = line.split("\t")
-            print(splitline)
             family[splitline[0]] = splitline[1]
 
-    family_type = prioritization_information_dict["family-type"]
-    cadd_identifier = prioritization_information_dict["cadd-identifier"]
-    duplication_identifier = prioritization_information_dict["duplication-identifier"]
-    repeat_identifier = prioritization_information_dict["repeat-identifier"]
+    family_type = family_type
+    cadd_identifier = "CADD_PHRED"
+    duplication_identifier = "segmentDuplication"
+    repeat_identifier = "simpleRepeat"
     print(family)
 
     variant_data[["HPO_RELATEDNESS", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist)), axis=1)
@@ -150,8 +146,10 @@ def prioritize_variants(in_file, out_file, filtered_out_file, prioritization_inf
                 check_compound(group, affected_child, parent_1, parent_2)
 
     variant_data = pd.concat(variant_data_grouped)
-    variant_data.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
-    variant_data[variant_data["FILTER_PASSED"] == 1].to_csv(filtered_out_file, sep="\t", encoding="utf-8", index=False)
+    #variant_data.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
+    #variant_data[variant_data["FILTER_PASSED"] == 1].to_csv(filtered_out_file, sep="\t", encoding="utf-8", index=False)
+
+    return variant_data
 
 
 def compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist):
@@ -173,7 +171,10 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, g
             processed_HPO_genes[gene_id] = g_dist
     hpo_relatedness = str(max(gene_distances))
 
-    final_score = str((float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2)
+    if float(variant["AIDIVA_SCORE"] != -1.0):
+        final_score = str((float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2)
+    else:
+        final_score = float(variant["AIDIVA_SCORE"])
 
     return [hpo_relatedness, final_score]
 
@@ -190,7 +191,7 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
 
     try:
         #maf = max(float(variant["AA_AF"]), float(variant["AFR_AF"]), float(variant["AMR_AF"]), float(variant["EA_AF"]), float(variant["EAS_AF"]), float(variant["EUR_AF"]), float(variant["SAS_AF"]), float(variant["gnomAD_AFR_AF"]), float(variant["gnomAD_AMR_AF"]), float(variant["gnomAD_ASJ_AF"]), float(variant["gnomAD_EAS_AF"]), float(variant["gnomAD_FIN_AF"]), float(variant["gnomAD_NFE_AF"]), float(variant["gnomAD_OTH_AF"]), float(variant["gnomAD_SAS_AF"]))
-        maf = variant["MaxAF"]
+        maf = variant["MAX_AF"]
     except Exception as e:
         print("Allele frequency could not be identified, use 0.0 instead")
         maf = 0.0
@@ -199,7 +200,7 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
 
     ## TODO: do we need a check for affected family members?
     dominant_inherited = check_dominant(variant, family)
-    if variant["CHROM"] == "X" or variant["CHROM"] == "x" or variant["CHROM"] == "23":
+    if (variant["CHROM"] == "X") | (variant["CHROM"] == "x") | (variant["CHROM"] == "23"):
         xlinked = check_xlinked(variant, family)
     else:
         xlinked = 0
@@ -212,17 +213,17 @@ def check_inheritance_and_filters(variant, genes2exclude, HPO_list, family, fami
                 filter_passed = 0 # gene in exclusion list
                 return [recessive, dominant_denovo, dominant_inherited, xlinked, filter_passed]
 
-    if tandem != "NA" and tandem != "" and tandem != "nan":
+    if (tandem != "NA") & (tandem != "") & (tandem != "nan"):
         filter_passed = 0 # tandem repeat
         return [recessive, dominant_denovo, dominant_inherited, xlinked, filter_passed]
 
     ## TODO: filter later compound only less than 0.01
-    if maf <= 0.02:
-        if ("exonic" in found_consequences or "splicing" in found_consequences or "exonic;splicing" in found_consequences):
-            if not "synonymous_variant" in consequences.split("&") and "unknown" != consequences and "UNKNOWN" != consequences:
+    if float(maf) <= 0.02:
+        if (("exonic" in found_consequences) | ("splicing" in found_consequences) | ("exonic;splicing" in found_consequences)):
+            if not (("synonymous_variant" in consequences.split("&")) & ("unknown" != consequences) & ("UNKNOWN" != consequences)):
                 if (seg_dup == 0):
                     filter_passed = 1
-                    if len(HPO_list) > 1 and "NONE" not in HPO_list:
+                    if (len(HPO_list) > 1) & ("NONE" not in HPO_list):
                         if float(variant["HPO_RELATEDNESS"]) > 0:
                             filter_passed = 1
                         else:
@@ -246,7 +247,7 @@ def check_compound(gene_variants, affected_child, parent_1, parent_2):
     if num_variant_candidates >= 2:
         candidate_indices = [x for x in combinations(gene_variants.index.tolist(), 2)]
         for index_pair in candidate_indices:
-            if ((gene_variants.loc[index_pair[0], parent_1] == "0/0" and gene_variants.loc[index_pair[0], parent_2] == "0/1" and gene_variants.loc[index_pair[0], affected_child] == "0/1") and (gene_variants.loc[index_pair[1], parent_1] == "0/1" and gene_variants.loc[index_pair[1], parent_2] == "0/0" and gene_variants.loc[index_pair[1], affected_child] == "0/1")) or ((gene_variants.loc[index_pair[0], parent_1] == "0/1" and gene_variants.loc[index_pair[0], parent_2] == "0/0" and gene_variants.loc[index_pair[0], affected_child] == "0/1") and (gene_variants.loc[index_pair[1], parent_1] == "0/0" and gene_variants.loc[index_pair[1], parent_2] == "0/1" and gene_variants.loc[index_pair[1], affected_child] == "0/1")):
+            if (((gene_variants.loc[index_pair[0], parent_1] == "0/0") & (gene_variants.loc[index_pair[0], parent_2] == "0/1") & (gene_variants.loc[index_pair[0], affected_child] == "0/1")) & ((gene_variants.loc[index_pair[1], parent_1] == "0/1") & (gene_variants.loc[index_pair[1], parent_2] == "0/0") & (gene_variants.loc[index_pair[1], affected_child] == "0/1"))) | (((gene_variants.loc[index_pair[0], parent_1] == "0/1") & (gene_variants.loc[index_pair[0], parent_2] == "0/0") & (gene_variants.loc[index_pair[0], affected_child] == "0/1")) & ((gene_variants.loc[index_pair[1], parent_1] == "0/0") & (gene_variants.loc[index_pair[1], parent_2] == "0/1") & (gene_variants.loc[index_pair[1], affected_child] == "0/1"))):
                 gene_variants.loc[index_pair[0], "COMPOUND"] = 1
                 gene_variants.loc[index_pair[1], "COMPOUND"] = 1
 
@@ -743,14 +744,15 @@ def check_xlinked(variant, family):
 
 
 if __name__=="__main__":
+    import get_HPO_similarity_score as gs
+
     parser = argparse.ArgumentParser(description = "Filter variants and finalize the AIDIVA_SCORE based on the given HPO terms (if this information is present)")
     parser.add_argument("--in_file", type=str, dest="in_file", required=True, help="Tab separated input annotated and scored file [required]")
-    parser.add_argument("--out_file", type=str, dest="out_file", required=True, help="Tab separated output file with all variants [required]")
-    parser.add_argument("--filtered_out_file", type=str, dest="filtered_out_file", required=True, help="Tab separated output file that only contains the variants that passed the filtering [required]")
     parser.add_argument("--family", type=str, dest="family", required=True, help="Tab separated list of samples annotated with affection status. [required]")
     parser.add_argument("--family_type", type=str, choices=["TRIO", "FAMILY", "SINGLE"], dest="family_type", required=True, help="Choose if the data you provide is a trio or a larger family [required]")
     parser.add_argument("--gene_exclusion_list", type=str, dest="gene_exclusion_list", required=False, help="List of genes that should be excluded in the prioritization")
-    parser.add_argument("--HPO_list", type=str, dest="hpo_list", default=None, required=False, help="List of HPO terms that are observed in the patient. These terms are used to adjust the AIDIVA_SCORE\n")
+    parser.add_argument("--hpo_list", type=str, dest="hpo_list", default=None, required=False, help="List of HPO terms that are observed in the patient. These terms are used to adjust the AIDIVA_SCORE\n")
+    parser.add_argument("--hpo_resources", type=str, dest="hpo_resources", default="../../data/", required=True, help="Folder where the HPO resources (HPO_graph,...) are found\n")
     args = parser.parse_args()
 
-    prioritize_variants(args.in_file, args.out_file, args.filtered_out_file, args.family, args.family_type, args.hpo_list, args.gene_exclusion_list)
+    prioritized_variants = prioritize_variants(args.in_file, args.family, args.family_type, args.hpo_resources, args.hpo_list, args.gene_exclusion_list)

@@ -68,7 +68,7 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     vcf_header = header_line.strip().split("\t")
 
     vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment="#", low_memory=False)
-    print(vcf_as_dataframe)
+    #print(vcf_as_dataframe)
 
     vcf_file_to_reformat.close()
     tmp.close()
@@ -95,7 +95,7 @@ def extract_columns(cell):
     rank = ""
     indel_ID = ""
 
-    print(str(cell).strip().split(";"))
+    #print(str(cell).strip().split(";"))
 
     for field in info_fields:
         if field == "nan":
@@ -173,9 +173,9 @@ def add_INFO_fields_to_dataframe(vcf_as_dataframe):
 
 def add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header):
 
-    print(vcf_as_dataframe)
-    print(annotation_header)
-    print(vcf_as_dataframe.CSQ)
+    #print(vcf_as_dataframe)
+    #print(annotation_header)
+    #print(vcf_as_dataframe.CSQ)
 
     vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
@@ -210,15 +210,15 @@ def add_simple_repeat_annotation(row, grouped_expanded_vcf):
 
 
 def combine_vcf_dataframes(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list):
-    print("Feature-list:", feature_list)
+    #print("Feature-list:", feature_list)
     for feature in feature_list:
         if (feature == "MaxAF") | (feature == "MAX_AF"):
             continue
         if "SIFT" in feature:
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
         else:
-            print("Feature:", feature)
-            print(expanded_vcf_as_dataframe.columns)
+            #print("Feature:", feature)
+            #print(expanded_vcf_as_dataframe.columns)
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("indel_ID")
@@ -263,7 +263,7 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data)
-    print("expanded")
+    #print("expanded")
     expanded_vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data_expanded)
 
     feature_list = args.feature_list.split(",")

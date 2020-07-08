@@ -54,7 +54,9 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = vep_command + "-i " + input_vcf_file + " "
     vep_command = vep_command + "-o " + output_vcf_file + " "
     vep_command = vep_command + "--fork " + str(vep_annotation_dict["num-threads"]) + " "
-    vep_command = vep_command + "--vcf"
+    vep_command = vep_command + "--vcf" + " "
+    vep_command = vep_command + "--no_stats" + " "
+    vep_command = vep_command + "--force_overwrite"
 
     subprocess.run(vep_command, shell=True, check=True)
     print("The annotated VCF is saved as %s" % (output_vcf_file))

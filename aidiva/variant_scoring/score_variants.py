@@ -66,7 +66,8 @@ def prepare_input_data(input_data, allele_frequency_list, feature_list):
         input_data[allele_frequency] = input_data[allele_frequency].apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row).split("&")], default=np.nan)))
 
     # compute maximum Minor Allele Frequency (MAF)
-    input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
+    if (not "MAX_AF" in input_data.columns) & (not "MaxAF" in input_data.columns):
+        input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
 
     for feature in feature_list:
         if feature == "MaxAF" or feature == "MAX_AF":
@@ -95,10 +96,10 @@ def prepare_input_data(input_data, allele_frequency_list, feature_list):
 
 
 def predict_pathogenicity(rf_model_snps, rf_model_indel, input_data_snps, input_features_snps, input_data_indel, input_features_indel):
-    class_prediction_snps = rf_model_snps.predict(input_features_snps)
+    #class_prediction_snps = rf_model_snps.predict(input_features_snps)
     score_prediction_snps = pd.DataFrame(rf_model_snps.predict_proba(input_features_snps), columns=["Probability_Benign", "Probability_Pathogenic"])
 
-    class_prediction_indel = rf_model_indel.predict(input_features_indel)
+    #class_prediction_indel = rf_model_indel.predict(input_features_indel)
     score_prediction_indel = pd.DataFrame(rf_model_indel.predict_proba(input_features_indel), columns=["Probability_Benign", "Probability_Pathogenic"])
 
     input_data_snps["AIDIVA_SCORE"] = score_prediction_snps["Probability_Pathogenic"]
@@ -111,6 +112,7 @@ def check_coding(coding_regions, variant_to_check):
     coding = 0
 
     if not coding_regions[(coding_regions.CHROM.str.match(str(variant_to_check["CHROM"]))) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))].empty:
+    #if coding_regions[(coding_regions.CHROM.str.match(str(variant_to_check["CHROM"]))) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))]:
         coding = 1
 
     return coding
@@ -123,7 +125,7 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
     rf_model_snps = import_model(rf_model_snps)
     rf_model_indel = import_model(rf_model_indel)
 
-    ## TODO: Filter variants, only coding variants should be scored
+    # filter variants, only coding variants should be scored
     input_data_snps["CODING"] = input_data_snps.apply(lambda row: check_coding(coding_regions, row), axis=1)
     input_data_indel["CODING"] = input_data_indel.apply(lambda row: check_coding(coding_regions, row), axis=1)
 
@@ -137,39 +139,45 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
     # the models are only for coding variants
     predicted_data_snps.loc[(predicted_data_snps.CODING == 0), "AIDIVA_SCORE"] = -1
     predicted_data_indel.loc[(predicted_data_indel.CODING == 0), "AIDIVA_SCORE"] = -1
+    predicted_data_snps.loc[(predicted_data_snps.CHROM == "Y") | (predicted_data_snps.CHROM == "MT")] = -1
+    predicted_data_indel.loc[(predicted_data_indel.CHROM == "Y") | (predicted_data_indel.CHROM == "MT")] = -1
 
-    # TODO set splicing donor/acceptor variants to 1.0
+    # set splicing donor/acceptor variants to 1.0
     predicted_data_snps.loc[(predicted_data_snps.Consequence.str.contains("splice_acceptor_variant") | predicted_data_snps.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0
     predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("splice_acceptor_variant") | predicted_data_indel.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0
 
-    ## TODO: set synonymous variants to 0.0
+    # set synonymous variants to 0.0
     predicted_data_snps.loc[(predicted_data_snps.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0
     predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0
 
+    # combine snps and indel data
+    predicted_data_complete = pd.concat([predicted_data_snps, predicted_data_indel], sort=False)
+    predicted_data_complete.sort_values(["CHROM", "POS"], ascending=[True, True])
+    predicted_data_complete.reset_index(inplace=True, drop=True)
 
-    return predicted_data_snps, predicted_data_indel
+
+    return predicted_data_complete
 
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--in_data_snps", type=str, dest="in_data_snps", metavar="in.csv", required=True, help="CSV file containing the training data, used to train the random forest model\n")
+    parser.add_argument("--in_data_snp", type=str, dest="in_data_snp", metavar="in.csv", required=True, help="CSV file containing the training data, used to train the random forest model\n")
     parser.add_argument("--in_data_indel", type=str, dest="in_data_indel", metavar="in.csv", required=True, help="CSV file containing the training data, used to train the random forest model\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="out.csv", required=True, help="CSV file containing the test data, used to compute the model statistics\n")
-    parser.add_argument("--model_snps", type=str, dest="model_snps", metavar="model_snps.pkl", required=True, help="Specifies the name of the trained snps model to import\n")
+    parser.add_argument("--model_snp", type=str, dest="model_snp", metavar="model_snps.pkl", required=True, help="Specifies the name of the trained snps model to import\n")
     parser.add_argument("--model_indel", type=str, dest="model_indel", metavar="model_indel.pkl", required=True, help="Specifies the name of the trained indel model to import\n")
     parser.add_argument("--allele_frequency_list", type=str, dest="allele_frequency_list", metavar="frequency1,frequecy2,frequency3", required=False, help="Comma separated list of the allele frequency sources that should be used as basis to get the maximum allele frequency\n")
     parser.add_argument("--feature_list", type=str, dest="feature_list", metavar="feature1,feature2,feature3", required=True, help="Comma separated list of the features used to train the model\n")
-    args = parser.parse_args()
     parser.add_argument("--coding_regions", type=str, dest="coding_regions", metavar="coding_regions.bed", required=True, help="Bed file containing the coding regions of the reference assembly\n")
     args = parser.parse_args()
 
-    rf_model_snps = import_model(args.model_snps)
-    rf_model_indel = import_model(args.model_indel)
-
-    input_data_snps = read_input_data(args.in_data_snps)
+    input_data_snps = read_input_data(args.in_data_snp)
     input_data_indel = read_input_data(args.in_data_indel)
 
-    allele_frequency_list = args.allele_frequency_list.split(",")
+    if args.allele_frequency_list:
+        allele_frequency_list = args.allele_frequency_list.split(",")
+    else:
+        allele_frequency_list = []
     feature_list = args.feature_list.split(",")
 
     coding_regions = pd.read_csv(args.coding_regions, sep="\t", names=["CHROM", "START", "END"], low_memory=False)
@@ -181,14 +189,9 @@ if __name__=="__main__":
     #input_data_snps = input_data[(input_data["REF"].apply(len) == 1) & (input_data["ALT"].apply(len) == 1)]
     #input_data_indel = input_data[(input_data["REF"].apply(len) > 1) | (input_data["ALT"].apply(len) > 1)]
 
-    #TODO add indel handling call functions from other script to expand and then call vep and afterwards combine
+    #prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps, allele_frequency_list, feature_list)
+    #prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel, allele_frequency_list, feature_list)
 
-    prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps, allele_frequency_list, feature_list)
-    prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel, allele_frequency_list, feature_list)
+    predicted_data = perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, args.model_snp, args.model_indel, allele_frequency_list, feature_list, coding_regions)
 
-    predicted_data_snps, predicted_data_indel = predict_rank(rf_model_snps, rf_model_indel, prepared_input_data_snps, input_features_snps, prepared_input_data_indel, input_features_indel)
-
-    predicted_data_combined = pd.concat([predicted_data_snps, predicted_data_indel], sort=False)
-    predicted_data_combined.sort_values(["CHROM", "POS"], ascending=[True, True])
-
-    predicted_data_combined.to_csv(args.out_data, index=False, sep="\t", na_rep="NA")
+    predicted_data.to_csv(args.out_data, index=False, sep="\t", na_rep="NA")

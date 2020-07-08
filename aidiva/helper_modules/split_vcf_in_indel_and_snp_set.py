@@ -63,11 +63,13 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
     tmp.close()
 
 
-if __name__=="__main__":
-    parser = argparse.ArgumentParser("Script to generate the HPO resources needed in the prioritization step of AIdiva")
-    parser.add_argument("--in_file", type=str, dest="in_file", metavar="input.csv", required=True, help="Input file\n")
-    parser.add_argument("--snp_file", type=str, dest="snp_file", metavar="snps.csv", required=True, help="File to save the SNP variants\n")
-    parser.add_argument("--indel_file", type=str, dest="indel_file", metavar="indels.csv", required=True, help="File to save the InDel variants\n")
+if __name__== "__main__":
+    parser = argparse.ArgumentParser("Script to split the input VCF in a SNP and a InDel set")
+    parser.add_argument("--in_file", type=str, dest="in_file", metavar="input.vcf", required=True, help="Input file\n")
+    parser.add_argument("--snp_file", type=str, dest="snp_file", metavar="snps.vcf", required=True, help="File to save the SNP variants\n")
+    parser.add_argument("--indel_file", type=str, dest="indel_file", metavar="indels.vcf", required=True, help="File to save the InDel variants\n")
     args = parser.parse_args()
+    t = vars(args)
+    print(t)
 
     split_vcf_file_in_indel_and_snps_set(args.in_file, args.snp_file, args.indel_file)
