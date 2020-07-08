@@ -748,6 +748,7 @@ if __name__=="__main__":
 
     parser = argparse.ArgumentParser(description = "Filter variants and finalize the AIDIVA_SCORE based on the given HPO terms (if this information is present)")
     parser.add_argument("--in_file", type=str, dest="in_file", required=True, help="Tab separated input annotated and scored file [required]")
+    parser.add_argument("--out_filename", type=str, dest="out_filename", required=True, help="Name to save the results [required]")
     parser.add_argument("--family", type=str, dest="family", required=True, help="Tab separated list of samples annotated with affection status. [required]")
     parser.add_argument("--family_type", type=str, choices=["TRIO", "FAMILY", "SINGLE"], dest="family_type", required=True, help="Choose if the data you provide is a trio or a larger family [required]")
     parser.add_argument("--gene_exclusion_list", type=str, dest="gene_exclusion_list", required=False, help="List of genes that should be excluded in the prioritization")
@@ -755,4 +756,7 @@ if __name__=="__main__":
     parser.add_argument("--hpo_resources", type=str, dest="hpo_resources", default="../../data/", required=True, help="Folder where the HPO resources (HPO_graph,...) are found\n")
     args = parser.parse_args()
 
-    prioritized_variants = prioritize_variants(args.in_file, args.family, args.family_type, args.hpo_resources, args.hpo_list, args.gene_exclusion_list)
+    input_data = pd.read_csv(args.in_file, sep="\t", low_memory=False)
+
+    prioritized_variants = prioritize_variants(input_data, args.family, args.family_type, args.hpo_resources, args.hpo_list, args.gene_exclusion_list)
+    prioritized_variants.to_csv(args.out_filename, sep="\t", index=False)

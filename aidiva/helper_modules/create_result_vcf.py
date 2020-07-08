@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import argparse
 
 
 def write_header(out_file):
@@ -45,3 +46,13 @@ def write_result_vcf(input_data, vcf_file):
             info_entry = "AIDIVA_SCORE=" + str(row.AIDIVA_SCORE) + ";AIDIVA_SCORE_FINAL=" + str(row.FINAL_AIDIVA_SCORE) + ";AIDIVA_DOMINANT=" + str(row.DOMINANT_INHERITED) + ";AIDIVA_DENOVO=" + str(row.DOMINANT_DENOVO) + ";AIDIVA_RECESSIVE=" + str(row.RECESSIVE) + ";AIDIVA_XLINKED=" + str(row.XLINKED) + ";AIDIVA_COMPOUND=" + str(row.COMPOUND) + ";AIDIVA_HPO_RELATEDNESS=" + str(row.HPO_RELATEDNESS) + ";AIDIVA_FILTER=" + str(row.FILTER_PASSED)
 
             out.write(str(row.CHROM).strip() + "\t" + str(row.POS) + "\t" + "." + "\t" + str(row.REF) + "\t" + str(row.ALT) + "\t" + "." + "\t" + "." + "\t" + info_entry + "\n")
+
+
+if __name__=="__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--in", type=str, dest="in_data", metavar="in.csv", required=True, help="CSV file with the results from the AIdiva run that should be converted to a VCF file\n")
+    parser.add_argument("--out", type=str, dest="out_data", metavar="out.vcf", required=True, help="VCF file witht the results of the AIdiva run\n")
+    args = parser.parse_args()
+
+    in_data = pd.read_csv(args.in_data, sep="\t", low_memory=False)
+    write_result_vcf(in_data, args.out_data)

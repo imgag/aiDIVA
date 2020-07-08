@@ -19,6 +19,13 @@ import yaml
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "AIdiva -- Augmented Intelligence Disease Variant Analysis")
+    parser.add_argument("--snp_vcf", type=str, dest="snp_vcf", metavar="snp.vcf", required=True, help="VCF file with the annotated SNP variants [required]")
+    parser.add_argument("--indel_vcf", type=str, dest="indel_vcf", metavar="indel.vcf", required=True, help="VCF file with the annotated (only basic annotation) InDel variants [required]")
+    parser.add_argument("--expanded_indel_vcf", type=str, dest="expanded_indel_vcf", metavar="expanded_indel.vcf", required=True, help="VCF file with the annotated expanded InDel variants [required]")
+    parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="results", required=True, help="Prefix that is used to save the results [required]")
+    parser.add_argument("--workdir", type=str, dest="workdir", metavar="workdir/", required=True, help="Path to the working directory (here all results are saved) [required]")
+    parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=True, help="TXT file containing the HPO terms reported for the current patient [required]")
+    parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=True, help="TXT file showing the family relation of the current patient [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
     args = parser.parse_args()
 
@@ -27,7 +34,8 @@ if __name__=="__main__":
     configuration = yaml.full_load(config_file)
     config_file.close()
 
-    working_directory = configuration["Analysis-Input"]["work-dir"]
+    #working_directory = configuration["Analysis-Input"]["work-dir"]
+    working_directory = args.workdir
 
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
@@ -35,9 +43,12 @@ if __name__=="__main__":
     ref_path = configuration["Analysis-Input"]["ref-path"]
 
     # parse input files
-    snp_vcf = configuration["Analysis-Input"]["vcf-snp"]
-    indel_vcf = configuration["Analysis-Input"]["vcf-indel"]
-    expanded_indel_vcf = configuration["Analysis-Input"]["vcf-expanded-indel"]
+    #snp_vcf = configuration["Analysis-Input"]["vcf-snp"]
+    snp_vcf = args.snp_vcf
+    #indel_vcf = configuration["Analysis-Input"]["vcf-indel"]
+    indel_vcf = args.indel_vcf
+    #expanded_indel_vcf = configuration["Analysis-Input"]["vcf-expanded-indel"]
+    expanded_indel_vcf = args.expanded_indel_vcf
 
     # get machine learning models
     scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
@@ -45,13 +56,16 @@ if __name__=="__main__":
     coding_region_file = configuration["Analysis-Input"]["coding-region"]
 
     # parse output files
-    output_filename = configuration["Analysis-Output"]["out-filename"]
+    #output_filename = configuration["Analysis-Output"]["out-filename"]
+    output_filename = args.out_prefix
 
     # parse disease and inheritance information
-    hpo_file = configuration["Analysis-Input"]["prioritization-information"]["hpo-list"]
+    #hpo_file = configuration["Analysis-Input"]["prioritization-information"]["hpo-list"]
+    hpo_file = args.hpo_list
     gene_exclusion_file = configuration["Analysis-Input"]["prioritization-information"]["gene-exclusion"]
     family_type = configuration["Analysis-Input"]["prioritization-information"]["family-type"]
-    family_file = configuration["Analysis-Input"]["prioritization-information"]["family-file"]
+    #family_file = configuration["Analysis-Input"]["prioritization-information"]["family-file"]
+    family_file = args.family_file
 
     hpo_resources_folder = configuration["Internal-Parameters"]["hpo-resources"]
 

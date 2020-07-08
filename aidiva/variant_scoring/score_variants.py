@@ -164,14 +164,14 @@ if __name__=="__main__":
     parser.add_argument("--in_data_snp", type=str, dest="in_data_snp", metavar="in.csv", required=True, help="CSV file containing the training data, used to train the random forest model\n")
     parser.add_argument("--in_data_indel", type=str, dest="in_data_indel", metavar="in.csv", required=True, help="CSV file containing the training data, used to train the random forest model\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="out.csv", required=True, help="CSV file containing the test data, used to compute the model statistics\n")
-    parser.add_argument("--model_snp", type=str, dest="model_snp", metavar="model_snps.pkl", required=True, help="Specifies the name of the trained snps model to import\n")
+    parser.add_argument("--model_snp", type=str, dest="model_snp", metavar="model_snp.pkl", required=True, help="Specifies the name of the trained snp model to import\n")
     parser.add_argument("--model_indel", type=str, dest="model_indel", metavar="model_indel.pkl", required=True, help="Specifies the name of the trained indel model to import\n")
-    parser.add_argument("--allele_frequency_list", type=str, dest="allele_frequency_list", metavar="frequency1,frequecy2,frequency3", required=False, help="Comma separated list of the allele frequency sources that should be used as basis to get the maximum allele frequency\n")
+    parser.add_argument("--allele_frequency_list", type=str, dest="allele_frequency_list", metavar="frequency1,frequecy2,frequency3", required=False, help="Comma separated list of allele frequency sources that should be used as basis to get the maximum allele frequency\n")
     parser.add_argument("--feature_list", type=str, dest="feature_list", metavar="feature1,feature2,feature3", required=True, help="Comma separated list of the features used to train the model\n")
-    parser.add_argument("--coding_regions", type=str, dest="coding_regions", metavar="coding_regions.bed", required=True, help="Bed file containing the coding regions of the reference assembly\n")
+    parser.add_argument("--coding_region", type=str, dest="coding_region", metavar="coding_regions.bed", required=True, help="Bed file containing the coding region of the reference assembly\n")
     args = parser.parse_args()
 
-    input_data_snps = read_input_data(args.in_data_snp)
+    input_data_snp = read_input_data(args.in_data_snp)
     input_data_indel = read_input_data(args.in_data_indel)
 
     if args.allele_frequency_list:
@@ -180,7 +180,7 @@ if __name__=="__main__":
         allele_frequency_list = []
     feature_list = args.feature_list.split(",")
 
-    coding_regions = pd.read_csv(args.coding_regions, sep="\t", names=["CHROM", "START", "END"], low_memory=False)
+    coding_region = pd.read_csv(args.coding_region, sep="\t", names=["CHROM", "START", "END"], low_memory=False)
 
     # if multiple alleles are reported consider only the first one
     # TODO decide how to handle allele ambiguity
@@ -189,9 +189,6 @@ if __name__=="__main__":
     #input_data_snps = input_data[(input_data["REF"].apply(len) == 1) & (input_data["ALT"].apply(len) == 1)]
     #input_data_indel = input_data[(input_data["REF"].apply(len) > 1) | (input_data["ALT"].apply(len) > 1)]
 
-    #prepared_input_data_snps, input_features_snps = prepare_input_data(input_data_snps, allele_frequency_list, feature_list)
-    #prepared_input_data_indel, input_features_indel = prepare_input_data(input_data_indel, allele_frequency_list, feature_list)
-
-    predicted_data = perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, args.model_snp, args.model_indel, allele_frequency_list, feature_list, coding_regions)
+    predicted_data = perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, args.model_snp, args.model_indel, allele_frequency_list, feature_list, coding_region)
 
     predicted_data.to_csv(args.out_data, index=False, sep="\t", na_rep="NA")
