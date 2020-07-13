@@ -80,7 +80,7 @@ if __name__=="__main__":
     #expanded_indel_vcf_file = os.path.splitext(expanded_indel_vcf)[0]
     #expanded_indel_vcf_filename = os.path.basename(expanded_indel_vcf_file)
 
-
+    ## TODO: Combine  the annotated VCF files to only have one single input file
     input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False)
     input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True)
     input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True)
