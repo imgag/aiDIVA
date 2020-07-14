@@ -146,7 +146,7 @@ def prioritize_variants(variant_data, family_file, family_type, hpo_resources_fo
                 check_compound(group, affected_child, parent_1, parent_2)
 
     variant_data = pd.concat(variant_data_grouped)
-    variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False])
+    variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False], inplace=True)
     variant_data.reset_index(inplace=True, drop=True)
     #variant_data.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
     #variant_data[variant_data["FILTER_PASSED"] == 1].to_csv(filtered_out_file, sep="\t", encoding="utf-8", index=False)

@@ -39,6 +39,9 @@ def write_header(out_file):
     out_file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
 
 def write_result_vcf(input_data, vcf_file):
+    input_data.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
+    input_data.reset_index(inplace=True, drop=True)
+
     with open(vcf_file, "w") as out:
         write_header(out)
 

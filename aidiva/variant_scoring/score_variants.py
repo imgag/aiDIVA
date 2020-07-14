@@ -111,7 +111,7 @@ def predict_pathogenicity(rf_model_snps, rf_model_indel, input_data_snps, input_
 def check_coding(coding_regions, variant_to_check):
     coding = 0
 
-    if not coding_regions[(coding_regions.CHROM == str(variant_to_check["CHROM"]))) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))].empty:
+    if not coding_regions[(coding_regions.CHROM == str(variant_to_check["CHROM"])) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))].empty:
     #if coding_regions[(coding_regions.CHROM.str.match(str(variant_to_check["CHROM"]))) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))]:
         coding = 1
 
@@ -152,7 +152,7 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
 
     # combine snps and indel data
     predicted_data_complete = pd.concat([predicted_data_snps, predicted_data_indel], sort=False)
-    predicted_data_complete.sort_values(["CHROM", "POS"], ascending=[True, True])
+    predicted_data_complete.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
     predicted_data_complete.reset_index(inplace=True, drop=True)
 
 
