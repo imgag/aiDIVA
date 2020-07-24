@@ -2,9 +2,6 @@ import pandas as pd
 import numpy as np
 import tempfile
 import argparse
-from itertools import takewhile
-from operator import itemgetter
-
 
 
 def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel):

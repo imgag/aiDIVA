@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import tempfile
 import argparse
-from itertools import takewhile
 from operator import itemgetter
 
 
@@ -196,11 +195,40 @@ def extract_sample_information(row, sample):
         for i in range(num_missing_entries):
             sample_fields.append(".")
 
-    sample_gt_information = sample_fields[sample_header.index("GT")]
-    sample_dp_information = sample_fields[sample_header.index("DP")]
-    sample_ref_information = sample_fields[sample_header.index("AD")].split(",")[0]
-    sample_alt_information = sample_fields[sample_header.index("AD")].split(",")[1]
-    sample_gq_information = sample_fields[sample_header.index("GQ")]
+    if len(sample_header) != len(sample_fields):
+        num_missing_entries = abs(len(sample_header) - len(sample_fields))
+        for i in range(num_missing_entries):
+            sample_fields.append(".")
+    if "GT" in sample_header:
+        sample_gt_information = sample_fields[sample_header.index("GT")]
+    else:
+        sample_gt_information = "./."
+
+    if "DP" in sample_header:
+        sample_dp_information = sample_fields[sample_header.index("DP")]
+    else:
+        sample_dp_information = "."
+
+    if "AD" in sample_header:
+        sample_ref_information = sample_fields[sample_header.index("AD")].split(",")[0]
+        sample_alt_information = sample_fields[sample_header.index("AD")].split(",")[1]
+    else:
+        sample_ref_information = "."
+        sample_alt_information = "."
+
+    if "GQ" in sample_header:
+        sample_gq_information = sample_fields[sample_header.index("GQ")]
+    else:
+        sample_gq_information = "."
+
+    if sample_ref_information != "." and sample_alt_information != ".":
+        divisor = (int(sample_ref_information) + int(sample_alt_information))
+        if divisor == 0:
+            sample_af_information = 0
+        else:
+            sample_af_information = (int(sample_alt_information) / divisor)
+    else:
+        sample_af_information = "."
 
     if sample_ref_information != "." and sample_alt_information != ".":
         divisor = (int(sample_ref_information) + int(sample_alt_information))

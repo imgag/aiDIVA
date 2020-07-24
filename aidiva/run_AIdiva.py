@@ -1,6 +1,5 @@
 import argparse
 import os
-import ntpath
 import pandas as pd
 import tempfile
 import helper_modules.combine_expanded_indels_and_create_csv as combine_expanded_indels
@@ -24,8 +23,8 @@ if __name__=="__main__":
     parser.add_argument("--expanded_indel_vcf", type=str, dest="expanded_indel_vcf", metavar="expanded_indel.vcf", required=True, help="VCF file with the annotated expanded InDel variants [required]")
     parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="results", required=True, help="Prefix that is used to save the results [required]")
     parser.add_argument("--workdir", type=str, dest="workdir", metavar="workdir/", required=True, help="Path to the working directory (here all results are saved) [required]")
-    parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=True, help="TXT file containing the HPO terms reported for the current patient [required]")
-    parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=True, help="TXT file showing the family relation of the current patient [required]")
+    parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient [required]")
+    parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
     args = parser.parse_args()
 
@@ -61,11 +60,18 @@ if __name__=="__main__":
 
     # parse disease and inheritance information
     #hpo_file = configuration["Analysis-Input"]["prioritization-information"]["hpo-list"]
-    hpo_file = args.hpo_list
+    if "hpo_list" in args:
+        hpo_file = args.hpo_list
+    else:
+        hpo_file = None
     gene_exclusion_file = configuration["Analysis-Input"]["prioritization-information"]["gene-exclusion"]
+
     family_type = configuration["Analysis-Input"]["prioritization-information"]["family-type"]
     #family_file = configuration["Analysis-Input"]["prioritization-information"]["family-file"]
-    family_file = args.family_file
+    if "family_file" in args:
+        family_file = args.family_file
+    else:
+        family_file = None
 
     hpo_resources_folder = configuration["Internal-Parameters"]["hpo-resources"]
 
@@ -94,9 +100,10 @@ if __name__=="__main__":
 
     # prioritize and filter variants
     print("Filter variants and finalize score ...")
-    prioritized_data = prio.prioritize_variants(predicted_data, family_file, family_type, hpo_resources_folder, hpo_file, gene_exclusion_file)
+    prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, family_file, family_type, hpo_file, gene_exclusion_file)
 
     write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"))
     prioritized_data.to_csv(str(working_directory + output_filename + ".csv"), sep="\t", index=False)
+    print(prioritized_data)
     prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_passed_filters.csv"), sep="\t", index=False)
     print("Pipeline successfully finsished!")

@@ -45,9 +45,12 @@ def write_result_vcf(input_data, vcf_file):
     with open(vcf_file, "w") as out:
         write_header(out)
 
+        inheritance_information = ("DOMINANT_DENOVO" in input_data.columns) & ("DOMINANT_INHERITED" in input_data.columns) & ("RECESSIVE" in input_data.columns) & ("XLINKED" in input_data.columns) & ("COMPOUND" in input_data.columns)
         for row in input_data.itertuples():
-            info_entry = "AIDIVA_SCORE=" + str(row.AIDIVA_SCORE) + ";AIDIVA_SCORE_FINAL=" + str(row.FINAL_AIDIVA_SCORE) + ";AIDIVA_DOMINANT=" + str(row.DOMINANT_INHERITED) + ";AIDIVA_DENOVO=" + str(row.DOMINANT_DENOVO) + ";AIDIVA_RECESSIVE=" + str(row.RECESSIVE) + ";AIDIVA_XLINKED=" + str(row.XLINKED) + ";AIDIVA_COMPOUND=" + str(row.COMPOUND) + ";AIDIVA_HPO_RELATEDNESS=" + str(row.HPO_RELATEDNESS) + ";AIDIVA_FILTER=" + str(row.FILTER_PASSED)
-
+            if inheritance_information:
+                info_entry = "AIDIVA_SCORE=" + str(row.AIDIVA_SCORE) + ";AIDIVA_SCORE_FINAL=" + str(row.FINAL_AIDIVA_SCORE) + ";AIDIVA_DOMINANT=" + str(row.DOMINANT_INHERITED) + ";AIDIVA_DENOVO=" + str(row.DOMINANT_DENOVO) + ";AIDIVA_RECESSIVE=" + str(row.RECESSIVE) + ";AIDIVA_XLINKED=" + str(row.XLINKED) + ";AIDIVA_COMPOUND=" + str(row.COMPOUND) + ";AIDIVA_HPO_RELATEDNESS=" + str(row.HPO_RELATEDNESS) + ";AIDIVA_FILTER=" + str(row.FILTER_PASSED)
+            else:
+                info_entry = "AIDIVA_SCORE=" + str(row.AIDIVA_SCORE) + ";AIDIVA_SCORE_FINAL=" + str(row.FINAL_AIDIVA_SCORE) + ";AIDIVA_HPO_RELATEDNESS=" + str(row.HPO_RELATEDNESS) + ";AIDIVA_FILTER=" + str(row.FILTER_PASSED)
             out.write(str(row.CHROM).strip() + "\t" + str(row.POS) + "\t" + "." + "\t" + str(row.REF) + "\t" + str(row.ALT) + "\t" + "." + "\t" + "." + "\t" + info_entry + "\n")
 
 
