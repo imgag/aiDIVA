@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import tempfile
 import argparse
-from itertools import takewhile
 from operator import itemgetter
 
 
@@ -68,6 +67,7 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     vcf_header = header_line.strip().split("\t")
 
     vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment="#", low_memory=False)
+    #print(vcf_as_dataframe)
 
     vcf_file_to_reformat.close()
     tmp.close()
@@ -85,42 +85,37 @@ def extract_annotation_header(header):
 
 
 def extract_columns(cell):
-    info_fields = filter(None, str(cell).strip().split(";"))
-    #print(info_fields)
+    info_fields = str(cell).strip().split(";")
     new_cols = []
-    #print(cell)
     csq = ""
     clnsig = ""
     clnvc = ""
     mc = ""
     rank = ""
     indel_ID = ""
+
+    #print(str(cell).strip().split(";"))
+
     for field in info_fields:
-        #print("Hi: ", field)
-        if "nan" in field:
-            #print("NaN")
-            #print(cell)
+        if field == "nan":
+            print("NaN:", field)
             continue
-        if field.startswith("CSQ"):
+        if field.startswith("CSQ="):
             csq = field.split("=")[1]
-        elif field.startswith("CLNSIG"):
+        elif field.startswith("CLNSIG="):
             clnsig = field.split("=")[1]
-        elif field.startswith("CLNVC"):
+        elif field.startswith("CLNVC="):
             clnvc = field.split("=")[1]
-        elif field.startswith("MC"):
+        elif field.startswith("MC="):
             mc = field.split("=")[1]
-        elif field.startswith("RANK"):
-            #print(field)
-            #print("Rank: ", field.split("=")[1])
+        elif field.startswith("RANK="):
             rank = field.split("=")[1]
-        elif field.startswith("indel_ID"):
-            #print(field)
-            #print("Rank: ", field.split("=")[1])
+        elif field.startswith("indel_ID="):
             indel_ID = field.split("=")[1]
         else:
-            print("ERROR INFORMATION MISSING")
+            print("SKIP INFORMATION ENTRY")
 
-    return [rank, clnsig, clnvc, mc, indel_ID, csq]
+    return [indel_ID, csq]
 
 
 def extract_vep_annotation(cell, annotation_header):
@@ -129,12 +124,7 @@ def extract_vep_annotation(cell, annotation_header):
     consequences = []
 
     # take the most severe annotation variant
-    #print(annotation_fields)
     for field in annotation_fields:
-        #print(annotation_header.index("Consequence"))
-        #print(field)
-        #print(field.split("|")[annotation_header.index("Consequence")].strip().split("&"))
-        #print(min([variant_consequences.get(x) for x in field.strip().split("|")[annotation_header.index("Consequence")].strip().split("&")]))
         consequences.append(min([variant_consequences.get(x) for x in field.strip().split("|")[annotation_header.index("Consequence")].strip().split("&")]))
 
     target_index = min(enumerate(consequences), key=itemgetter(1))[0]
@@ -174,13 +164,18 @@ def extract_sample_information(row, sample):
 
 
 def add_INFO_fields_to_dataframe(vcf_as_dataframe):
-    vcf_as_dataframe[["RANK", "CLNSIG", "CLNVC", "MC", "indel_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+    vcf_as_dataframe[["indel_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
     return vcf_as_dataframe
 
 
 def add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header):
+
+    #print(vcf_as_dataframe)
+    #print(annotation_header)
+    #print(vcf_as_dataframe.CSQ)
+
     vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
 
@@ -214,12 +209,15 @@ def add_simple_repeat_annotation(row, grouped_expanded_vcf):
 
 
 def combine_vcf_dataframes(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list):
+    #print("Feature-list:", feature_list)
     for feature in feature_list:
-        if feature == "MaxAF":
+        if (feature == "MaxAF") | (feature == "MAX_AF"):
             continue
-        if feature == "SIFT":
+        if "SIFT" in feature:
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
         else:
+            #print("Feature:", feature)
+            #print(expanded_vcf_as_dataframe.columns)
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("indel_ID")
@@ -264,7 +262,9 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data)
+    #print("expanded")
     expanded_vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data_expanded)
 
-    vcf_combined_as_dataframe = combine_vcf_dataframes(vcf_as_dataframe, expanded_vcf_as_dataframe)
+    feature_list = args.feature_list.split(",")
+    vcf_combined_as_dataframe = combine_vcf_dataframes(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list)
     write_vcf_to_csv(vcf_combined_as_dataframe, args.out_data)

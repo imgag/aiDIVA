@@ -1,0 +1,96 @@
+## AIdiva -- Augmented Intelligence Disease Variant Analysis
+# Configuration file specifiying all the parameters that are needed to run AIdiva in the different modes
+# if you modify the key names make sure to also update them in the run_AIdiva.py script
+---
+Analysis-Input:
+    # if inheritance should be considered and family information is provided, make sure that the vcf file contains sample informations for all family members,
+    # else sample will be treated as single patient with unknown inheritance
+    vcf-snp: annotated_input_snp.vcf
+    vcf-indel: annotated_input_indel.vcf
+    vcf-expanded-indel: annotated_input_expanded_indel.vcf
+
+    # path to the working directory
+    work-dir: test_work_dir/
+
+    # path to the reference assembly used during the expansion of the indels
+    ref-path: databases/grch37/
+
+    # trained scoring models used to predict the pathogenicity score
+    # if no trained model is present you can use the train_model.py script to train a new custom model
+    scoring-model-snps: rf_model_snp.pkl
+    scoring-model-indels: rf_model_indel.pkl
+
+    # bed file to distinguish between coding and non-coding variants
+    coding-region: coding_region.bed
+
+    prioritization-information:
+        # file containing the HPO terms that are associated with the disease (one term per line)
+        hpo-file: recessive_HPO.txt
+
+        # family type, shows the structure of the given family inforamtion
+        # possible values: [TRIO, FAMILY, SINGLE]
+        family-type: TRIO
+
+        # file with the family information
+        family-file: family.txt
+
+        # List of genes that should be excluded in the analysis, because they are normally false positives
+        # a default list is given in the res/ folder (gene_exclusion_list.txt), the file can be empty
+        # set to null if no genes should be excluded
+        gene-exclusion: null
+
+        # Identifier to get the score from the annotated file
+        cadd-identifier: CADD_PHRED
+        repeat-identifier: simpleRepeat
+        duplication-identifier: segmentDuplication
+
+
+Model-Features:
+    # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these) if not wanted use a empty list "[]" instead
+    allele_frequency_list:
+        - gnomAD_AFR_AF
+        - gnomAD_ASJ_AF
+        - gnomAD_EAS_AF
+        - gnomAD_FIN_AF
+        - gnomAD_NFE_AF
+        - gnomAD_OTH_AF
+        - gnomAD_SAS_AF
+        - AA_AF
+        - EA_AF
+        - AFR_AF
+        - AMR_AF
+        - EAS_AF
+        - EUR_AF
+        - SAS_AF
+
+    # List containing the names of the features used for the model training
+    feature_list:
+        - SIFT
+        - PolyPhen
+        - CADD_PHRED
+        - REVEL
+        - ABB_SCORE
+        - MaxAF # MAX_AF if activated in the VEP annotation
+        - segmentDuplication
+        - custom_EIGEN_PHRED
+        - fannsdb_CONDEL
+        - custom_FATHMM_XF
+        - custom_MutationAssessor
+        - phastCons46mammal
+        - phastCons46primate
+        - phastCons46vertebrate
+        - phyloP46mammal
+        - phyloP46primate
+        - phyloP46vertebrate
+
+
+Analysis-Output:
+    out-filename: aidiva_result
+
+
+# make sure that the full path for the following files is present otherwise the prioritization step will fail
+Internal-Parameters:
+    hpo-resources: /mnt/users/ahboced1/AIdiva_project/HPO_resources/
+    #gene2hpo-mapping: gene2hpo.pkl
+    #hpo-graph: hpo_graph.pkl
+    #hpo2gene-association: hpo2gene.pkl
