@@ -110,7 +110,7 @@ def predict_pathogenicity(rf_model_snps, rf_model_indel, input_data_snps, input_
 def check_coding(coding_regions, variant_to_check):
     coding = 0
 
-    if not coding_regions[(coding_regions.CHROM == str(variant_to_check["CHROM"]).replace("chr", "")) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))].empty:
+    if not coding_regions[(coding_regions[0] == str(variant_to_check["CHROM"]) & (coding_regions[1].le(variant_to_check["POS"])) & (coding_regions[2].ge(variant_to_check["POS"]))].empty:
     #if coding_regions[(coding_regions.CHROM.str.match(str(variant_to_check["CHROM"]))) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))]:
         coding = 1
 
@@ -138,8 +138,8 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
     # the models are only for coding variants
     predicted_data_snps.loc[(predicted_data_snps.CODING == 0), "AIDIVA_SCORE"] = np.NaN
     predicted_data_indel.loc[(predicted_data_indel.CODING == 0), "AIDIVA_SCORE"] = np.NaN
-    predicted_data_snps.loc[(predicted_data_snps.CHROM == "Y") | (predicted_data_snps.CHROM == "MT")] = np.NaN
-    predicted_data_indel.loc[(predicted_data_indel.CHROM == "Y") | (predicted_data_indel.CHROM == "MT")] = np.NaN
+    predicted_data_snps.loc[(predicted_data_snps.CHROM == "Y") | (predicted_data_snps.CHROM == "chrY") | (predicted_data_snps.CHROM == "MT") | (predicted_data_snps.CHROM == "chrM")] = np.NaN
+    predicted_data_indel.loc[(predicted_data_indel.CHROM == "Y") | (predicted_data_indel.CHROM == "chrY") | (predicted_data_indel.CHROM == "MT") | (predicted_data_snps.CHROM == "chrM")] = np.NaN
 
     # set splicing donor/acceptor variants to 1.0
     predicted_data_snps.loc[(predicted_data_snps.Consequence.str.contains("splice_acceptor_variant") | predicted_data_snps.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0

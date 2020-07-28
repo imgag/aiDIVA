@@ -95,7 +95,7 @@ if __name__=="__main__":
 
     # predict pathogenicity score
     print("Score variants ...")
-    coding_region = pd.read_csv(coding_region_file, sep="\t", names=["CHROM", "START", "END"], low_memory=False)
+    coding_region = pd.read_csv(coding_region_file, sep="\t", names=None, low_memory=False)
     predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp, input_data_combined_indel, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, coding_region)
 
     # prioritize and filter variants
