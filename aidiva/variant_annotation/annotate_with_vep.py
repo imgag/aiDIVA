@@ -82,7 +82,7 @@ if __name__=="__main__":
                            "revel": "/mnt/share/data/dbs/REVEl/revel_all_chromosomes.tsv.gz",
                            "dbNSFP": "/mnt/users/ahbranl1/data_vep/dbNSFP/dbNSFP_hg19_3.5.gz",
                            "custom": {"bed-files": {"simpleRepeat": {"file": "/mnt/users/ahboced1/databases/hg19/simpleRepeats.bedGraph.gz", "method": "overlap"},
-                               "segmentDuplication": {"file": "/mnt/users/ahboced1/databases/hg19/segmentDuplication.bedGraph.gz", "method": "overlap"},
-                               "ABB_SCORE": {"file": "/mnt/users/ahboced1/databases/hg19/abb_score.bedGraph.gz", "method": "exact"}}}}
+                           "segmentDuplication": {"file": "/mnt/users/ahboced1/databases/hg19/segmentDuplication.bedGraph.gz", "method": "overlap"},
+                           "ABB_SCORE": {"file": "/mnt/users/ahboced1/databases/hg19/abb_score.bedGraph.gz", "method": "exact"}}}}
 
     call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, True)

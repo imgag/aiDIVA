@@ -22,7 +22,7 @@ def write_data_information_to_file(input_data, outfile, ref_folder, header):
         #else:
         #    chrom_id = str(group["CHROM"].iloc[0])
 
-        ref_seq = str(SeqIO.read(ref_folder + "Homo_sapiens.GRCh37.dna.chromosome." + str(group["CHROM"].iloc[0]).replace("chr", "") + ".fa", "fasta").seq)
+        ref_seq = str(SeqIO.read(ref_folder + str(group["CHROM"].iloc[0]) + ".fa", "fasta").seq)
         for row in group.itertuples():
             window_start = int(row.POS) - 3
             window_end = int(row.POS) + len(row.REF) + 2
