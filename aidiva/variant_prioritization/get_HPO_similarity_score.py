@@ -31,7 +31,13 @@ def list_distance(DG, Q, G, Query_distances):
                 # missing node (obsolete not updated or just wrong value)
                 continue
 
-            k_q = DG.nodes[k_q].get("replaced_by", k_q)
+            if str(nx.__version__).startswith("1."):
+                k_q = DG.node[k_q].get("replaced_by", k_q)
+            elif str(nx.__version__).startswith("2."):
+                k_q = DG.nodes[k_q].get("replaced_by", k_q)
+            else:
+                print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
+
             distance =  nx.shortest_path_length(DG, k_q, weight="dist")
             if Query_distances == 0:
                 Query_distances = {key: float(value) % offset for (key, value) in distance.items()}
@@ -70,7 +76,13 @@ def precompute_query_distances(DG, Q, Query_distances):
             # missing node (obsolete not updated or just wrong value)
             continue
 
-        k_q = DG.nodes[k_q].get("replaced_by", k_q)
+        if str(nx.__version__).startswith("1."):
+            k_q = DG.node[k_q].get("replaced_by", k_q)
+        elif str(nx.__version__).startswith("2."):
+            k_q = DG.nodes[k_q].get("replaced_by", k_q)
+        else:
+            print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
+
         distance =  nx.shortest_path_length(DG, k_q, weight="dist")
         if Query_distances == 0:
             Query_distances = {key: float(value) % offset for (key, value) in distance.items()}

@@ -81,7 +81,13 @@ def check_graph_qualtiy(DG):
     # if not, why:
     for node in DG:
         ancestors = nx.ancestors(DG, node)
-        ancestors_val = [DG.nodes[x]["count"]  - DG.nodes[node]["count"] for x in ancestors]
+        if str(nx.__version__).startswith("1."):
+            ancestors_val = [DG.node[x]["count"]  - DG.node[node]["count"] for x in ancestors]
+        elif str(nx.__version__).startswith("2."):
+            ancestors_val = [DG.nodes[x]["count"]  - DG.nodes[node]["count"] for x in ancestors]
+        else:
+            print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
+
         problematic = [i for i, e in enumerate(ancestors_val) if e > 0]
         for i in problematic:
             print(node)
@@ -119,7 +125,13 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
     # DG.add_edges_from([(1,2)])
     for k in edges.keys():
         DG.add_node(k)
-        DG.nodes[k]["count"] = 0.0
+        if str(nx.__version__).startswith("1."):
+            DG.node[k]["count"] = 0.0
+        elif str(nx.__version__).startswith("2."):
+            DG.nodes[k]["count"] = 0.0
+        else:
+            print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
+
         ancestors = [(x,k) for x in edges[k]]
         DG.add_edges_from(ancestors)
 
@@ -131,29 +143,68 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
     print(DG.number_of_nodes())
 
     for k in DG.nodes():
-        DG.nodes[k]["count"] = 0.0
+        if str(nx.__version__).startswith("1."):
+            DG.node[k]["count"] = 0.0
+        elif str(nx.__version__).startswith("2."):
+            DG.nodes[k]["count"] = 0.0
+        else:
+            print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
     # populate with raw counts
     for k in counts_d.keys():
-        DG.nodes[k]["count"] = counts_d[k]
+        if str(nx.__version__).startswith("1."):
+            DG.node[k]["count"] = counts_d[k]
+        elif str(nx.__version__).startswith("2."):
+            DG.nodes[k]["count"] = counts_d[k]
+        else:
+            print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
     DG.nodes(data="count")
     # now fill it with the actual value.
     for k in edges.keys():
         desc = nx.descendants(DG,k)
-        count = DG.nodes[k]["count"]
+        if str(nx.__version__).startswith("1."):
+            count = DG.node[k]["count"]
+        elif str(nx.__version__).startswith("2."):
+            count = DG.nodes[k]["count"]
+        else:
+            print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
+
         for i in desc:
-            count += DG.nodes[i]["count"]
+            if str(nx.__version__).startswith("1."):
+                count += DG.node[i]["count"]
+            elif str(nx.__version__).startswith("2."):
+                count += DG.nodes[i]["count"]
+            else:
+                print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
         if count > 0 :
-            DG.nodes[k]["count"] =  -math.log(float(count) / tot)
+            if str(nx.__version__).startswith("1."):
+                DG.node[k]["count"] =  -math.log(float(count) / tot)
+            elif str(nx.__version__).startswith("2."):
+                DG.nodes[k]["count"] =  -math.log(float(count) / tot)
+            else:
+                print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
         else :
-            DG.nodes[k]["count"] = -math.log(1.0 / tot) #missing nodes, set as rare as possible
+            if str(nx.__version__).startswith("1."):
+                DG.node[k]["count"] = -math.log(1.0 / tot) #missing nodes, set as rare as possible
+            elif str(nx.__version__).startswith("2."):
+                DG.nodes[k]["count"] = -math.log(1.0 / tot) #missing nodes, set as rare as possible
+            else:
+                print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
             # print k
             # print DG.node[k]
 
     # count is the IC of the node then
-    pickle.dump(DG,open(output,"wb"))
+    #pickle.dump(DG,open(output,"wb"))
+    if str(nx.__version__).startswith("1."):
+        pickle.dump([DG.nodes(data=True), DG.edges(data=True)], open(output, "wb"))
+        print("NOTE: You pickled the graph with NetworkX v1 the pickled graph is also importable with v2!")
+    elif str(nx.__version__).startswith("2."):
+        pickle.dump([DG.nodes(data=True), DG.edges(data=True)], open(output, "wb"))
+        print("NOTE: You pickled the graph with NetworkX v2 it is not backwards compatible!")
+    else:
+        print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
     print("HPO graph successfully generated and saved as %s" % (hpo_graph_file))
 
 
