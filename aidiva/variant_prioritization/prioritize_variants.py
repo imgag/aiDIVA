@@ -1,5 +1,5 @@
 import argparse
-import networkx
+import networkx as nx
 import numpy as np
 import os
 import pandas as pd
@@ -54,26 +54,31 @@ variant_consequences = {"transcript_ablation": "non_exonic",
 
 def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     #load HPO resources
-    gene_2_HPO_f = hpo_resources_folder + "gene2hpo.pkl"
-    HPO_graph_file = hpo_resources_folder + "hpo_graph.pkl"
-    hpo_dict_file = hpo_resources_folder + "hpo2gene.pkl"
+    gene_2_HPO_f = hpo_resources_folder + "gene2hpo_v1.pkl"
+    HPO_graph_file = hpo_resources_folder + "hpo_graph_v1.pkl"
+    hpo_dict_file = hpo_resources_folder + "hpo2gene_v1.pkl"
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
-    HPO_graph = pickle.load(open(HPO_graph_file, "rb"))
+    #HPO_graph = pickle.load(open(HPO_graph_file, "rb"))
+    hpo_nodes, hpo_edges = pickle.load(open(HPO_graph_file, "rb"))
+    HPO_graph = nx.DiGraph()
+    HPO_graph.add_nodes_from(hpo_nodes)
+    HPO_graph.add_edges_from(hpo_edges)
 
     query_dist = 0
 
     genes2exclude = set()
-    if os.path.isfile(hpo_list_file):
-        with open(gene_exclusion_file, "r") as exclusion_file:
-            for gene in exclusion_file:
-                gene = gene.rstrip()
-                genes2exclude.add(gene)
-    else:
-        print("The specified gene exclusion list %s is not a valid file" % (gene_exclusion_file))
-        print("No genes are excluded during filtering!")
+    if gene_exclusion_file:
+        if os.path.isfile(gene_exclusion_file):
+            with open(gene_exclusion_file, "r") as exclusion_file:
+                for gene in exclusion_file:
+                    gene = gene.rstrip()
+                    genes2exclude.add(gene)
+        else:
+            print("The specified gene exclusion list %s is not a valid file" % (gene_exclusion_file))
+            print("No genes are excluded during filtering!")
 
     #fill HPO query terms
     #if hpo_list_file == None:
@@ -81,43 +86,45 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     #    HPO_query = list()
     #else:
     HPO_query = set()
-    if os.path.isfile(hpo_list_file):
-        with open(hpo_list_file, "r") as w:
-            HPO_dict = pickle.load(open(hpo_dict_file,"rb"))
-            HPO_query = list()
-            for line in w:
-                HPO_term = line.rstrip("\n")
-                try:
-                    HPO_query.append(HPO_term)
-                except:
-                    print("%s not found in database" % (HPO_term))
-        HPO_query= list(set(HPO_query))
-        query_dist = gs.precompute_query_distances(HPO_graph, HPO_query, 0)
-        print("HPO-list: ", HPO_query)
-    else:
-        print("The specified HPO list %s is not a valid file" % (hpo_list_file))
-        print("Skip HPO score finalization!")
+    if hpo_list_file:
+        if os.path.isfile(hpo_list_file):
+            with open(hpo_list_file, "r") as w:
+                HPO_dict = pickle.load(open(hpo_dict_file,"rb"))
+                HPO_query = list()
+                for line in w:
+                    HPO_term = line.rstrip("\n")
+                    try:
+                        HPO_query.append(HPO_term)
+                    except:
+                        print("%s not found in database" % (HPO_term))
+            HPO_query= list(set(HPO_query))
+            query_dist = gs.precompute_query_distances(HPO_graph, HPO_query, 0)
+            print("HPO-list: ", HPO_query)
+        else:
+            print("The specified HPO list %s is not a valid file" % (hpo_list_file))
+            print("Skip HPO score finalization!")
 
     # read family relationships
     # TODO change to ped file
     family = dict()
-    if os.path.isfile(family_file):
-        with open(family_file, "r") as fam_file:
-            for line in fam_file:
-                if line.startswith("sample"):
-                    continue
-                line = line.rstrip("\n")
-                splitline = line.split("\t")
-                family[splitline[0]] = splitline[1]
-                #if splitline[5] == 2:
-                #   family[splitline[1]] = 1
-                #elif splitline[5] == 1:
-                #   family[splitline[1]] = 0
-                #else:
-                #   print("ERROR: There is a problem with the given PED file describing the family.")
-    else:
-        print("The specified family file %s is not a valid file" % (hpo_list))
-        print("Skip inheritance assessment!")
+    if family_file:
+        if os.path.isfile(family_file):
+            with open(family_file, "r") as fam_file:
+                for line in fam_file:
+                    if line.startswith("sample"):
+                        continue
+                    line = line.rstrip("\n")
+                    splitline = line.split("\t")
+                    family[splitline[0]] = splitline[1]
+                    #if splitline[5] == 2:
+                    #   family[splitline[1]] = 1
+                    #elif splitline[5] == 1:
+                    #   family[splitline[1]] = 0
+                    #else:
+                    #   print("ERROR: There is a problem with the given PED file describing the family.")
+        else:
+            print("The specified family file %s is not a valid file" % (family_file))
+            print("Skip inheritance assessment!")
 
     family_type = family_type
     cadd_identifier = "CADD_PHRED"
@@ -779,5 +786,5 @@ if __name__=="__main__":
 
     input_data = pd.read_csv(args.in_file, sep="\t", low_memory=False)
 
-    prioritized_variants = prioritize_variants(input_data, args.family, args.family_type, args.hpo_resources, args.hpo_list, args.gene_exclusion_list)
+    prioritized_variants = prioritize_variants(input_data, args.hpo_resources, args.family, args.family_type, args.hpo_list, args.gene_exclusion_list)
     prioritized_variants.to_csv(args.out_filename, sep="\t", index=False)
