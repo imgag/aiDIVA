@@ -8,11 +8,11 @@ import helper_modules.convert_indels_to_snps_and_create_vcf as expand_indels_and
 import helper_modules.convert_vcf_to_csv as convert_vcf
 import variant_scoring.score_variants as predict
 import variant_prioritization.prioritize_variants as prio
-import variant_annotation.add_abb_score as add_abb
-import variant_annotation.add_score_from_bigwig as add_score
-import variant_annotation.add_segmentDuplication as add_segDup
-import variant_annotation.add_simpleRepeats as add_repeats
-import variant_annotation.annotate_with_vep as annotate
+#import variant_annotation.add_abb_score as add_abb
+#import variant_annotation.add_score_from_bigwig as add_score
+#import variant_annotation.add_segmentDuplication as add_segDup
+#import variant_annotation.add_simpleRepeats as add_repeats
+#import variant_annotation.annotate_with_vep as annotate
 import yaml
 
 
@@ -30,7 +30,8 @@ if __name__=="__main__":
 
     # parse configuration file
     config_file = open(args.config, "r")
-    configuration = yaml.full_load(config_file)
+    configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
+    #configuration = yaml.full_load(config_file)
     config_file.close()
 
     #working_directory = configuration["Analysis-Input"]["work-dir"]
@@ -39,7 +40,7 @@ if __name__=="__main__":
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
 
-    ref_path = configuration["Analysis-Input"]["ref-path"]
+    #ref_path = configuration["Analysis-Input"]["ref-path"]
 
     # parse input files
     #snp_vcf = configuration["Analysis-Input"]["vcf-snp"]
@@ -66,12 +67,15 @@ if __name__=="__main__":
         hpo_file = None
     gene_exclusion_file = configuration["Analysis-Input"]["prioritization-information"]["gene-exclusion"]
 
-    family_type = configuration["Analysis-Input"]["prioritization-information"]["family-type"]
+    #family_type = configuration["Analysis-Input"]["prioritization-information"]["family-type"]
     #family_file = configuration["Analysis-Input"]["prioritization-information"]["family-file"]
     if "family_file" in args:
         family_file = args.family_file
+        family_type = "SINGLE" ## TODO: get correct family type based on the family file
     else:
         family_file = None
+        family_type = "SINGLE"
+
 
     hpo_resources_folder = configuration["Internal-Parameters"]["hpo-resources"]
 
@@ -95,7 +99,7 @@ if __name__=="__main__":
 
     # predict pathogenicity score
     print("Score variants ...")
-    coding_region = pd.read_csv(coding_region_file, sep="\t", names=None, low_memory=False)
+    coding_region = pd.read_csv(coding_region_file, sep="\t", header=None, low_memory=False)
     predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp, input_data_combined_indel, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, coding_region)
 
     # prioritize and filter variants
