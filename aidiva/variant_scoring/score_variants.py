@@ -110,7 +110,12 @@ def predict_pathogenicity(rf_model_snps, rf_model_indel, input_data_snps, input_
 def check_coding(coding_regions, variant_to_check):
     coding = 0
 
-    if not coding_regions[(coding_regions[0] == str(variant_to_check["CHROM"]) & (coding_regions[1].le(variant_to_check["POS"])) & (coding_regions[2].ge(variant_to_check["POS"]))].empty:
+    if "chr" in str(variant_to_check["CHROM"]):
+        chrom_id = str(variant_to_check["CHROM"])
+    else:
+        chrom_id = "chr" + str(variant_to_check["CHROM"])
+
+    if not coding_regions[(coding_regions[0] == chrom_id) & (coding_regions[1].le(variant_to_check["POS"])) & (coding_regions[2].ge(variant_to_check["POS"]))].empty:
     #if coding_regions[(coding_regions.CHROM.str.match(str(variant_to_check["CHROM"]))) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))]:
         coding = 1
 
@@ -150,7 +155,9 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
     predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0
 
     # combine snps and indel data
-    predicted_data_complete = pd.concat([predicted_data_snps, predicted_data_indel], sort=False)
+    ## TODO: the sort attribute is not present in pandas v0.19 so if this version should be
+    #predicted_data_complete = pd.concat([predicted_data_snps, predicted_data_indel], sort=False)
+    predicted_data_complete = pd.concat([predicted_data_snps, predicted_data_indel])
     predicted_data_complete.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
     predicted_data_complete.reset_index(inplace=True, drop=True)
 

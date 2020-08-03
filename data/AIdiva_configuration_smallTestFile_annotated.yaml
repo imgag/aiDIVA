@@ -8,11 +8,11 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: /mnt/users/ahboced1/AIdiva_project/current_model/rf_snp_clinvar_hgmd_1to1.pkl
-    scoring-model-indel: /mnt/users/ahboced1/AIdiva_project/current_model/inframe_indel_clinvar_hgmd_balanced.pkl
+    scoring-model-snp: /mnt/users/ahboced1/AIdiva_project/current_model/rf_snp_clinvar_hgmd_1to1_scikit0-19-1.pkl
+    scoring-model-indel: /mnt/users/ahboced1/AIdiva_project/current_model/rf_inframe_indel_clinvar_hgmd_balanced_scikit0-19-1.pkl
 
     # bed file to distinguish between coding and non-coding variants
-    coding-region: /mnt/users/ahboced1/databases/hg19/Homo_sapiens_coding-sequences.GRCh37.87.bed
+    coding-region: /mnt/share/data/dbs/hg19/Annotation/hg19.Ensembl_gene.bed
 
     prioritization-information:
         # List of genes that should be excluded in the analysis, because they are normally false positives
@@ -71,7 +71,7 @@ Analysis-Output:
 
 # make sure that the full path for the following files is present otherwise the prioritization step will fail
 Internal-Parameters:
-    hpo-resources: ../../data/
+    hpo-resources: /mnt/users/ahboced1/AIdiva_project/AIdiva/data/
     #gene2hpo-mapping: /mnt/users/ahboced1/AIdiva_project/HPO_resources/gene2hpo.pkl
     #hpo-graph: /mnt/users/ahboced1/AIdiva_project/HPO_resources/hpo_graph.pkl
     #hpo2gene-association: /mnt/users/ahboced1/AIdiva_project/HPO_resources/hpo2gene.pkl
