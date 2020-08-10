@@ -32,10 +32,11 @@ In the data folder there is also a standalone python script to generate these fi
 
 
 ## Pathogenicity prediction
-There are two random forest models that are used in AIdiva to predict the pathogenicity of a given varaint. One for SNP variants and the other for inframe InDel variants (frameshift variants are seen as highly pathogenic). The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
+There are two random forest models that are used in AIdiva to predict the pathogenicity of a given varaint. One for SNP variants and the other for inframe InDel variants. The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
 
 The scripts used to train the models can be found in the following GitHub repository: [AIdiva-Training](https://github.com/imgag/AIdiva-Training)
 
+_Frameshift_ variants will always get the highest score 1.0, weheras _synonymous_ variants always get the lowest score 0.0
 
 ## Running AIdiva
 AIdiva can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. When the variant annotation with VEP should also be performed with AIdiva this is the only required command line argument. In the other case when an already annotated file is given there are a few more arguments that needs to be passed instead of being specified in the configuration file. The reason for this different set of parameters is due to the fact that it makes it more convenient to include AIdiva in another existing pipeline.
