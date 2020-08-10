@@ -1,0 +1,11 @@
+help:
+	@cat Makefile_segmentDuplication
+
+download:
+	wget -O hg19.genomicSuperDups.txt.gz ftp://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/genomicSuperDups.txt.gz
+
+convert:
+	gunzip hg19.genomicSuperDups.txt.gz 
+	cut -f2,3,4,27 hg19.genomicSuperDups.txt > hg19.genomicSuperDups.bed
+	grep -v '#' hg19.genomicSuperDups.bed | sort -k1,1 -k2,2n -k3,3n -t '\t' | bgzip -c > hg19.genomicSuperDups.bed.gz
+	tabix -p bed hg19.genomicSuperDups.bed.gz

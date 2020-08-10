@@ -8,11 +8,6 @@ import helper_modules.convert_indels_to_snps_and_create_vcf as expand_indels_and
 import helper_modules.convert_vcf_to_csv as convert_vcf
 import variant_scoring.score_variants as predict
 import variant_prioritization.prioritize_variants as prio
-#import variant_annotation.add_abb_score as add_abb
-#import variant_annotation.add_score_from_bigwig as add_score
-#import variant_annotation.add_segmentDuplication as add_segDup
-#import variant_annotation.add_simpleRepeats as add_repeats
-#import variant_annotation.annotate_with_vep as annotate
 import yaml
 
 
@@ -31,10 +26,8 @@ if __name__=="__main__":
     # parse configuration file
     config_file = open(args.config, "r")
     configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
-    #configuration = yaml.full_load(config_file)
     config_file.close()
 
-    #working_directory = configuration["Analysis-Input"]["work-dir"]
     working_directory = args.workdir
 
     if not working_directory.endswith("/"):
