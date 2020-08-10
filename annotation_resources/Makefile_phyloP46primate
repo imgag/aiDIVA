@@ -104,5 +104,5 @@ convert:
 	gunzip *.wigFix.gz
 	for f in *.wigFix; do ./wigToBigWig -fixedSummaries -keepAllChromosomes $$f hg19.chrom.sizes $$(basename $$f ".wigFix").bw; done;
 	rm *.wigFix
-	./bigWigCat hg19_phyloP46way_primate.bw *.bw
-	rm *.primate.bw
+	./bigWigCat hg19_phyloP46way_primate.bw *.phyloP46way.primate.bw
+	rm *.phyloP46way.primate.bw

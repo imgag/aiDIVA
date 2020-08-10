@@ -13,6 +13,7 @@ def write_header(out_file):
     out_file.write("##INFO=<ID=AIDIVA_RECESSIVE,Number=.,Type=String,Description=\"Flag indicating recessive inheritance.\">\n")
     out_file.write("##INFO=<ID=AIDIVA_XLINKED,Number=.,Type=String,Description=\"Flag indicating xlinked inheritance.\">\n")
     out_file.write("##INFO=<ID=AIDIVA_COMPOUND,Number=.,Type=String,Description=\"Flag indicating a possible candidate for compound inheritance.\">\n")
+    out_file.write("##INFO=<ID=AIDIVA_FILTER,Number=.,Type=String,Description=\"Flag indicating if all filters are passed.\">\n")
     out_file.write("##contig=<ID=1,length=249250621,assembly=hg19>\n")
     out_file.write("##contig=<ID=2,length=243199373,assembly=hg19>\n")
     out_file.write("##contig=<ID=3,length=198022430,assembly=hg19>\n")

@@ -63,7 +63,7 @@ Model-Features:
         - phyloP46mammal
         - phyloP46primate
         - phyloP46vertebrate
-        
+
 
 Analysis-Output:
     out-filename: aidiva_result
