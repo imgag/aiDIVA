@@ -23,12 +23,18 @@ If a newer scikit-learn version is used the models provided should still work (t
 
 
 ## Annotation resources
-If the annotation is not made beforehand make sure that the necessary database resources are present. In the `annotation_resources` folder you can find Makefiles to create and prepare the different annotation resources.
+If the annotation is not made beforehand make sure that the necessary database resources are present. In the `annotation_resources` folder you can find Makefiles to create and prepare the different annotation resources that are used as custom annotation with VEP.
 
 
 ## HPO resources
 The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location.
 In the data folder there is also a standalone python script to generate these files (inside the script in the comments you can find the download links to the files that are used to generate the resources). It is recommended to use the v1 resources (eg. hpo_graph_v1.pkl) to prevent problems if networkx in version 1 is used. Version 2 can still import these resources, but the graph generated with version 2 is not compatible with version 1.
+
+
+## Pathogenicity prediction
+There are two random forest models that are used in AIdiva to predict the pathogenicity of a given varaint. One for SNP variants and the other for inframe InDel variants (frameshift variants are seen as highly pathogenic). The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
+
+The scripts used to train the models can be found in the following GitHub repository: [AIdiva-Training](https://github.com/imgag/AIdiva-Training)
 
 
 ## Running AIdiva
@@ -51,8 +57,5 @@ Running AIdiva on already annotated data:
 + _family_file_ -- TXT file containing the sample information if run on multisample VCF files
 + _config_ -- YAML configuration file (in the `data` folder there are example configuration files for each of the two modes)
 
-
-## Pathogenicity prediction
-There are two models that are used in AIdiva to predict the pathogenicity of a given varaint. One for SNP variants and the other for inframe InDel variants (frameshift variants are seen as highly pathogenic). The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
-
-The scripts used to train the models can be found in the following GitHub repository: [AIdiva-Training](https://github.com/imgag/AIdiva-Training)
+## AIdiva results
+AIdiva will produce three different output files two CSV files with the annotation and the results from the prediction and the prioritization. One of these two contains all variants, whereas the other one only contains the variants that passed the internal filtering step. The third file is a VCF file with the results in the INFO field, there are nine different fields in the INFO field. Four indicate a possible inheritance if the given VCF was a multisample VCF. One (AIDIVA_FILTER) indicates if all filters were passed.
