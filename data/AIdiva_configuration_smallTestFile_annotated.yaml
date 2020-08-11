@@ -27,6 +27,7 @@ Analysis-Input:
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these) if not wanted use a empty list "[]" instead
+    # this is needed if MAX_AF is present in the annotated data
     allele-frequency-list:
         - gnomAD_AFR_AF
         - gnomAD_AMR_AF
@@ -63,7 +64,7 @@ Model-Features:
         - phyloP46mammal
         - phyloP46primate
         - phyloP46vertebrate
-        
+
 
 Analysis-Output:
     out-filename: aidiva_result

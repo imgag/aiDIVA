@@ -11,4 +11,4 @@ writer = csv.DictWriter(open(outfile, "w"), fieldnames=["#CHROM", "POS", "ID", "
 writer.writeheader()
 
 for row in reader:
-    writer.writerow({"#CHROM": row["#CHROM"], "POS": row["POS"], "ID": ".", "REF": row["REF"], "ALT": row["ALT"], "QUAL": ".", "FILTER": ".", "INFO": str("CONDEL=" + str(row["FATHMM_XF"]))})
+    writer.writerow({"#CHROM": row["#CHROM"], "POS": row["POS"], "ID": ".", "REF": row["REF"], "ALT": row["ALT"], "QUAL": ".", "FILTER": ".", "INFO": str("FATHMM_XF=" + str(row["FATHMM_XF"]))})
