@@ -5,7 +5,7 @@ import random
 from Bio import SeqIO
 
 
-def write_data_information_to_file(input_data, outfile, ref_folder, header):
+def write_data_information_to_file(input_data, outfile, ref_sequence, header):
     data_grouped = [group for key, group in input_data.groupby("CHROM")]
 
     random.seed(14038)
@@ -15,6 +15,7 @@ def write_data_information_to_file(input_data, outfile, ref_folder, header):
             outfile.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
         else:
             outfile.write(line)
+    ref_seq_records = SeqIO.index(ref_sequence, "fasta")
 
     for group in data_grouped:
         if "chr" in str(group["CHROM"].iloc[0]):
@@ -22,7 +23,7 @@ def write_data_information_to_file(input_data, outfile, ref_folder, header):
         else:
             chrom_id = "chr" + str(group["CHROM"].iloc[0])
 
-        ref_seq = str(SeqIO.read(ref_folder + chrom_id + ".fa", "fasta").seq)
+        ref_seq = str(ref_seq_records[chrom_id].seq)
         for row in group.itertuples():
             window_start = int(row.POS) - 3
             window_end = int(row.POS) + len(row.REF) + 2
