@@ -14,7 +14,7 @@ The following additional libraries need to be installed in order to use the prog
 + networkx (>= v1.11)
 + numpy (>= v1.13.3)
 + pandas (>= v0.22.0)
-+ pybigwig
++ pybigwig (>= v0.3.2)
 + pyyaml (>= v3.12)
 + scipy (>= v0.19.1)
 + scikit-learn (>= v0.19.1)
@@ -32,11 +32,13 @@ In the data folder there is also a standalone python script to generate these fi
 
 
 ## Pathogenicity prediction
-There are two random forest models that are used in AIdiva to predict the pathogenicity of a given varaint. One for SNP variants and the other for inframe InDel variants. The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
+There are two random forest models that are used in AIdiva to predict the pathogenicity of a given variant. One for SNP variants and the other for inframe InDel variants. The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
 
 The scripts used to train the models can be found in the following GitHub repository: [AIdiva-Training](https://github.com/imgag/AIdiva-Training)
 
-_Frameshift_ variants will always get the highest score 1.0, weheras _synonymous_ variants always get the lowest score 0.0
+_Frameshift_ variants will always get the highest score 1.0, whereas _synonymous_ variants always get the lowest score 0.0
+
+Pretrained random forest models can be found [here](https://download.imgag.de/ahboced1/AIdiva_pretrained_models/). There are two InDel and two SNP models, both are trained on the same training variants with the same parameters. The only difference is the scikit-learn version (v0.19.1 and v0.22.2) that was used since the trained models are version specific. During our tests it also worked to load the 0.19.1 model with newer versions of scikit-learn.
 
 ## Running AIdiva
 AIdiva can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. When the variant annotation with VEP should also be performed with AIdiva this is the only required command line argument. In the other case when an already annotated file is given there are a few more arguments that needs to be passed instead of being specified in the configuration file. The reason for this different set of parameters is due to the fact that it makes it more convenient to include AIdiva in another existing pipeline.

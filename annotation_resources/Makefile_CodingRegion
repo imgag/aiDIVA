@@ -1,0 +1,8 @@
+help:
+	@cat Makefile_CodingRegion
+
+download:
+	wget -c ftp://ftp.ensembl.org/pub/grch37/current/gff3/homo_sapiens/Homo_sapiens.GRCh37.87.gff3.gz
+
+convert:
+	gzip -dc Homo_sapiens.GRCh37.87.gff3.gz | awk '{if($1 != "#") {if($3 == CDS) {print $1,$4,$5}}}' OFS='\t' > Homo_sapiens.GRCh37.87.bed
