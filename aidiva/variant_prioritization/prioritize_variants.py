@@ -176,7 +176,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, g
     else:
         final_score = variant["AIDIVA_SCORE"]
         hpo_relatedness = np.NaN
-    
+
     return [hpo_relatedness, final_score]
 
 

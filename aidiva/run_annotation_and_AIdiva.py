@@ -157,6 +157,6 @@ if __name__=="__main__":
     print("Filter variants and finalize score ...")
     prioritized_data = prio.prioritize_variants(predicted_data, family_file, family_type, "/mnt/users/ahboced1/AIdiva_project/HPO_resources/", hpo_file, gene_exclusion_file)
 
-    write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"))
+    write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
     prioritized_data.to_csv(str(working_directory + output_filename + ".csv"), sep="\t", index=False)
     print("Pipeline successfully finsished!")
