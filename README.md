@@ -43,6 +43,8 @@ Pretrained random forest models can be found [here](https://download.imgag.de/ah
 ## Running AIdiva
 AIdiva can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. When the variant annotation with VEP should also be performed with AIdiva this is the only required command line argument. In the other case when an already annotated file is given there are a few more arguments that needs to be passed instead of being specified in the configuration file. The reason for this different set of parameters is due to the fact that it makes it more convenient to include AIdiva in another existing pipeline.
 
+Make sure to put the trained models in the data folder and make sure that the filename in the `run_AIdiva.py` is correct.
+
 Running AIdiva and perform the annotation:
 
 `python run_AIdiva.py --config AIdiva_configuration.yaml`
