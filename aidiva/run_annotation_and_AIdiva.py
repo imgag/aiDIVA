@@ -36,9 +36,12 @@ if __name__=="__main__":
 
     # parse input files
     input_vcf = configuration["Analysis-Input"]["vcf"] # should already be annotated with VEP
-    scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
-    scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
-    coding_region_file = configuration["Analysis-Input"]["coding-region"]
+    scoring_model_snp = coding_region_file = os.path.dirname(__file__) + "/../data/rf_model_snp_scikit0-19-1.pkl"
+    scoring_model_indel = coding_region_file = os.path.dirname(__file__) + "/../data/rf_model_inframe_indel_scikit0-19-1.pkl"
+    coding_region_file = os.path.dirname(__file__) + "/../data/GRCh37_coding_sequences.bed"
+    #scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
+    #scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
+    #coding_region_file = configuration["Analysis-Input"]["coding-region"]
 
     # parse output files
     output_filename = configuration["Analysis-Output"]["out-filename"]
@@ -154,6 +157,6 @@ if __name__=="__main__":
     print("Filter variants and finalize score ...")
     prioritized_data = prio.prioritize_variants(predicted_data, family_file, family_type, "/mnt/users/ahboced1/AIdiva_project/HPO_resources/", hpo_file, gene_exclusion_file)
 
-    write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"))
+    write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
     prioritized_data.to_csv(str(working_directory + output_filename + ".csv"), sep="\t", index=False)
     print("Pipeline successfully finsished!")

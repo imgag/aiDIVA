@@ -111,9 +111,9 @@ def check_coding(coding_regions, variant_to_check):
     coding = 0
 
     if "chr" in str(variant_to_check["CHROM"]):
-        chrom_id = str(variant_to_check["CHROM"])
+        chrom_id = str(variant_to_check["CHROM"]).replace("chr", "")
     else:
-        chrom_id = "chr" + str(variant_to_check["CHROM"])
+        chrom_id = str(variant_to_check["CHROM"])
 
     if not coding_regions[(coding_regions[0] == chrom_id) & (coding_regions[1].le(variant_to_check["POS"])) & (coding_regions[2].ge(variant_to_check["POS"]))].empty:
     #if coding_regions[(coding_regions.CHROM.str.match(str(variant_to_check["CHROM"]))) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))]:
@@ -160,7 +160,6 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
     predicted_data_complete = pd.concat([predicted_data_snps, predicted_data_indel])
     predicted_data_complete.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
     predicted_data_complete.reset_index(inplace=True, drop=True)
-
 
     return predicted_data_complete
 

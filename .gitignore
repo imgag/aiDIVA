@@ -105,3 +105,4 @@ venv.bak/
 
 # external data files
 #data/
+data/rf_model*.pkl

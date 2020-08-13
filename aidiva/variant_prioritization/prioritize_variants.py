@@ -151,6 +151,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, g
     if HPO_query:
         if np.isnan(variant["AIDIVA_SCORE"]):
             final_score = np.NaN
+            hpo_relatedness = np.NaN
         else:
             genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
             genenames = set(genecolumn.split(";"))
@@ -172,9 +173,11 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, g
 
             hpo_relatedness = str(max(gene_distances, default=0.0))
             final_score = str((float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2)
-            return [hpo_relatedness, final_score]
     else:
-        return [np.NaN, variant["AIDIVA_SCORE"]]
+        final_score = variant["AIDIVA_SCORE"]
+        hpo_relatedness = np.NaN
+
+    return [hpo_relatedness, final_score]
 
 
 def check_inheritance(variant, family, family_type):
