@@ -44,9 +44,9 @@ if __name__=="__main__":
     expanded_indel_vcf = args.expanded_indel_vcf
 
     # get machine learning models
-    scoring_model_snp = coding_region_file = os.getcwd() + "../data/rf_model_snp_scikit0-19-1.pkl"
-    scoring_model_indel = coding_region_file = os.getcwd() + "../data/rf_model_inframe_indel_scikit0-19-1.pkl"
-    coding_region_file = os.getcwd() + "../data/GRCh37_coding_sequences.bed"
+    scoring_model_snp = coding_region_file = os.path.dirname(__file__) + "/../data/rf_model_snp_scikit0-19-1.pkl"
+    scoring_model_indel = coding_region_file = os.path.dirname(__file__) + "/../data/rf_model_inframe_indel_scikit0-19-1.pkl"
+    coding_region_file = os.path.dirname(__file__) + "/../data/GRCh37_coding_sequences.bed"
     #scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
     #scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
     #coding_region_file = configuration["Analysis-Input"]["coding-region"]
