@@ -47,7 +47,7 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                             "." + "\t" +
                             str(row.INFO).strip() + "\n")
 
-    data_combined = pd.concat(data_grouped)
+    #data_combined = pd.concat(data_grouped)
 
 
 def import_csv_data(in_data):

@@ -2,10 +2,14 @@ import pandas as pd
 import numpy as np
 import tempfile
 import argparse
+import gzip
 
 
 def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel):
-    vcf_file_to_reformat = open(filepath, "r")
+    if filepath.endswith(".gz"):
+        vcf_file_to_reformat = gzip.open(filepath, "rt")
+    else:
+        vcf_file_to_reformat = open(filepath, "r")
     outfile_snps = open(filepath_snp, "w")
     outfile_indel = open(filepath_indel, "w")
 

@@ -281,15 +281,18 @@ def convert_vcf_to_pandas_dataframe(input_file, indel_set):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
     annotation_header = extract_annotation_header(header)
 
-    vcf_as_dataframe = add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set)
-    vcf_as_dataframe = add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header)
-    if "FORMAT" in vcf_as_dataframe.columns:
-        vcf_as_dataframe = add_sample_information_to_dataframe(vcf_as_dataframe)
-    else:
-        print("MISSING SAMPLE INFORMATION!")
+    if not vcf_as_dataframe.empty:
+        vcf_as_dataframe = add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set)
+        vcf_as_dataframe = add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header)
+        if "FORMAT" in vcf_as_dataframe.columns:
+            vcf_as_dataframe = add_sample_information_to_dataframe(vcf_as_dataframe)
+        else:
+            print("MISSING SAMPLE INFORMATION!")
 
-    # replace empty strings or only spaces with NaN
-    vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True)
+        # replace empty strings or only spaces with NaN
+        vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True)
+    else:
+        print("WARNING: The given VCF file is empty!")
 
     return vcf_as_dataframe
 
