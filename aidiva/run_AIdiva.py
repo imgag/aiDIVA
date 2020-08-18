@@ -73,7 +73,8 @@ if __name__=="__main__":
         family_type = "SINGLE"
 
 
-    hpo_resources_folder = configuration["Internal-Parameters"]["hpo-resources"]
+    #hpo_resources_folder = configuration["Internal-Parameters"]["hpo-resources"]
+    hpo_resources_folder = os.path.dirname(__file__) + "/../data/"
 
     ## TODO: Choose whether to delete the allele frequency list
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
@@ -91,19 +92,23 @@ if __name__=="__main__":
     input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True)
     input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True)
 
-    input_data_combined_indel = combine_expanded_indels.combine_vcf_dataframes(input_data_indel, input_data_expanded_indel, feature_list)
+    if (not input_data_snp.empty) & (not input_data_indel.empty) & (not input_data_expanded_indel.empty):
+        input_data_combined_indel = combine_expanded_indels.combine_vcf_dataframes(input_data_indel, input_data_expanded_indel, feature_list)
 
-    # predict pathogenicity score
-    print("Score variants ...")
-    coding_region = pd.read_csv(coding_region_file, sep="\t", header=None, low_memory=False)
-    predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp, input_data_combined_indel, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, coding_region)
+        # predict pathogenicity score
+        print("Score variants ...")
+        coding_region = pd.read_csv(coding_region_file, sep="\t", header=None, low_memory=False)
+        predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp, input_data_combined_indel, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, coding_region)
 
-    # prioritize and filter variants
-    print("Filter variants and finalize score ...")
-    prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, family_file, family_type, hpo_file, gene_exclusion_file)
+        # prioritize and filter variants
+        print("Filter variants and finalize score ...")
+        prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, family_file, family_type, hpo_file, gene_exclusion_file)
 
-    write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
-    prioritized_data.to_csv(str(working_directory + output_filename + ".csv"), sep="\t", index=False)
-    print(prioritized_data)
-    prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_passed_filters.csv"), sep="\t", index=False)
-    print("Pipeline successfully finsished!")
+        write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
+        prioritized_data.to_csv(str(working_directory + output_filename + ".csv"), sep="\t", index=False)
+        print(prioritized_data)
+        prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_passed_filters.csv"), sep="\t", index=False)
+        print("Pipeline successfully finsished!")
+    else:
+        print("The given input files were empty!")
+        write_result.write_result_vcf(pd.concat([input_data_snp, input_data_indel, input_data_expanded_indel]), str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
