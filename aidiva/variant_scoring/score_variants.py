@@ -150,8 +150,6 @@ def perform_pathogenicity_score_prediction(input_data_snps, input_data_indel, rf
     predicted_data_snps.loc[(predicted_data_snps.Consequence.str.contains("splice_acceptor_variant") | predicted_data_snps.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0
     predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("splice_acceptor_variant") | predicted_data_indel.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0
 
-    print(predicted_data_snps)
-    print(predicted_data_indel)
     # set synonymous variants to 0.0
     predicted_data_snps.loc[(predicted_data_snps.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0
     predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0

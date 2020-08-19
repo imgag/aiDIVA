@@ -44,10 +44,25 @@ def write_result_vcf(input_data, vcf_file, single):
         write_header(out, single)
 
         for row in input_data.itertuples():
-            if not single:
-                info_entry = "AIDIVA=" + str(row.AIDIVA_SCORE) + "," + str(row.FINAL_AIDIVA_SCORE) + "," + str(row.HPO_RELATEDNESS) + "," + str(row.FILTER_PASSED) + ";AIDIVA_INHERITANCE=" + str(row.DOMINANT_INHERITED) + "," + str(row.DOMINANT_DENOVO) + "," + str(row.RECESSIVE) + "," + str(row.XLINKED) + "," + str(row.COMPOUND)
+            if str(row.AIDIVA_SCORE) == "nan":
+                aidiva_score = ""
             else:
-                info_entry = "AIDIVA=" + str(row.AIDIVA_SCORE) + "," + str(row.FINAL_AIDIVA_SCORE) + "," + str(row.HPO_RELATEDNESS) + "," + str(row.FILTER_PASSED)
+                aidiva_score = str(row.AIDIVA_SCORE)
+
+            if str(row.FINAL_AIDIVA_SCORE) == "nan":
+                final_aidiva_score = ""
+            else:
+                final_aidiva_score = str(row.FINAL_AIDIVA_SCORE)
+
+            if str(row.HPO_RELATEDNESS) == "nan":
+                hpo_relatedness = ""
+            else:
+                hpo_relatedness = str(row.HPO_RELATEDNESS)
+
+            if not single:
+                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + str(row.FILTER_PASSED) + ";AIDIVA_INHERITANCE=" + str(row.DOMINANT_INHERITED) + "," + str(row.DOMINANT_DENOVO) + "," + str(row.RECESSIVE) + "," + str(row.XLINKED) + "," + str(row.COMPOUND)
+            else:
+                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + str(row.FILTER_PASSED)
 
             out.write(str(row.CHROM).strip() + "\t" + str(row.POS) + "\t" + "." + "\t" + str(row.REF) + "\t" + str(row.ALT) + "\t" + "." + "\t" + "." + "\t" + info_entry + "\n")
 
