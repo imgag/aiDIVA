@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 import os
 import pandas as pd
+import multiprocessing as mp
 import pickle
 import re
 
@@ -52,7 +53,21 @@ variant_consequences = {"transcript_ablation": "non_exonic",
                         "intergenic_variant": "non_exonic"}
 
 
-def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
+cadd_identifier = "CADD_PHRED"
+duplication_identifier = "segmentDuplication"
+repeat_identifier = "simpleRepeat"
+family = None
+family_type = "SINGLE"
+genes2exclude = None
+gene_2_HPO = None
+HPO_graph = None
+HPO_query = None
+query_dist = 0
+num_partitions = 10
+num_cores = 5
+
+
+def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fam_type="SINGLE", hpo_list=None, gene_exclusion_list=None, n_cores=1):
     #load HPO resources
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo_v1.pkl"
     HPO_graph_file = hpo_resources_folder + "hpo_graph_v1.pkl"
@@ -60,15 +75,17 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 
+    global gene_2_HPO
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
     #HPO_graph = pickle.load(open(HPO_graph_file, "rb"))
     hpo_nodes, hpo_edges = pickle.load(open(HPO_graph_file, "rb"))
+
+    global HPO_graph
     HPO_graph = nx.DiGraph()
     HPO_graph.add_nodes_from(hpo_nodes)
     HPO_graph.add_edges_from(hpo_edges)
 
-    query_dist = 0
-
+    global genes2exclude
     genes2exclude = set()
     if gene_exclusion_file:
         if os.path.isfile(gene_exclusion_file):
@@ -85,6 +102,7 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     #    hpo_list = "None"
     #    HPO_query = list()
     #else:
+    global HPO_query
     HPO_query = set()
     if hpo_list_file:
         if os.path.isfile(hpo_list_file):
@@ -97,7 +115,9 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
                         HPO_query.append(HPO_term)
                     except:
                         print("%s not found in database" % (HPO_term))
-            HPO_query= list(set(HPO_query))
+            HPO_query = list(set(HPO_query))
+            global query_dist
+            ## TODO: the following method is obsolete, "list_distance" can be used instead
             query_dist = gs.precompute_query_distances(HPO_graph, HPO_query, 0)
             print("HPO-list: ", HPO_query)
         else:
@@ -106,6 +126,7 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
 
     # read family relationships
     # TODO change to ped file
+    global family
     family = dict()
     if family_file:
         if os.path.isfile(family_file):
@@ -126,18 +147,10 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
             print("The specified family file %s is not a valid file" % (family_file))
             print("Skip inheritance assessment!")
 
-    family_type = family_type
-    cadd_identifier = "CADD_PHRED"
-    duplication_identifier = "segmentDuplication"
-    repeat_identifier = "simpleRepeat"
+    global family_type
+    family_type = fam_type
 
-    ## TODO: Skip the HPO adjustment if no HPO file or an empty file is given
-    variant_data[["HPO_RELATEDNESS", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist)), axis=1)
-    variant_data[["FILTER_PASSED"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query, cadd_identifier, duplication_identifier, repeat_identifier)), axis=1)
-
-    ## TODO: Perform inheritance cheks only if the family information is passed
-    if family and family_type != "SINGLE":
-        variant_data = variant_data.apply(lambda variant: pd.Series(check_inheritance(variant_data, family, family_type)), axis=1)
+    variant_data = parallelize_dataframe_processing(variant_data, parallelized_variant_processing, n_cores)
 
     variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False], inplace=True)
     variant_data.reset_index(inplace=True, drop=True)
@@ -147,11 +160,40 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     return variant_data
 
 
-def compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, gene_2_HPO, HPO_query, query_dist):
+def parallelize_dataframe_processing(variant_data, function, n_cores):
+    global num_partitions
+    num_partitions = n_cores * 2
+
+    if len(variant_data) <= num_partitions:
+        dataframe_splitted = np.array_split(variant_data, 1)
+    else:
+        dataframe_splitted = np.array_split(variant_data, num_partitions)
+
+    pool = mp.Pool(n_cores)
+    variant_data = pd.concat(pool.map(function, dataframe_splitted))
+    pool.close()
+    pool.join()
+
+    return variant_data
+
+
+def parallelized_variant_processing(variant_data):
+    ## TODO: Skip the HPO adjustment if no HPO file or an empty file is given
+    variant_data[["HPO_RELATEDNESS", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant)), axis=1)
+    variant_data[["FILTER_PASSED"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant)), axis=1)
+
+    ## TODO: Perform inheritance cheks only if the family information is passed
+    if family and family_type != "SINGLE":
+        variant_data = variant_data.apply(lambda variant: pd.Series(check_inheritance(variant_data)), axis=1)
+
+    return variant_data
+
+
+def compute_hpo_relatedness_and_final_score(variant):
     if HPO_query:
         if np.isnan(variant["AIDIVA_SCORE"]):
-            final_score = np.NaN
-            hpo_relatedness = np.NaN
+            final_score = np.nan
+            hpo_relatedness = np.nan
         else:
             genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
             genenames = set(genecolumn.split(";"))
@@ -167,6 +209,8 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, g
                     #process ex novo
                     #get HPOs related to the gene
                     gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
+                    # do we need to update query_dist here???
+                    global query_dist
                     (g_dist,query_dist) = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, query_dist)
                     gene_distances.append(g_dist)
                     processed_HPO_genes[gene_id] = g_dist
@@ -175,12 +219,12 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, HPO_graph, g
             final_score = str((float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2)
     else:
         final_score = variant["AIDIVA_SCORE"]
-        hpo_relatedness = np.NaN
+        hpo_relatedness = np.nan
 
     return [hpo_relatedness, final_score]
 
 
-def check_inheritance(variant, family, family_type):
+def check_inheritance(variant):
     variant_data["COMPOUND"] = 0
     variant_data["DOMINANT_DENOVO"] = variant_data.apply(lambda variant: check_denovo(variant, family), axis=1)
 
@@ -217,7 +261,7 @@ def check_inheritance(variant, family, family_type):
     return variant_data
 
 
-def check_filters(variant, genes2exclude, HPO_list, cadd_identifier, duplication_identifier, repeat_identifier):
+def check_filters(variant):
     genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     genenames = set(genecolumn.split(";"))
 
@@ -251,7 +295,7 @@ def check_filters(variant, genes2exclude, HPO_list, cadd_identifier, duplication
             if not (("synonymous_variant" in consequences.split("&")) & ("unknown" != consequences) & ("UNKNOWN" != consequences)):
                 if (seg_dup == 0):
                     filter_passed = 1
-                    if (len(HPO_list) > 1) & ("NONE" not in HPO_list):
+                    if (len(HPO_query) > 1) & ("NONE" not in HPO_query):
                         if float(variant["HPO_RELATEDNESS"]) > 0:
                             filter_passed = 1
                         else:

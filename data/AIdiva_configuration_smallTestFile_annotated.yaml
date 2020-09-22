@@ -8,11 +8,12 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: /mnt/users/ahboced1/AIdiva_project/current_model/rf_snp_clinvar_hgmd_1to1_scikit0-19-1.pkl
-    scoring-model-indel: /mnt/users/ahboced1/AIdiva_project/current_model/rf_inframe_indel_clinvar_hgmd_balanced_scikit0-19-1.pkl
+    scoring-model-snp: /mnt/users/ahboced1/AIdiva_project/AIdiva/data/rf_snp_clinvar_hgmd_1to1_scikit0-19-1.pkl
+    scoring-model-indel: /mnt/users/ahboced1/AIdiva_project/AIdiva/data/rf_inframe_indel_clinvar_hgmd_balanced_scikit0-19-1.pkl
 
     # bed file to distinguish between coding and non-coding variants
-    coding-region: /mnt/share/data/dbs/hg19/Annotation/hg19.Ensembl_gene.bed
+    # if the file is not present the Makefile_CodingRegion script in the annotation_resources folder can be used to create it
+    coding-region: /mnt/users/ahboced1/AIdiva_project/AIdiva/data/hg19.Ensembl_gene.bed
 
     prioritization-information:
         # List of genes that should be excluded in the analysis, because they are normally false positives
@@ -27,7 +28,7 @@ Analysis-Input:
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these) if not wanted use a empty list "[]" instead
-    # this is needed if MAX_AF is present in the annotated data
+    # this is needed if MAX_AF is not present in the annotated data
     allele-frequency-list:
         - gnomAD_AFR_AF
         - gnomAD_AMR_AF
@@ -54,10 +55,10 @@ Model-Features:
         - ABB_SCORE
         - MAX_AF
         - segmentDuplication
-        - custom_EIGEN_PHRED
-        - fannsdb_CONDEL
-        - custom_FATHMM_XF
-        - custom_MutationAssessor
+        - EIGEN_PHRED
+        - CONDEL
+        - FATHMM_XF
+        - MutationAssessor
         - phastCons46mammal
         - phastCons46primate
         - phastCons46vertebrate

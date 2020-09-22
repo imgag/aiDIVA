@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import multiprocessing as mp
 import tempfile
 import argparse
 from operator import itemgetter
@@ -41,6 +42,11 @@ variant_consequences = {"transcript_ablation": 1,
                         "regulatory_region_variant": 34,
                         "feature_truncation": 35,
                         "intergenic_variant": 36}
+
+
+grouped_expanded_vcf = None
+feature_list = None
+num_partitions = 10
 
 
 def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
@@ -208,8 +214,35 @@ def add_simple_repeat_annotation(row, grouped_expanded_vcf):
     return "&".join(simple_repeat)
 
 
-def combine_vcf_dataframes(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list):
+def combine_vcf_dataframes(vcf_as_dataframe):
     #print("Feature-list:", feature_list)
+    #for feature in feature_list:
+    #    if (feature == "MaxAF") | (feature == "MAX_AF"):
+    #        continue
+    #    if "SIFT" in feature:
+    #        expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
+    #    else:
+            #print("Feature:", feature)
+            #print(expanded_vcf_as_dataframe.columns)
+    #        expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
+
+    #grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("indel_ID")
+
+    for feature in feature_list:
+        if feature == "MaxAF":
+            continue
+        vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
+
+    #vcf_as_dataframe[["simpleRepeat"]] = vcf_as_dataframe.apply(lambda row : pd.Series(add_simple_repeat_annotation(row, grouped_expanded_vcf)), axis=1)
+
+    return vcf_as_dataframe
+
+
+def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, features, n_cores):
+    #print("Feature-list:", feature_list)
+    global feature_list
+    feature_list = features
+
     for feature in feature_list:
         if (feature == "MaxAF") | (feature == "MAX_AF"):
             continue
@@ -220,14 +253,21 @@ def combine_vcf_dataframes(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_
             #print(expanded_vcf_as_dataframe.columns)
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
+    global grouped_expanded_vcf
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("indel_ID")
 
-    for feature in feature_list:
-        if feature == "MaxAF":
-            continue
-        vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
+    global num_partitions
+    num_partitions = n_cores * 2
 
-    #vcf_as_dataframe[["simpleRepeat"]] = vcf_as_dataframe.apply(lambda row : pd.Series(add_simple_repeat_annotation(row, grouped_expanded_vcf)), axis=1)
+    if len(vcf_as_dataframe) <= num_partitions:
+        dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
+    else:
+        dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
+
+    pool = mp.Pool(n_cores)
+    vcf_as_dataframe = pd.concat(pool.map(combine_vcf_dataframes, dataframe_splitted))
+    pool.close()
+    pool.join()
 
     return vcf_as_dataframe
 

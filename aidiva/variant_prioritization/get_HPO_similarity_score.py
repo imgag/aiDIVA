@@ -69,6 +69,7 @@ def list_distance(DG, Q, G, Query_distances):
     return (1 - final_value, Query_distances)
 
 
+## TODO: the following method is obsolete, "list_distance" can be used instead
 def precompute_query_distances(DG, Q, Query_distances):
     offset = 1000
     for k_q in Q:

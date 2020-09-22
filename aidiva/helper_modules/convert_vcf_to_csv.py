@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import multiprocessing as mp
 import tempfile
 import argparse
 from operator import itemgetter
@@ -41,6 +42,12 @@ variant_consequences = {"transcript_ablation": 1,
                         "regulatory_region_variant": 34,
                         "feature_truncation": 35,
                         "intergenic_variant": 36}
+
+num_partitions = 10
+num_cores = 5
+annotation_header = None
+indel_set = False
+
 
 
 def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel):
@@ -245,18 +252,19 @@ def extract_sample_information(row, sample):
     return sample_information
 
 
-def add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set):
-
+#def add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set):
+def add_INFO_fields_to_dataframe(vcf_as_dataframe):
     if indel_set:
         vcf_as_dataframe[["RANK", "indel_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     else:
         vcf_as_dataframe[["RANK", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
     return vcf_as_dataframe
 
 
-def add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header):
+def add_VEP_annotation_to_dataframe(vcf_as_dataframe):
     vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
 
@@ -276,16 +284,25 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
     return vcf_as_dataframe
 
 
-def convert_vcf_to_pandas_dataframe(input_file, indel_set):
+## TODO: Add parallelization
+def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
     print("input-file", input_file)
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
+
+    global annotation_header
     annotation_header = extract_annotation_header(header)
 
+    global indel_set
+    indel_set = process_indel
+
     if not vcf_as_dataframe.empty:
-        vcf_as_dataframe = add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set)
-        vcf_as_dataframe = add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header)
+        #vcf_as_dataframe = add_INFO_fields_to_dataframe(vcf_as_dataframe)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_INFO_fields_to_dataframe, n_cores)
+        #vcf_as_dataframe = add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_VEP_annotation_to_dataframe, n_cores)
         if "FORMAT" in vcf_as_dataframe.columns:
-            vcf_as_dataframe = add_sample_information_to_dataframe(vcf_as_dataframe)
+            vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_sample_information_to_dataframe, n_cores)
+            #vcf_as_dataframe = add_sample_information_to_dataframe(vcf_as_dataframe)
         else:
             print("MISSING SAMPLE INFORMATION!")
 
@@ -293,6 +310,23 @@ def convert_vcf_to_pandas_dataframe(input_file, indel_set):
         vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True)
     else:
         print("WARNING: The given VCF file is empty!")
+
+    return vcf_as_dataframe
+
+
+def parallelize_dataframe_processing(vcf_as_dataframe, function, n_cores):
+    global num_partitions
+    num_partitions = n_cores * 2
+
+    if len(vcf_as_dataframe) <= num_partitions:
+        dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
+    else:
+        dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
+
+    pool = mp.Pool(n_cores)
+    vcf_as_dataframe = pd.concat(pool.map(function, dataframe_splitted))
+    pool.close()
+    pool.join()
 
     return vcf_as_dataframe
 

@@ -2,6 +2,7 @@ import argparse
 import os
 import pandas as pd
 import tempfile
+import time
 import helper_modules.combine_expanded_indels_and_create_csv as combine_expanded_indels
 import helper_modules.create_result_vcf as write_result
 import helper_modules.convert_indels_to_snps_and_create_vcf as expand_indels_and_create_vcf
@@ -21,7 +22,10 @@ if __name__=="__main__":
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient [required]")
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
+    parser.add_argument("--threads", type=int, dest="threads", metavar="1", nargs="?", const=1, required=False, help="Number of threads to use.")
     args = parser.parse_args()
+
+    num_cores = args.threads
 
     # parse configuration file
     config_file = open(args.config, "r")
@@ -88,25 +92,37 @@ if __name__=="__main__":
     #expanded_indel_vcf_filename = os.path.basename(expanded_indel_vcf_file)
 
     ## TODO: Combine  the annotated VCF files to only have one single input file
-    input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False)
-    input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True)
-    input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True)
+    #input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False)
+    #input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True)
+    #input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True)
+    t = time.time()
+    input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False, num_cores)
+    input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True, num_cores)
+    input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True, num_cores)
+    print("Prepared all variants for further processing in: %.2f seconds" % (time.time() - t))
 
     if (not input_data_snp.empty) & (not input_data_indel.empty) & (not input_data_expanded_indel.empty):
-        input_data_combined_indel = combine_expanded_indels.combine_vcf_dataframes(input_data_indel, input_data_expanded_indel, feature_list)
+        print("Combine InDel variants ...")
+        t = time.time()
+        #input_data_combined_indel = combine_expanded_indels.combine_vcf_dataframes(input_data_indel, input_data_expanded_indel, feature_list)
+        input_data_combined_indel = combine_expanded_indels.parallelized_indel_combination(input_data_indel, input_data_expanded_indel, feature_list, num_cores)
+        print("Combined InDel variants in: %.2f seconds" % (time.time() - t))
 
         # predict pathogenicity score
         print("Score variants ...")
+        t = time.time()
         coding_region = pd.read_csv(coding_region_file, sep="\t", header=None, low_memory=False)
-        predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp, input_data_combined_indel, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, coding_region)
+        predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp, input_data_combined_indel, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, coding_region, num_cores)
+        print("Scored all variants in: %.2f seconds" % (time.time() - t))
 
         # prioritize and filter variants
         print("Filter variants and finalize score ...")
+        t = time.time()
         prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, family_file, family_type, hpo_file, gene_exclusion_file)
+        print("Prioritized all variants in: %.2f seconds" % (time.time() - t))
 
         write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
         prioritized_data.to_csv(str(working_directory + output_filename + ".csv"), sep="\t", index=False)
-        print(prioritized_data)
         prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_passed_filters.csv"), sep="\t", index=False)
         print("Pipeline successfully finsished!")
     else:
