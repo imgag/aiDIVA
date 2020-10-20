@@ -18,7 +18,14 @@ import yaml
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "AIdiva -- Augmented Intelligence Disease Variant Analysis")
+    parser.add_argument("--vcf", type=str, dest="vcf", metavar="input.vcf", required=True, help="VCF file with the variants to analyze [required]")
+    parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="results", required=True, help="Prefix that is used to save the results [required]")
+    parser.add_argument("--workdir", type=str, dest="workdir", metavar="workdir/", required=True, help="Path to the working directory (here all results are saved) [required]")
+    parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient [required]")
+    parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion", metavar="gene_exclusion.txt", required=False, help="TXT file containing the genes to exclude in the analysis [required]")
+    parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
+    parser.add_argument("--threads", type=int, dest="threads", metavar="1", nargs="?", const=1, required=False, help="Number of threads to use.")
     #parser.add_argument("--annotate", dest="annotate", action="store_true", required=False, help="Flag indicating that the annotation with VEP needs to be done")
     args = parser.parse_args()
 
@@ -27,7 +34,8 @@ if __name__=="__main__":
     configuration = yaml.full_load(config_file)
     config_file.close()
 
-    working_directory = configuration["Analysis-Input"]["work-dir"]
+    #working_directory = configuration["Analysis-Input"]["work-dir"]
+    working_directory = args.workdir
 
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
@@ -35,7 +43,8 @@ if __name__=="__main__":
     ref_path = configuration["Analysis-Input"]["ref-path"]
 
     # parse input files
-    input_vcf = configuration["Analysis-Input"]["vcf"] # should already be annotated with VEP
+    #input_vcf = configuration["Analysis-Input"]["vcf"] # should already be annotated with VEP
+    input_vcf = args.vcf
     scoring_model_snp = coding_region_file = os.path.dirname(__file__) + "/../data/rf_model_snp_scikit0-19-1.pkl"
     scoring_model_indel = coding_region_file = os.path.dirname(__file__) + "/../data/rf_model_inframe_indel_scikit0-19-1.pkl"
     coding_region_file = os.path.dirname(__file__) + "/../data/GRCh37_coding_sequences.bed"
@@ -47,10 +56,13 @@ if __name__=="__main__":
     output_filename = configuration["Analysis-Output"]["out-filename"]
 
     # parse disease and inheritance information
-    hpo_file = configuration["Analysis-Input"]["prioritization-information"]["hpo-list"]
-    gene_exclusion_file = configuration["Analysis-Input"]["prioritization-information"]["gene-exclusion"]
+    #hpo_file = configuration["Analysis-Input"]["prioritization-information"]["hpo-list"]
+    hpo_file = args.hpo_list
+    #gene_exclusion_file = configuration["Analysis-Input"]["prioritization-information"]["gene-exclusion"]
+    gene_exclusion_file = args.
     family_type = configuration["Analysis-Input"]["prioritization-information"]["family-type"]
-    family_file = configuration["Analysis-Input"]["prioritization-information"]["family-file"]
+    #family_file = configuration["Analysis-Input"]["prioritization-information"]["family-file"]
+    family_file = args.family_file
 
     vep_annotation_dict = configuration["VEP-Annotation"]
     prioritization_information_dict = configuration["Analysis-Input"]["prioritization-information"]
@@ -78,6 +90,7 @@ if __name__=="__main__":
 
     # annotate with VEP
     #if vep_annotation_dict["perform-vep-annotation"]:
+
     ## TODO: change to match the two input files
     print("Starting VEP annotation ...")
     annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_snp_annotated.vcf"), vep_annotation_dict, False)

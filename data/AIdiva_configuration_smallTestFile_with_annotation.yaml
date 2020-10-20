@@ -142,24 +142,24 @@ VEP-Annotation:
                 prefix: custom
         # Bigwig files the key of the dictionary is used as the name to present the feature in the annotated file
         bigwig-files:
-            #phastCons46mammal:
-                #file: phastCons46mammal.bw
-                #method: exact
-            #phastCons46primate:
-                #file: phastCons46primate.bw
-                #method: exact
-            #phastCons46vertebrate:
-                #file: phastCons46vertebrate.bw
-                #method: exact
-            #phyloP46mammal:
-                #file: phyloP46mammal.bw
-                #method: exact
-            #phyloP46primate:
-                #file: phyloP46primate.bw
-                #method: exact
-            #phyloP46vertebrate:
-                #file: phyloP46vertebrate.bw
-                #method: exact
+            phastCons46mammal:
+                file: phastCons46mammal.bw
+                method: exact
+            phastCons46primate:
+                file: phastCons46primate.bw
+                method: exact
+            phastCons46vertebrate:
+                file: phastCons46vertebrate.bw
+                method: exact
+            phyloP46mammal:
+                file: phyloP46mammal.bw
+                method: exact
+            phyloP46primate:
+                file: phyloP46primate.bw
+                method: exact
+            phyloP46vertebrate:
+                file: phyloP46vertebrate.bw
+                method: exact
 
 
 Additional-Annotation:
@@ -177,12 +177,12 @@ Additional-Annotation:
 
     # additional annotations the key is used as feature name for the prediction
     additional-bigwig-files:
-        phyloP46mammal: /mnt/users/ahboced1/databases/hg19/phyloP46mammal.bw
-        phyloP46primate: /mnt/users/ahboced1/databases/hg19/phyloP46primate.bw
-        phyloP46vertebrate: /mnt/users/ahboced1/databases/hg19/phyloP46vertebrate.bw
-        phastCons46mammal: /mnt/users/ahboced1/databases/hg19/phastCons46mammal.bw
-        phastCons46primate: /mnt/users/ahboced1/databases/hg19/phastCons46primate.bw
-        phastCons46vertebrate: /mnt/users/ahboced1/databases/hg19/phastCons46vertebrate.bw
+        #phyloP46mammal: /mnt/users/ahboced1/databases/hg19/phyloP46mammal.bw
+        #phyloP46primate: /mnt/users/ahboced1/databases/hg19/phyloP46primate.bw
+        #phyloP46vertebrate: /mnt/users/ahboced1/databases/hg19/phyloP46vertebrate.bw
+        #phastCons46mammal: /mnt/users/ahboced1/databases/hg19/phastCons46mammal.bw
+        #phastCons46primate: /mnt/users/ahboced1/databases/hg19/phastCons46primate.bw
+        #phastCons46vertebrate: /mnt/users/ahboced1/databases/hg19/phastCons46vertebrate.bw
 
 
 Analysis-Output:

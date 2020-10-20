@@ -155,8 +155,12 @@ def extract_columns(cell):
     info_fields = str(cell).split(";")
     new_cols = []
 
-    rank = np.NaN
-    indel_ID = np.NaN
+    rank = np.nan
+    indel_ID = np.nan
+    fathmm_xf = np.nan
+    condel = np.nan
+    eigen_phred = np.nan
+    mutation_assessor = np.nan
     annotation = ""
 
     if "indel_ID" in str(cell):
@@ -167,15 +171,39 @@ def extract_columns(cell):
                 indel_ID = field.split("=")[1]
             if field.startswith("CSQ="):
                 annotation = field.split("=")[1]
-        return [rank, indel_ID, annotation]
+            if field.startswith("FATHMM_XF="):
+                if field.split("=")[1] != "nan":
+                    fathmm_xf = field.split("=")[1]
+            if field.startswith("CONDEL="):
+                if field.split("=")[1] != "nan":
+                    condel = field.split("=")[1]
+            if field.startswith("EIGEN_PHRED="):
+                if field.split("=")[1] != "nan":
+                    eigen_phred = field.split("=")[1]
+            if field.startswith("MutationAssessor="):
+                if field.split("=")[1] != "nan":
+                    mutation_assessor = field.split("=")[1]
+        return [rank, indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor]
     else:
         for field in info_fields:
             if field.startswith("RANK"):
                 rank = field.split("=")[1]
             if field.startswith("CSQ="):
                 annotation = field.split("=")[1]
+            if field.startswith("FATHMM_XF="):
+                if field.split("=")[1] != "nan":
+                    fathmm_xf = field.split("=")[1]
+            if field.startswith("CONDEL="):
+                if field.split("=")[1] != "nan":
+                    condel = field.split("=")[1]
+            if field.startswith("EIGEN_PHRED="):
+                if field.split("=")[1] != "nan":
+                    eigen_phred = field.split("=")[1]
+            if field.startswith("MutationAssessor="):
+                if field.split("=")[1] != "nan":
+                    mutation_assessor = field.split("=")[1]
 
-        return [rank, annotation]
+        return [rank, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor]
 
 
 def extract_vep_annotation(cell, annotation_header):
@@ -255,9 +283,9 @@ def extract_sample_information(row, sample):
 #def add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set):
 def add_INFO_fields_to_dataframe(vcf_as_dataframe):
     if indel_set:
-        vcf_as_dataframe[["RANK", "indel_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["RANK", "indel_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     else:
-        vcf_as_dataframe[["RANK", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["RANK", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
@@ -314,7 +342,7 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
     return vcf_as_dataframe
 
 
-def parallelize_dataframe_processing(vcf_as_dataframe, function, n_cores):
+def parallelize_dataframe_processing(vcf_as_dataframe, function, n_cores=1):
     global num_partitions
     num_partitions = n_cores * 2
 
@@ -340,8 +368,9 @@ if __name__=="__main__":
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="VCF file to convert file\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the converted VCF file\n")
     parser.add_argument("--indel", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of indel variants or not.\n")
+    parser.add_argument("--threads", type=int, dest="threads", metavar="1", nargs="?", const=1, required=True, help="Number of threads to use.")
     args = parser.parse_args()
 
-    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel)
+    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.threads)
 
     write_vcf_to_csv(vcf_as_dataframe, args.out_data)

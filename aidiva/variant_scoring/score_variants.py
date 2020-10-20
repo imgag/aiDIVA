@@ -88,6 +88,8 @@ def prepare_input_data(input_data):
     # fill Allele Frequence missing values with -> 0
     # fill missing values from other features with -> median or mean
 
+    print(input_data[["CONDEL", "FATHMM_XF", "EIGEN_PHRED", "MutationAssessor"]])
+
     for allele_frequency in allele_frequencies:
         input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
         input_data[allele_frequency] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
@@ -108,9 +110,9 @@ def prepare_input_data(input_data):
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(median_dict["SIFT"])
         else:
-            print(sum(input_data[feature].isna()))
+            #print(sum(input_data[feature].isna()))
             input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan), axis=1)
-            print(sum(input_data[feature].isna()))
+            #print(sum(input_data[feature].isna()))
             if ("phastCons" in feature) | ("phyloP" in feature):
                 input_data[feature] = input_data[feature].fillna(mean_dict[feature])
             else:
@@ -122,6 +124,10 @@ def prepare_input_data(input_data):
     # in that case the input features contains NaNs and lead to an error
 
     #return input_data, input_features
+
+    #print(input_data[["CONDEL", "FATHMM_XF", "EIGEN_PHRED", "MutationAssessor"]])
+    #print(input_data[["CONDEL", "FATHMM_XF", "EIGEN_PHRED", "MutationAssessor"]].isna().sum())
+
     return input_data
 
 
