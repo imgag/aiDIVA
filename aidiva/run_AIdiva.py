@@ -105,7 +105,7 @@ if __name__=="__main__":
 
     print("Prepared all variants for further processing in: %.2f seconds" % (time.time() - t))
 
-    ## TODO: handle the sitation if one or more (but not all) of the input dataframes are empty
+    ## TODO: handle the situation if one or more (but not all) of the input dataframes are empty
     if (not input_data_snp.empty) & (not input_data_indel.empty) & (not input_data_expanded_indel.empty):
         print("Combine InDel variants ...")
         t = time.time()
