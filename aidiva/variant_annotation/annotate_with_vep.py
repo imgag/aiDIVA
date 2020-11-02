@@ -1,15 +1,33 @@
 import subprocess
 import argparse
+import tempfile
+import time
+import os
 
 
-def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, only_basic=False):
+def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, basic=False, num_cores=1):
     # the path to the executable
-    vep_command = vep_annotation_dict["vep"] + " "
+    database_path = "/mnt/storage1/share/data/dbs/"
+    # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
+
+    tool_path = "/mnt/storage1/share/opt/"
+    # tool_path = os.path.dirname(__file__) + "/../../tools/"
+
+    vep_command = tool_path + vep_annotation_dict["vep"] + " "
+
+    bed_annotation = vep_annotation_dict["custom"]["bed-files"]
+    bigwig_annotation = vep_annotation_dict["custom"]["bigwig-files"]
+    #print("ENV:", os.environ["PERL5LIB"])
+
+    # set the correct paths to the needed perl modules
+    os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+
+    #print("ENV_mod:", os.environ["PERL5LIB"])
 
     # add essential parameters
     vep_command = vep_command + "--offline" + " "
     vep_command = vep_command + "--cache" + " "
-    vep_command = vep_command + "--dir_cache " + vep_annotation_dict["cache-path"] + " "
+    vep_command = vep_command + "--dir_cache " + database_path + vep_annotation_dict["cache-path"] + " "
     vep_command = vep_command + "--sift s" + " "
     vep_command = vep_command + "--polyphen s" + " "
     vep_command = vep_command + "--symbol" + " "
@@ -24,32 +42,29 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = vep_command + "--af_esp" + " "
     vep_command = vep_command + "--af_gnomad" + " "
 
-    bed_annotation = vep_annotation_dict["custom"]["bed-files"]
-
     # vep plugins to use
-    if not only_basic:
-        #vep_command = vep_command + "--dir_plugin " + vep_annotation_dict["plugin-path"] + " "
+    if not basic:
         #vep_command = vep_command + "--plugin Condel," + vep_annotation_dict["condel"] + ",s" + " "
-        vep_command = vep_command + "--plugin CADD," + vep_annotation_dict["cadd-snps"] + "," + vep_annotation_dict["cadd-indel"] + " "
-        vep_command = vep_command + "--plugin REVEL," + vep_annotation_dict["revel"] + " "
+        vep_command = vep_command + "--plugin CADD," + database_path + vep_annotation_dict["cadd-snps"] + "," + database_path + vep_annotation_dict["cadd-indel"] + " "
+        vep_command = vep_command + "--plugin REVEL," + database_path + vep_annotation_dict["revel"] + " "
         #vep_command = vep_command + "--plugin dbNSFP," + vep_annotation_dict["dbNSFP"] + ",MutationAssessor_score,Eigen-raw,Eigen-phred" + " "
 
         #vcf_annotation = vep_annotation_dict["custom"]["vcf-files"]
-        bigwig_annotation = vep_annotation_dict["custom"]["bigwig-files"]
 
         if bed_annotation:
             for key in bed_annotation:
-                vep_command = vep_command + "--custom " + bed_annotation[key]["file"]  + "," + key + ",bed," + bed_annotation[key]["method"] + ",0" + " "
+                vep_command = vep_command + "--custom " + database_path + bed_annotation[key]["file"]  + "," + key + ",bed," + bed_annotation[key]["method"] + ",0" + " "
 
-        if vcf_annotation:
-            for key in vcf_annotation:
-                vep_command = vep_command + "--custom " + vcf_annotation[key]["file"] + "," + vcf_annotation[key]["prefix"] + ",vcf," + vcf_annotation[key]["method"] + ",0," + key + " "
+        # does not work (seems to be a problem with VEP)
+        #if vcf_annotation:
+        #    for key in vcf_annotation:
+        #        vep_command = vep_command + "--custom " + vcf_annotation[key]["file"] + "," + vcf_annotation[key]["prefix"] + ",vcf," + vcf_annotation[key]["method"] + ",0," + key + " "
 
         if bigwig_annotation:
             for key in bigwig_annotation:
-                vep_command = vep_command + "--custom " + bigwig_annotation[key]["file"] + "," + key + ",bigwig," + bigwig_annotation[key]["method"] + ",0" + " "
+                vep_command = vep_command + "--custom " + database_path + bigwig_annotation[key]["file"] + "," + key + ",bigwig," + bigwig_annotation[key]["method"] + ",0" + " "
     else:
-        vep_command = vep_command + "--custom " + bed_annotation["simpleRepeat"]["file"]  + "," + "simpleRepeat" + ",bed," + bed_annotation["simpleRepeat"]["method"] + ",0" + " "
+        vep_command = vep_command + "--custom " + database_path + bed_annotation["simpleRepeat"]["file"]  + "," + "simpleRepeat" + ",bed," + bed_annotation["simpleRepeat"]["method"] + ",0" + " "
 
     vep_command = vep_command + "-i " + input_vcf_file + " "
     vep_command = vep_command + "-o " + output_vcf_file + " "
@@ -60,6 +75,29 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
     subprocess.run(vep_command, shell=True, check=True)
     print("The annotated VCF is saved as %s" % (output_vcf_file))
+
+
+def annotate_from_vcf(input_vcf_file, output_vcf_file, num_cores=1):
+    tmp = tempfile.NamedTemporaryFile(mode="w+b", suffix=".config", delete=False)
+
+    database_path = "/mnt/storage1/share/data/dbs/"
+    # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
+
+    tool_path = "/mnt/storage1/share/opt/"
+    # tool_path = os.path.dirname(__file__) + "/../../tools/"
+
+    command = tool_path + "ngs-bits-current/VcfAnnotateFromVCF -config_file " + tmp.name + " -in " + input_vcf_file + " -out " + output_vcf_file + " -threads " + str(num_cores)
+
+    try:
+        tmp.write(str(database_path + "Condel/hg19_precomputed_Condel.vcf.gz\t\tCONDEL\t\ttrue\n").encode())
+        tmp.write(str(database_path + "Eigen/hg19_Eigen-phred_coding_chrom1-22.vcf.gz\t\tEIGEN_PHRED\t\ttrue\n").encode())
+        tmp.write(str(database_path + "fathmm-XF/hg19_fathmm_xf_coding.vcf.gz\t\tFATHMM_XF\t\ttrue\n").encode())
+        tmp.write(str(database_path + "MutationAssessor/hg19_precomputed_MutationAssessor.vcf.gz\t\tMutationAssessor\t\ttrue\n").encode())
+        tmp.close()
+
+        subprocess.run(command, shell=True, check=True)
+    finally:
+        os.remove(tmp.name)
 
 
 if __name__=="__main__":

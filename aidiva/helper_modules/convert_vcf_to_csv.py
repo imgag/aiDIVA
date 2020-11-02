@@ -314,7 +314,7 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
 
 ## TODO: Add parallelization
 def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
-    print("input-file", input_file)
+    #print("input-file", input_file)
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 
     global annotation_header
@@ -343,15 +343,20 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
 
 
 def parallelize_dataframe_processing(vcf_as_dataframe, function, n_cores=1):
+    if n_cores is None:
+        num_cores = 1
+    else:
+        num_cores = n_cores
+
     global num_partitions
-    num_partitions = n_cores * 2
+    num_partitions = num_cores * 2
 
     if len(vcf_as_dataframe) <= num_partitions:
         dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
     else:
         dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
 
-    pool = mp.Pool(n_cores)
+    pool = mp.Pool(num_cores)
     vcf_as_dataframe = pd.concat(pool.map(function, dataframe_splitted))
     pool.close()
     pool.join()

@@ -69,6 +69,7 @@ num_cores = 5
 
 def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fam_type="SINGLE", hpo_list=None, gene_exclusion_list=None, n_cores=1):
     #load HPO resources
+    print(hpo_resources_folder)
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo_v1.pkl"
     HPO_graph_file = hpo_resources_folder + "hpo_graph_v1.pkl"
     hpo_dict_file = hpo_resources_folder + "hpo2gene_v1.pkl"
@@ -161,15 +162,20 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
 
 
 def parallelize_dataframe_processing(variant_data, function, n_cores):
+    if n_cores is None:
+        num_cores = 1
+    else:
+        num_cores = n_cores
+
     global num_partitions
-    num_partitions = n_cores * 2
+    num_partitions = num_cores * 2
 
     if len(variant_data) <= num_partitions:
         dataframe_splitted = np.array_split(variant_data, 1)
     else:
         dataframe_splitted = np.array_split(variant_data, num_partitions)
 
-    pool = mp.Pool(n_cores)
+    pool = mp.Pool(num_cores)
     variant_data = pd.concat(pool.map(function, dataframe_splitted))
     pool.close()
     pool.join()
@@ -210,13 +216,20 @@ def compute_hpo_relatedness_and_final_score(variant):
                     #get HPOs related to the gene
                     gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
                     # do we need to update query_dist here???
+
                     global query_dist
-                    (g_dist,query_dist) = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, query_dist)
+                    (g_dist, query_distance) = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, query_dist)
+                    query_dist = query_distance
+
                     gene_distances.append(g_dist)
                     processed_HPO_genes[gene_id] = g_dist
 
-            hpo_relatedness = str(max(gene_distances, default=0.0))
-            final_score = str((float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2)
+            if gene_distances:
+                hpo_relatedness = str(max(gene_distances, default=0.0))
+                final_score = str((float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2)
+            else:
+                final_score = variant["AIDIVA_SCORE"]
+                hpo_relatedness = np.nan
     else:
         final_score = variant["AIDIVA_SCORE"]
         hpo_relatedness = np.nan
@@ -823,10 +836,10 @@ if __name__=="__main__":
 
     parser = argparse.ArgumentParser(description = "Filter variants and finalize the AIDIVA_SCORE based on the given HPO terms (if this information is present)")
     parser.add_argument("--in_file", type=str, dest="in_file", required=True, help="Tab separated input annotated and scored file [required]")
-    parser.add_argument("--out_filename", type=str, dest="out_filename", required=True, help="Name to save the results [required]")
+    parser.add_argument("--out_file", type=str, dest="out_filename", required=True, help="Name to save the results [required]")
     parser.add_argument("--family", type=str, dest="family", required=False, help="Tab separated list of samples annotated with affection status. [required]")
     parser.add_argument("--family_type", type=str, choices=["TRIO", "FAMILY", "SINGLE"], dest="family_type", required=False, help="Choose if the data you provide is a trio or a larger family [required]")
-    parser.add_argument("--gene_exclusion_list", type=str, dest="gene_exclusion_list", required=False, help="List of genes that should be excluded in the prioritization")
+    parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion_list", required=False, help="List of genes that should be excluded in the prioritization")
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", default=None, required=False, help="List of HPO terms that are observed in the patient. These terms are used to adjust the AIDIVA_SCORE\n")
     parser.add_argument("--hpo_resources", type=str, dest="hpo_resources", default="../../data/", required=True, help="Folder where the HPO resources (HPO_graph,...) are found\n")
     args = parser.parse_args()

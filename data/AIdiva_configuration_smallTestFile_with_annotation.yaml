@@ -10,18 +10,15 @@ Analysis-Input:
     vcf: test_with_sample_information_sorted.vcf
 
     # path to the working directory
-    work-dir: test_workdir2/
+    #work-dir: test_workdir2/
 
     # path to the reference assembly used during the expansion of the indels
-    ref-path: grch37/
+    ref-path: genomes/GRCh37.fa
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
     scoring-model-snp: rf_snp_clinvar_hgmd_1to1.pkl
     scoring-model-indel: inframe_indel_clinvar_hgmd_balanced.pkl
-
-    # bed file to distinguish between coding and non-coding variants
-    coding-region: Homo_sapiens_coding-sequences.GRCh37.87.bed
 
     prioritization-information:
         # file containing the HPO terms that are associated with the disease (one term per line)
@@ -29,7 +26,7 @@ Analysis-Input:
 
         # family type, shows the structure of the given family inforamtion
         # possible values: [TRIO, FAMILY, SINGLE]
-        family-type: TRIO
+        family-type: SINGLE
 
         # file with the family information
         family-file: family.txt
@@ -72,10 +69,10 @@ Model-Features:
         - ABB_SCORE
         - MAX_AF
         - segmentDuplication
-        - custom_EIGEN_PHRED
-        - fannsdb_CONDEL
-        - custom_FATHMM_XF
-        - custom_MutationAssessor
+        - EIGEN_PHRED
+        - CONDEL
+        - FATHMM_XF
+        - MutationAssessor
         - phastCons46mammal
         - phastCons46primate
         - phastCons46vertebrate
@@ -88,110 +85,82 @@ VEP-Annotation:
     perform-vep-annotation: True
 
     # VEP: path to the VEP executable
-    vep: /mnt/share/opt/ensembl-vep-release-98.3/vep
+    vep: ensembl-vep-release-100.3/vep
 
     # threads to use during the annotation
-    num-threads: 4
+    num-threads: 5
 
     # Cache directory and plugin directory
-    cache-path: /mnt/share/data/dbs/ensembl-vep-98/cache
-    plugin-path: /mnt/users/ahboced1/Tools/vep_data/plugins
+    cache-path: ensembl-vep-100/cache
+    #plugin-path: vep_data/plugins
 
     # CADD: paths to the CADD database files
-    cadd-snps: /mnt/share/data/dbs/CADD/whole_genome_SNVs.tsv.gz
-    cadd-indel: /mnt/share/data/dbs/CADD/InDels.tsv.gz
-
-    # Condel: path to the Condel config
-    #condel: /mnt/users/ahboced1/Tools/vep_data/plugins/config/Condel/config
+    cadd-snps: CADD/CADD_SNVs_1.6.tsv.gz
+    cadd-indel: CADD/CADD_InDels_1.6.tsv.gz
 
     # REVEL: path to the REVEL database file
-    revel: /mnt/share/data/dbs/REVEl/revel_all_chromosomes.tsv.gz
+    revel: REVEl/revel_all_chromosomes.tsv.gz
 
     # dbNSFP
-    #dbNSFP: /mnt/users/ahbranl1/data_vep/dbNSFP/dbNSFP_hg19_3.5.gz
+    #dbNSFP: dbNSFP/dbNSFP_hg19_3.5.gz
 
     custom:
         # BED like files here the key of the dictionary is used as the name to present the feature in the annotated file
         bed-files:
             simpleRepeat:
-                file: /mnt/users/ahboced1/databases/hg19/simpleRepeats.bedGraph.gz
+                file: UCSC/hg19_simpleRepeat.bed.gz
                 method: overlap
             segmentDuplication:
-                file: /mnt/users/ahboced1/databases/hg19/segmentDuplication.bedGraph.gz
+                file: UCSC/hg19_genomicSuperDups.bed.gz
                 method: overlap
             ABB_SCORE:
-                file: /mnt/users/ahboced1/databases/hg19/abb_score.bedGraph.gz
+                file: ABB/hg19_ABB-SCORE.bed.gz
                 method: exact
+
         # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
         vcf-files:
             EIGEN_PHRED:
-                file: /mnt/users/ahboced1/databases/hg19/Eigen_phred_hg19_chrom1-22.vcf.gz
+                file: Eigen/hg19_Eigen-phred_coding_chrom1-22.vcf.gz
                 method: exact
                 prefix: custom
             CONDEL:
-                file: /mnt/users/ahboced1/databases/hg19/fannsdb_onlyCONDEL.vcf.gz
+                file: Condel/hg19_precomputed_Condel.vcf.gz
                 method: exact
                 prefix: fannsdb
             FATHMM_XF:
-                file: /mnt/users/ahboced1/databases/hg19/fathmm_XF_onlyCoding.vcf.gz
+                file: fathmm-XF/hg19_fathmm_xf_coding.vcf.gz
                 method: exact
                 prefix: custom
             MutationAssessor:
-                file: /mnt/users/ahboced1/databases/hg19/MA_scores_rel3_hg19_full.vcf.gz
+                file: MutationAssessor/hg19_precomputed_MutationAssessor.vcf.gz
                 method: exact
                 prefix: custom
+
         # Bigwig files the key of the dictionary is used as the name to present the feature in the annotated file
         bigwig-files:
             phastCons46mammal:
-                file: phastCons46mammal.bw
+                file: phastCons/hg19_phastCons46way_mammal.bw
                 method: exact
             phastCons46primate:
-                file: phastCons46primate.bw
+                file: phastCons/hg19_phastCons46way_primate.bw
                 method: exact
             phastCons46vertebrate:
-                file: phastCons46vertebrate.bw
+                file: phastCons/hg19_phastCons46way_vertebrate.bw
                 method: exact
             phyloP46mammal:
-                file: phyloP46mammal.bw
+                file: phyloP/hg19_phyloP46way_mammal.bw
                 method: exact
             phyloP46primate:
-                file: phyloP46primate.bw
+                file: phyloP/hg19_phyloP46way_primate.bw
                 method: exact
             phyloP46vertebrate:
-                file: phyloP46vertebrate.bw
+                file: phyloP/hg19_phyloP46way_vertebrate.bw
                 method: exact
-
-
-Additional-Annotation:
-    # Flag indicating whether to use the additional annotation scripts or not, if False it is assumed that the needed annoation was performed beforehand
-    perform-additional-annotation: True
-
-    # ABB_score ([path to the file] or null)
-    abb-score: null
-
-    # Simple tandem repeats ([path to the file] or null)
-    simple-repeats: null
-
-    # Segment Duplication ([path to the file] or null)
-    segment-duplication: null
-
-    # additional annotations the key is used as feature name for the prediction
-    additional-bigwig-files:
-        #phyloP46mammal: /mnt/users/ahboced1/databases/hg19/phyloP46mammal.bw
-        #phyloP46primate: /mnt/users/ahboced1/databases/hg19/phyloP46primate.bw
-        #phyloP46vertebrate: /mnt/users/ahboced1/databases/hg19/phyloP46vertebrate.bw
-        #phastCons46mammal: /mnt/users/ahboced1/databases/hg19/phastCons46mammal.bw
-        #phastCons46primate: /mnt/users/ahboced1/databases/hg19/phastCons46primate.bw
-        #phastCons46vertebrate: /mnt/users/ahboced1/databases/hg19/phastCons46vertebrate.bw
-
-
-Analysis-Output:
-    out-filename: aidiva_result_with_annotation
 
 
 # make sure that the full path for the following files is present otherwise the prioritization step will fail
 Internal-Parameters:
-    hpo-resources: /mnt/users/ahboced1/AIdiva_project/HPO_resources/
-    #gene2hpo-mapping: /mnt/users/ahboced1/AIdiva_project/HPO_resources/gene2hpo.pkl
-    #hpo-graph: /mnt/users/ahboced1/AIdiva_project/HPO_resources/hpo_graph.pkl
-    #hpo2gene-association: /mnt/users/ahboced1/AIdiva_project/HPO_resources/hpo2gene.pkl
+    hpo-resources: HPO_resources/
+    #gene2hpo-mapping: HPO_resources/gene2hpo.pkl
+    #hpo-graph: HPO_resources/hpo_graph.pkl
+    #hpo2gene-association: HPO_resources/hpo2gene.pkl

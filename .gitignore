@@ -105,4 +105,5 @@ venv.bak/
 
 # external data files
 #data/
-data/rf_model*.pkl
+data/prediction_models/
+data/annotation_resources/Makefile_*

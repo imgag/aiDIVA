@@ -88,7 +88,7 @@ def prepare_input_data(input_data):
     # fill Allele Frequence missing values with -> 0
     # fill missing values from other features with -> median or mean
 
-    print(input_data[["CONDEL", "FATHMM_XF", "EIGEN_PHRED", "MutationAssessor"]])
+    #print(input_data[["CONDEL", "FATHMM_XF", "EIGEN_PHRED", "MutationAssessor"]])
 
     for allele_frequency in allele_frequencies:
         input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
@@ -97,6 +97,8 @@ def prepare_input_data(input_data):
     # compute maximum Minor Allele Frequency (MAF)
     if (not "MAX_AF" in input_data.columns) & (not "MaxAF" in input_data.columns):
         input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
+
+    global features
 
     for feature in features:
         if feature == "MaxAF" or feature == "MAX_AF":
@@ -141,13 +143,21 @@ def predict_pathogenicity(rf_model_snp, rf_model_indel, input_data_snp, input_fe
     input_data_snp["AIDIVA_SCORE"] = score_prediction_snp["Probability_Pathogenic"]
     input_data_indel["AIDIVA_SCORE"] = score_prediction_indel["Probability_Pathogenic"]
 
+    #print(input_data_snp[(input_data_snp["CHROM"] == "chr12") & (input_data_snp["POS"] == 110565232)])
+    #print(sum(input_data_snp["AIDIVA_SCORE"].isna()))
+    #print(sum(input_data_indel["AIDIVA_SCORE"].isna()))
+
     return input_data_snp, input_data_indel
 
 
 def parallel_pathogenicity_prediction(rf_model, input_data, input_features, n_cores):
-    splitted_input_data = np.array_split(input_data, n_cores)
+    if n_cores is None:
+        num_cores = 1
+    else:
+        num_cores = n_cores
+    splitted_input_data = np.array_split(input_data, num_cores)
 
-    worker_pool = mp.Pool(n_cores)
+    worker_pool = mp.Pool(num_cores)
     predicted_data = pd.concat(worker_pool.apply(rf_model.predict_proba(), (input_features)))
 
     input_data["AIDIVA_SCORE"] = predicted_data["Probability_Pathogenic"]
@@ -158,9 +168,7 @@ def parallel_pathogenicity_prediction(rf_model, input_data, input_features, n_co
     return input_data
 
 
-def check_coding(coding_region, variant_to_check):
-    coding = 0
-
+def check_coding(variant_to_check):
     #if "chr" in str(variant_to_check["CHROM"]):
     #    chrom_id = str(variant_to_check["CHROM"]).replace("chr", "")
     #else:
@@ -173,20 +181,23 @@ def check_coding(coding_region, variant_to_check):
     #if not coding_regions[(coding_regions[0] == chrom_id) & (coding_regions[1].le(variant_to_check["POS"])) & (coding_regions[2].ge(variant_to_check["POS"]))].empty:
     #if coding_regions[(coding_regions.CHROM.str.match(str(variant_to_check["CHROM"]))) & (coding_regions.START.le(variant_to_check["POS"])) & (coding_regions.END.ge(variant_to_check["POS"]))]:
     if any(term for term in coding_variants if term in variant_to_check["Consequence"]):
-        coding = 1
-
-    return coding
+        return 1
+    else:
+        return 0
 
 
 def parallelized_coding_check(input_data):
-    global coding_region
-    input_data["CODING"] = input_data.apply(lambda row: check_coding(coding_region, row), axis=1)
+    #global coding_region
+    input_data["CODING"] = input_data.apply(lambda row: check_coding(row), axis=1)
 
     return input_data
 
 
 def parallelize_dataframe_processing(dataframe, function):
     global num_partitions
+    global num_cores
+    if num_cores is None:
+        num_cores = 1
     num_partitions = num_cores * 2
 
     if len(dataframe) <= num_partitions:
@@ -202,11 +213,9 @@ def parallelize_dataframe_processing(dataframe, function):
     return dataframe
 
 
-def perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, rf_model_snp, rf_model_indel, allele_frequency_list, feature_list, coding_regions, n_cores=1):
+## TODO: handle the case if one of the dataframes is empty
+def perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, rf_model_snp, rf_model_indel, allele_frequency_list, feature_list, n_cores=1):
     t = time.time()
-
-    global coding_region
-    coding_region = coding_regions
 
     global features
     features = feature_list
@@ -239,28 +248,31 @@ def perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, rf_
     #print("Finished coding check in: %.2f seconds" % (time.time() - t))
 
     t = time.time()
-    input_data_snp_coding = input_data_snp[input_data_snp["CODING"] == 1]
-    input_data_snp_noncoding = input_data_snp[input_data_snp["CODING"] == 0]
-    input_data_indel_coding = input_data_indel[input_data_indel["CODING"] == 1]
-    input_data_indel_noncoding = input_data_indel[input_data_indel["CODING"] == 0]
+    #input_data_snp_coding = input_data_snp[input_data_snp["CODING"] == 1]
+    #input_data_snp_noncoding = input_data_snp[input_data_snp["CODING"] == 0]
+    #input_data_indel_coding = input_data_indel[input_data_indel["CODING"] == 1]
+    #input_data_indel_noncoding = input_data_indel[input_data_indel["CODING"] == 0]
 
-    prepared_input_data_snp_coding = parallelize_dataframe_processing(input_data_snp_coding, prepare_input_data)
-    prepared_input_data_indel_coding = parallelize_dataframe_processing(input_data_indel_coding, prepare_input_data)
+    prepared_input_data_snp = parallelize_dataframe_processing(input_data_snp, prepare_input_data)
+    prepared_input_data_indel = parallelize_dataframe_processing(input_data_indel, prepare_input_data)
 
-    if not input_data_snp[input_data_snp["CODING"] == 0].empty:
-        prepared_input_data_snp_noncoding = parallelize_dataframe_processing(input_data_snp_noncoding, prepare_input_data)
-    else:
-        prepared_input_data_snp_noncoding = pd.DataFrame()
-    if not input_data_indel[input_data_indel["CODING"] == 0].empty:
-        prepared_input_data_indel_noncoding = parallelize_dataframe_processing(input_data_indel_noncoding, prepare_input_data)
-    else:
-        prepared_input_data_indel_noncoding = pd.DataFrame()
+    #if not input_data_snp_noncoding.empty:
+    #    prepared_input_data_snp_noncoding = parallelize_dataframe_processing(input_data_snp_noncoding, prepare_input_data)
+    #else:
+    #    prepared_input_data_snp_noncoding = pd.DataFrame()
+    #if not input_data_indel_noncoding.empty:
+    #    prepared_input_data_indel_noncoding = parallelize_dataframe_processing(input_data_indel_noncoding, prepare_input_data)
+    #else:
+    #    prepared_input_data_indel_noncoding = pd.DataFrame()
 
-    input_features_snp_coding = np.asarray(prepared_input_data_snp_coding[features])
-    input_features_indel_coding = np.asarray(prepared_input_data_indel_coding[features])
+    #print(input_data_snp_coding)
+    #print(input_data_indel_coding)
+
+    input_features_snp = np.asarray(prepared_input_data_snp[features], dtype=np.float64)
+    input_features_indel = np.asarray(prepared_input_data_indel[features], dtype=np.float64)
     #input_features_snp_noncoding = np.asarray(prepared_input_data_snp_noncoding[features])
     #input_features_indel_noncoding = np.asarray(prepared_input_data_indel_noncoding[features])
-
+    #print(input_data_snp_coding[(input_data_snp_coding["CHROM"] == "chr12") & (input_data_snp_coding["POS"] == 110565232)])
     #prepared_input_data_snp_coding, input_features_snp_coding = prepare_input_data(input_data_snp_coding, allele_frequency_list, feature_list)
     #prepared_input_data_indel_coding, input_features_indel_coding = prepare_input_data(input_data_indel_coding, allele_frequency_list, feature_list)
     #prepared_input_data_snp_noncoding, input_features_snp_noncoding = prepare_input_data(input_data_snp_noncoding, allele_frequency_list, feature_list)
@@ -270,42 +282,53 @@ def perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, rf_
 
     ## TODO: Add parallelization
     t = time.time()
-    predicted_data_snp_coding, predicted_data_indel_coding = predict_pathogenicity(rf_model_snp, rf_model_indel, prepared_input_data_snp_coding, input_features_snp_coding, prepared_input_data_indel_coding, input_features_indel_coding)
+    predicted_data_snp, predicted_data_indel = predict_pathogenicity(rf_model_snp, rf_model_indel, prepared_input_data_snp, input_features_snp, prepared_input_data_indel, input_features_indel)
     #predicted_data_snp_coding = parallel_pathogenicity_prediction(rf_model_snp, prepared_input_data_snp_coding, input_features_snp_coding, n_cores)
     #predicted_data_indel_coding = parallel_pathogenicity_prediction(rf_model_indel, prepared_input_data_indel_coding, input_features_indel_coding, n_cores)
 
     print("Finished prediction in: %.2f seconds" % (time.time() - t))
 
-    # set the score for frameshift variants always to 1.0
+    # frameshift variants are not covered in the used model
     # the following line might produce an SettingWithCopyWarning this Warning should be a false positive in this case
     t = time.time()
-    predicted_data_indel_coding.loc[(abs(predicted_data_indel_coding.REF.str.len() - predicted_data_indel_coding.ALT.str.len()) % 3 != 0), "AIDIVA_SCORE"] = 1.0
+    #predicted_data_indel_coding.loc[(abs(predicted_data_indel_coding.REF.str.len() - predicted_data_indel_coding.ALT.str.len()) % 3 != 0), "AIDIVA_SCORE"] = 1.0
+    predicted_data_indel.loc[(abs(predicted_data_indel.REF.str.len() - predicted_data_indel.ALT.str.len()) % 3 != 0), "AIDIVA_SCORE"] = np.nan
 
-    # set score for non-coding variants to -1 or NaN
+    # set score for non-coding variants to NaN
     # the models are only for coding variants
-    if not prepared_input_data_snp_noncoding.empty:
-        prepared_input_data_snp_noncoding.insert(len(prepared_input_data_snp_noncoding.columns), "AIDIVA_SCORE", np.nan, allow_duplicates=False)
-    if not prepared_input_data_indel_noncoding.empty:
-        prepared_input_data_indel_noncoding.insert(len(prepared_input_data_indel_noncoding.columns), "AIDIVA_SCORE", np.nan, allow_duplicates=False)
-    predicted_data_snp_coding.loc[((predicted_data_snp_coding.CHROM == "Y") | (predicted_data_snp_coding.CHROM == "chrY") | (predicted_data_snp_coding.CHROM == "MT") | (predicted_data_snp_coding.CHROM == "chrM")), "AIDIVA_SCORE"] = np.nan
-    predicted_data_indel_coding.loc[((predicted_data_indel_coding.CHROM == "Y") | (predicted_data_indel_coding.CHROM == "chrY") | (predicted_data_indel_coding.CHROM == "MT") | (predicted_data_snp_coding.CHROM == "chrM")), "AIDIVA_SCORE"] = np.nan
+    #if not prepared_input_data_snp_noncoding.empty:
+    #    prepared_input_data_snp_noncoding["AIDIVA_SCORE"] = np.nan
+        #prepared_input_data_snp_noncoding.insert(len(prepared_input_data_snp_noncoding.columns), "AIDIVA_SCORE", np.nan, allow_duplicates=False)
+    #if not prepared_input_data_indel_noncoding.empty:
+    #    prepared_input_data_indel_noncoding["AIDIVA_SCORE"] = np.nan
+        #prepared_input_data_indel_noncoding.insert(len(prepared_input_data_indel_noncoding.columns), "AIDIVA_SCORE", np.nan, allow_duplicates=False)
+    predicted_data_snp.loc[((predicted_data_snp.CODING == 0)), "AIDIVA_SCORE"] = np.nan
+    predicted_data_indel.loc[((predicted_data_indel.CODING == 0)), "AIDIVA_SCORE"] = np.nan
 
-    # set splicing donor/acceptor variants to 1.0
-    predicted_data_snp_coding.loc[(predicted_data_snp_coding.Consequence.str.contains("splice_acceptor_variant") | predicted_data_snp_coding.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0
-    predicted_data_indel_coding.loc[(predicted_data_indel_coding.Consequence.str.contains("splice_acceptor_variant") | predicted_data_indel_coding.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0
+    predicted_data_snp.loc[((predicted_data_snp.CHROM == "Y") | (predicted_data_snp.CHROM == "chrY") | (predicted_data_snp.CHROM == "MT") | (predicted_data_snp.CHROM == "chrMT") | (predicted_data_snp.CHROM == "M") | (predicted_data_snp.CHROM == "chrM")), "AIDIVA_SCORE"] = np.nan
+    predicted_data_indel.loc[((predicted_data_indel.CHROM == "Y") | (predicted_data_indel.CHROM == "chrY") | (predicted_data_indel.CHROM == "MT") | (predicted_data_indel.CHROM == "chrMT") | (predicted_data_indel.CHROM == "M") | (predicted_data_indel.CHROM == "chrM")), "AIDIVA_SCORE"] = np.nan
+    # set splicing donor/acceptor variants to NaN
 
-    # set synonymous variants to 0.0
-    predicted_data_snp_coding.loc[(predicted_data_snp_coding.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0
-    predicted_data_indel_coding.loc[(predicted_data_indel_coding.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0
+    #predicted_data_snp_coding.loc[(predicted_data_snp_coding.Consequence.str.contains("splice_acceptor_variant") | predicted_data_snp_coding.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0
+    #predicted_data_indel_coding.loc[(predicted_data_indel_coding.Consequence.str.contains("splice_acceptor_variant") | predicted_data_indel_coding.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0
+    predicted_data_snp.loc[(predicted_data_snp.Consequence.str.contains("splice_acceptor_variant") | predicted_data_snp.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = np.nan
+    predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("splice_acceptor_variant") | predicted_data_indel.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = np.nan
+
+    # set synonymous variants to NaN
+    #predicted_data_snp_coding.loc[(predicted_data_snp_coding.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0
+    #predicted_data_indel_coding.loc[(predicted_data_indel_coding.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0
+    predicted_data_snp.loc[(predicted_data_snp.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = np.nan
+    predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = np.nan
 
     print("Finished score adjustments in: %.2f seconds" % (time.time() - t))
 
     # combine snp and indel data
     ## TODO: the sort attribute is not present in pandas v0.19 so if this version should be
     #predicted_data_complete = pd.concat([predicted_data_snp, predicted_data_indel], sort=False)
-    predicted_data_complete = pd.concat([predicted_data_snp_coding, prepared_input_data_snp_noncoding, predicted_data_indel_coding, prepared_input_data_indel_noncoding])
+    predicted_data_complete = pd.concat([predicted_data_snp, predicted_data_indel])
     predicted_data_complete.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
     predicted_data_complete.reset_index(inplace=True, drop=True)
+    predicted_data_complete = predicted_data_complete[predicted_data_snp.columns]
 
     return predicted_data_complete
 
@@ -319,7 +342,7 @@ if __name__=="__main__":
     parser.add_argument("--model_indel", type=str, dest="model_indel", metavar="model_indel.pkl", required=True, help="Specifies the name of the trained indel model to import\n")
     parser.add_argument("--allele_frequency_list", type=str, dest="allele_frequency_list", metavar="frequency1,frequecy2,frequency3", required=False, help="Comma separated list of allele frequency sources that should be used as basis to get the maximum allele frequency\n")
     parser.add_argument("--feature_list", type=str, dest="feature_list", metavar="feature1,feature2,feature3", required=True, help="Comma separated list of the features used to train the model\n")
-    parser.add_argument("--coding_region", type=str, dest="coding_region", metavar="coding_regions.bed", required=True, help="Bed file containing the coding region of the reference assembly\n")
+    #parser.add_argument("--coding_region", type=str, dest="coding_region", metavar="coding_regions.bed", required=True, help="Bed file containing the coding region of the reference assembly\n")
     args = parser.parse_args()
 
     input_data_snp = read_input_data(args.in_data_snp)
@@ -331,7 +354,7 @@ if __name__=="__main__":
         allele_frequency_list = []
     feature_list = args.feature_list.split(",")
 
-    coding_region = pd.read_csv(args.coding_region, sep="\t", names=["CHROM", "START", "END"], low_memory=False)
+    #coding_region = pd.read_csv(args.coding_region, sep="\t", names=["CHROM", "START", "END"], low_memory=False)
 
     # if multiple alleles are reported consider only the first one
     # TODO decide how to handle allele ambiguity
@@ -340,6 +363,6 @@ if __name__=="__main__":
     #input_data_snp = input_data[(input_data["REF"].apply(len) == 1) & (input_data["ALT"].apply(len) == 1)]
     #input_data_indel = input_data[(input_data["REF"].apply(len) > 1) | (input_data["ALT"].apply(len) > 1)]
 
-    predicted_data = perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, args.model_snp, args.model_indel, allele_frequency_list, feature_list, coding_region)
+    predicted_data = perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, args.model_snp, args.model_indel, allele_frequency_list, feature_list)
 
     predicted_data.to_csv(args.out_data, index=False, sep="\t", na_rep="NA")

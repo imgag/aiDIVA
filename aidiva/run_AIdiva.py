@@ -17,15 +17,18 @@ if __name__=="__main__":
     parser.add_argument("--snp_vcf", type=str, dest="snp_vcf", metavar="snp.vcf", required=True, help="VCF file with the annotated SNP variants [required]")
     parser.add_argument("--indel_vcf", type=str, dest="indel_vcf", metavar="indel.vcf", required=True, help="VCF file with the annotated (only basic annotation) InDel variants [required]")
     parser.add_argument("--expanded_indel_vcf", type=str, dest="expanded_indel_vcf", metavar="expanded_indel.vcf", required=True, help="VCF file with the annotated expanded InDel variants [required]")
-    parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="results", required=True, help="Prefix that is used to save the results [required]")
+    parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="result", required=True, help="Prefix that is used to save the results [required]")
     parser.add_argument("--workdir", type=str, dest="workdir", metavar="workdir/", required=True, help="Path to the working directory (here all results are saved) [required]")
-    parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient [required]")
-    parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient [required]")
+    parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient")
+    parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", nargs="?", const=1, required=False, help="Number of threads to use.")
     args = parser.parse_args()
 
-    num_cores = args.threads
+    if "threads" in args:
+        num_cores = args.threads
+    else:
+        num_cores = 1
 
     # parse configuration file
     config_file = open(args.config, "r")
@@ -48,9 +51,9 @@ if __name__=="__main__":
     expanded_indel_vcf = args.expanded_indel_vcf
 
     # get machine learning models
-    scoring_model_snp = coding_region_file = os.path.dirname(__file__) + "/../data/rf_model_snp_scikit0-19-1.pkl"
-    scoring_model_indel = coding_region_file = os.path.dirname(__file__) + "/../data/rf_model_inframe_indel_scikit0-19-1.pkl"
-    coding_region_file = os.path.dirname(__file__) + "/../data/GRCh37_coding_sequences.bed"
+    scoring_model_snp = os.path.dirname(__file__) + "/../data/prediction_models/rf_model_snp_scikit0-19-1.pkl"
+    scoring_model_indel = os.path.dirname(__file__) + "/../data/prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl"
+    #coding_region_file = os.path.dirname(__file__) + "/../data/GRCh37_coding_sequences.bed"
     #scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
     #scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
     #coding_region_file = configuration["Analysis-Input"]["coding-region"]
@@ -78,7 +81,7 @@ if __name__=="__main__":
 
 
     #hpo_resources_folder = configuration["Internal-Parameters"]["hpo-resources"]
-    hpo_resources_folder = os.path.dirname(__file__) + "/../data/"
+    hpo_resources_folder = os.path.dirname(__file__) + "/../data/hpo_resources/"
 
     ## TODO: Choose whether to delete the allele frequency list
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
@@ -99,8 +102,10 @@ if __name__=="__main__":
     input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False, num_cores)
     input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True, num_cores)
     input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True, num_cores)
+
     print("Prepared all variants for further processing in: %.2f seconds" % (time.time() - t))
 
+    ## TODO: handle the sitation if one or more (but not all) of the input dataframes are empty
     if (not input_data_snp.empty) & (not input_data_indel.empty) & (not input_data_expanded_indel.empty):
         print("Combine InDel variants ...")
         t = time.time()
@@ -111,8 +116,7 @@ if __name__=="__main__":
         # predict pathogenicity score
         print("Score variants ...")
         t = time.time()
-        coding_region = pd.read_csv(coding_region_file, sep="\t", header=None, low_memory=False)
-        predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp, input_data_combined_indel, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, coding_region, num_cores)
+        predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp, input_data_combined_indel, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, num_cores)
         print("Scored all variants in: %.2f seconds" % (time.time() - t))
 
         # prioritize and filter variants

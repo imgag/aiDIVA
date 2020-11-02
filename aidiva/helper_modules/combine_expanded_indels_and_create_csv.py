@@ -203,7 +203,7 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
 
 def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature):
     if grouped_expanded_vcf[feature].get_group(row.indel_ID).empty:
-        return np.NaN
+        return np.nan
     else:
         return grouped_expanded_vcf[feature].get_group(row.indel_ID).median()
 
@@ -227,6 +227,12 @@ def combine_vcf_dataframes(vcf_as_dataframe):
     #        expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
     #grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("indel_ID")
+
+    global grouped_expanded_vcf
+
+    #print(feature_list)
+    #print(vcf_as_dataframe)
+    #print(grouped_expanded_vcf.get_group("indel_1"))
 
     for feature in feature_list:
         if feature == "MaxAF":
@@ -256,15 +262,20 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
     global grouped_expanded_vcf
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("indel_ID")
 
+    if n_cores is None:
+        num_cores = 1
+    else:
+        num_cores = n_cores
+
     global num_partitions
-    num_partitions = n_cores * 2
+    num_partitions = num_cores * 2
 
     if len(vcf_as_dataframe) <= num_partitions:
         dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
     else:
         dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
 
-    pool = mp.Pool(n_cores)
+    pool = mp.Pool(num_cores)
     vcf_as_dataframe = pd.concat(pool.map(combine_vcf_dataframes, dataframe_splitted))
     pool.close()
     pool.join()
@@ -306,5 +317,5 @@ if __name__=="__main__":
     expanded_vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data_expanded)
 
     feature_list = args.feature_list.split(",")
-    vcf_combined_as_dataframe = combine_vcf_dataframes(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list)
+    vcf_combined_as_dataframe = parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list, 1)
     write_vcf_to_csv(vcf_combined_as_dataframe, args.out_data)
