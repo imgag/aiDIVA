@@ -47,8 +47,6 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                             "." + "\t" +
                             str(row.INFO).strip() + "\n")
 
-    #data_combined = pd.concat(data_grouped)
-
 
 def import_csv_data(in_data):
     header_line = ""
@@ -75,12 +73,7 @@ def import_csv_data(in_data):
 
     data = pd.read_csv(in_data, names=header_line.split("\t"), sep="\t", comment="#", low_memory=False)
     data.fillna(".", inplace=True)
-
     data = data.rename(columns={"#CHROM": "CHROM"})
-
-    #if "indel_ID" not in data.columns:
-    #    data["indel_ID"] = data.index + 1
-    #    data["indel_ID"] = data.apply(lambda row: "indel_" + str(row["indel_ID"]), axis=1)
 
     return data, comment_lines
 

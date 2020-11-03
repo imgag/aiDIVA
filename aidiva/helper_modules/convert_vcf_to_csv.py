@@ -91,7 +91,6 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
                 outfile_snps.write(line)
             elif (ref_length > 1) | (alt_length > 1):
                 indel_ID += 1
-                #splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
                 if splitted_line[7].endswith("\n"):
                     splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
                 else:
@@ -112,7 +111,6 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
 
     vcf_file_to_reformat = open(filepath, "r")
 
-    # TODO move before the header parsing
     # make sure that there are no unwanted linebreaks in the variant entries
     tmp = tempfile.NamedTemporaryFile(mode="w+")
     tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
@@ -280,7 +278,6 @@ def extract_sample_information(row, sample):
     return sample_information
 
 
-#def add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set):
 def add_INFO_fields_to_dataframe(vcf_as_dataframe):
     if indel_set:
         vcf_as_dataframe[["RANK", "indel_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
@@ -314,7 +311,6 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
 
 ## TODO: Add parallelization
 def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
-    #print("input-file", input_file)
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 
     global annotation_header
@@ -324,13 +320,11 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
     indel_set = process_indel
 
     if not vcf_as_dataframe.empty:
-        #vcf_as_dataframe = add_INFO_fields_to_dataframe(vcf_as_dataframe)
         vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_INFO_fields_to_dataframe, n_cores)
-        #vcf_as_dataframe = add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header)
         vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_VEP_annotation_to_dataframe, n_cores)
+
         if "FORMAT" in vcf_as_dataframe.columns:
             vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_sample_information_to_dataframe, n_cores)
-            #vcf_as_dataframe = add_sample_information_to_dataframe(vcf_as_dataframe)
         else:
             print("MISSING SAMPLE INFORMATION!")
 
@@ -377,5 +371,4 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.threads)
-
     write_vcf_to_csv(vcf_as_dataframe, args.out_data)

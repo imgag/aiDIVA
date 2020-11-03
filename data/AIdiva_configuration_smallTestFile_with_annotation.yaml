@@ -17,8 +17,8 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: rf_snp_clinvar_hgmd_1to1.pkl
-    scoring-model-indel: inframe_indel_clinvar_hgmd_balanced.pkl
+    scoring-model-snp: prediction_models/rf_model_snp_scikit0-19-1.pkl
+    scoring-model-indel: prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl
 
     prioritization-information:
         # file containing the HPO terms that are associated with the disease (one term per line)
@@ -160,7 +160,7 @@ VEP-Annotation:
 
 # make sure that the full path for the following files is present otherwise the prioritization step will fail
 Internal-Parameters:
-    hpo-resources: HPO_resources/
-    #gene2hpo-mapping: HPO_resources/gene2hpo.pkl
-    #hpo-graph: HPO_resources/hpo_graph.pkl
-    #hpo2gene-association: HPO_resources/hpo2gene.pkl
+    hpo-resources: hpo_resources/
+    #gene2hpo-mapping: hpo_resources/gene2hpo.pkl
+    #hpo-graph: hpo_resources/hpo_graph.pkl
+    #hpo2gene-association: hpo_resources/hpo2gene.pkl

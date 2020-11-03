@@ -49,7 +49,6 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
                 outfile_snps.write(line)
             elif (ref_length > 1) | (alt_length > 1):
                 indel_ID += 1
-                #splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
                 if splitted_line[7].endswith("\n"):
                     splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
                 else:

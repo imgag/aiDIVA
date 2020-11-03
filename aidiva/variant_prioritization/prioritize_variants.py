@@ -78,7 +78,6 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
 
     global gene_2_HPO
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
-    #HPO_graph = pickle.load(open(HPO_graph_file, "rb"))
     hpo_nodes, hpo_edges = pickle.load(open(HPO_graph_file, "rb"))
 
     global HPO_graph
@@ -155,8 +154,6 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
 
     variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False], inplace=True)
     variant_data.reset_index(inplace=True, drop=True)
-    #variant_data.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
-    #variant_data[variant_data["FILTER_PASSED"] == 1].to_csv(filtered_out_file, sep="\t", encoding="utf-8", index=False)
 
     return variant_data
 

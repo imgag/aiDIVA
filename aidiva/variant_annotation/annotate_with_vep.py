@@ -12,17 +12,14 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
     tool_path = "/mnt/storage1/share/opt/"
     # tool_path = os.path.dirname(__file__) + "/../../tools/"
-
     vep_command = tool_path + vep_annotation_dict["vep"] + " "
 
     bed_annotation = vep_annotation_dict["custom"]["bed-files"]
     bigwig_annotation = vep_annotation_dict["custom"]["bigwig-files"]
-    #print("ENV:", os.environ["PERL5LIB"])
+    #vcf_annotation = vep_annotation_dict["custom"]["vcf-files"]
 
     # set the correct paths to the needed perl modules
     os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/:" + os.environ["PERL5LIB"]
-
-    #print("ENV_mod:", os.environ["PERL5LIB"])
 
     # add essential parameters
     vep_command = vep_command + "--offline" + " "
@@ -48,8 +45,6 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         vep_command = vep_command + "--plugin CADD," + database_path + vep_annotation_dict["cadd-snps"] + "," + database_path + vep_annotation_dict["cadd-indel"] + " "
         vep_command = vep_command + "--plugin REVEL," + database_path + vep_annotation_dict["revel"] + " "
         #vep_command = vep_command + "--plugin dbNSFP," + vep_annotation_dict["dbNSFP"] + ",MutationAssessor_score,Eigen-raw,Eigen-phred" + " "
-
-        #vcf_annotation = vep_annotation_dict["custom"]["vcf-files"]
 
         if bed_annotation:
             for key in bed_annotation:
@@ -82,10 +77,8 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, num_cores=1):
 
     database_path = "/mnt/storage1/share/data/dbs/"
     # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
-
     tool_path = "/mnt/storage1/share/opt/"
     # tool_path = os.path.dirname(__file__) + "/../../tools/"
-
     command = tool_path + "ngs-bits-current/VcfAnnotateFromVCF -config_file " + tmp.name + " -in " + input_vcf_file + " -out " + output_vcf_file + " -threads " + str(num_cores)
 
     try:

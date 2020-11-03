@@ -40,38 +40,26 @@ if __name__=="__main__":
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
 
-    #ref_path = configuration["Analysis-Input"]["ref-path"]
-
     # parse input files
-    #snp_vcf = configuration["Analysis-Input"]["vcf-snp"]
     snp_vcf = args.snp_vcf
-    #indel_vcf = configuration["Analysis-Input"]["vcf-indel"]
     indel_vcf = args.indel_vcf
-    #expanded_indel_vcf = configuration["Analysis-Input"]["vcf-expanded-indel"]
     expanded_indel_vcf = args.expanded_indel_vcf
 
     # get machine learning models
-    scoring_model_snp = os.path.dirname(__file__) + "/../data/prediction_models/rf_model_snp_scikit0-19-1.pkl"
-    scoring_model_indel = os.path.dirname(__file__) + "/../data/prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl"
-    #coding_region_file = os.path.dirname(__file__) + "/../data/GRCh37_coding_sequences.bed"
-    #scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
-    #scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
-    #coding_region_file = configuration["Analysis-Input"]["coding-region"]
+    scoring_model_snp = os.path.dirname(__file__) + "/../data/" + configuration["Analysis-Input"]["scoring-model-snp"]
+    scoring_model_indel = os.path.dirname(__file__) + "/../data/" + configuration["Analysis-Input"]["scoring-model-indel"]
 
     # parse output files
     #output_filename = configuration["Analysis-Output"]["out-filename"]
     output_filename = args.out_prefix
 
     # parse disease and inheritance information
-    #hpo_file = configuration["Analysis-Input"]["prioritization-information"]["hpo-list"]
     if "hpo_list" in args:
         hpo_file = args.hpo_list
     else:
         hpo_file = None
     gene_exclusion_file = configuration["Analysis-Input"]["prioritization-information"]["gene-exclusion"]
 
-    #family_type = configuration["Analysis-Input"]["prioritization-information"]["family-type"]
-    #family_file = configuration["Analysis-Input"]["prioritization-information"]["family-file"]
     if "family_file" in args:
         family_file = args.family_file
         family_type = "SINGLE" ## TODO: get correct family type based on the family file
@@ -88,16 +76,6 @@ if __name__=="__main__":
     feature_list = configuration["Model-Features"]["feature-list"]
 
     # convert splitted input data to vcf and annotate
-    #snp_vcf_filename = ntpath.basename(snp_vcf)
-    #indel_vcf_file = os.path.splitext(indel_vcf)[0]
-    #indel_vcf_filename = os.path.basename(indel_vcf_file)
-    #expanded_indel_vcf_file = os.path.splitext(expanded_indel_vcf)[0]
-    #expanded_indel_vcf_filename = os.path.basename(expanded_indel_vcf_file)
-
-    ## TODO: Combine  the annotated VCF files to only have one single input file
-    #input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False)
-    #input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True)
-    #input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True)
     t = time.time()
     input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False, num_cores)
     input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True, num_cores)
@@ -109,7 +87,6 @@ if __name__=="__main__":
     if (not input_data_snp.empty) & (not input_data_indel.empty) & (not input_data_expanded_indel.empty):
         print("Combine InDel variants ...")
         t = time.time()
-        #input_data_combined_indel = combine_expanded_indels.combine_vcf_dataframes(input_data_indel, input_data_expanded_indel, feature_list)
         input_data_combined_indel = combine_expanded_indels.parallelized_indel_combination(input_data_indel, input_data_expanded_indel, feature_list, num_cores)
         print("Combined InDel variants in: %.2f seconds" % (time.time() - t))
 
