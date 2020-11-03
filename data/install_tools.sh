@@ -49,8 +49,6 @@ cd $vep_install_dir
 perl INSTALL.pl --SPECIES homo_sapiens --ASSEMBLY GRCh37 --AUTO acp --PLUGINS REVEL,CADD --NO_UPDATE --NO_BIOPERL --CACHEDIR $vep_data_dir/cache --CACHEURL $vep_data_dir/ftp --NO_TEST
 cp $vep_data_dir/cache/Plugins/*.pm $vep_install_dir/modules/ #should not be necessary - probably a bug in the VEP installation script when using the CACHEDIR option (MS)
 
-
-
 # Download and install ngs-bits
 cd $folder
 git clone https://github.com/imgag/ngs-bits.git
@@ -58,3 +56,11 @@ cd ngs-bits
 git checkout 2020_06 && git submodule update --recursive --init
 make build_3rdparty
 make build_tools_release
+
+#download and build samtools
+cd $folder
+wget https://github.com/samtools/samtools/releases/download/1.10/samtools-1.10.tar.bz2
+tar xjf samtools-1.10.tar.bz2
+rm samtools-1.10.tar.bz2
+cd samtools-1.10
+make
