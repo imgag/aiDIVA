@@ -1,7 +1,12 @@
-# Download and install VEP
+#!/bin/bash
+
+folder=`pwd`
+tools=$folder/tools/
+annotation_sources=$folder/annotation_resources/
+
 vep_install_dir=$tools/ensembl-vep-release-100.3/
 vep_cpan_dir=$vep_install_dir/cpan/
-vep_data_dir=$dbs/ensembl-vep-100/
+vep_data_dir=$annotation_resources/ensembl-vep-100/
 
 # download ensembl-vep
 cd $tools
