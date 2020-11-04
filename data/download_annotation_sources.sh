@@ -2,8 +2,9 @@
 
 folder=`pwd`
 annotation_sources=$folder/annotation_resources/
+mkdir -p $annotation_sources
 
-#Install REVEL for VEP - https://sites.google.com/site/revelgenomics/downloads
+# Install REVEL for VEP - https://sites.google.com/site/revelgenomics/downloads
 cd $annotation_sources
 mkdir REVEL
 cd REVEL
@@ -11,7 +12,7 @@ wget https://rothsj06.u.hpc.mssm.edu/revel/revel_all_chromosomes.csv.zip
 unzip -p revel_all_chromosomes.csv.zip | tr ',' '\t' | sed '1s/.*/#&/' | bgzip > revel_all_chromosomes.tsv.gz
 tabix -f -s 1 -b 2 -e 2 revel_all_chromosomes.tsv.gz
 
-#Install fathmm-XF for AIdiva (custom VEP annotation) - https://fathmm.biocompute.org.uk/fathmm-xf
+# Install fathmm-XF for AIdiva (custom VEP annotation) - https://fathmm.biocompute.org.uk/fathmm-xf
 cd $annotation_sources
 mkdir fathmm-XF
 cd fathmm-XF
@@ -21,7 +22,7 @@ bgzip hg19_fathmm_xf_coding.vcf
 tabix -p vcf hg19_fathmm_xf_coding.vcf.gz
 rm fathmm_xf_coding.vcf.gz
 
-#Install ABB score for AIdiva (custom VEP annotation) - https://github.com/Francesc-Muyas/ABB
+# Install ABB score for AIdiva (custom VEP annotation) - https://github.com/Francesc-Muyas/ABB
 cd $annotation_sources
 mkdir ABB
 cd ABB
@@ -30,7 +31,7 @@ bgzip hg19_ABB-SCORE.bed
 tabix -p bed hg19_ABB-SCORE.bed.gz
 rm ABB_SCORE.txt
 
-#Install Eigen phred for AIdiva (custom VEP annotation)
+# Install Eigen phred for AIdiva (custom VEP annotation)
 cd $annotation_sources
 mkdir Eigen
 cd Eigen
@@ -64,7 +65,7 @@ tabix -p vcf hg19_Eigen-phred_coding_chrom1-22.vcf.gz
 #tabix -p vcf hg19_Eigen-phred_noncoding_chrom1-22.vcf.gz
 rm *.tab.chr*.gz
 
-#Install Condel for AIdiva (custom VEP annotation)
+# Install Condel for AIdiva (custom VEP annotation)
 cd $annotation_sources
 mkdir Condel
 cd Condel
@@ -74,6 +75,7 @@ bgzip hg19_precomputed_Condel.vcf
 tabix -p vcf hg19_precomputed_Condel.vcf.gz
 rm fannsdb.tsv.gz
 
+# Install MutationAssessor for AIdiva (custom VEP annotation)
 cd $annotation_sources
 mkdir MutationAssessor
 cd MutationAssessor
@@ -87,7 +89,7 @@ rm MA_scores_rel3_hg19_full.tar.gz
 rm hg19_precomputed_MutationAssessor_unsort.vcf
 rm -r MA_scores_rel3_hg19_full/
 
-#Install segment duplication and simple repeats for AIdiva (custom VEP annotation)
+# Install segment duplication and simple repeats for AIdiva (custom VEP annotation)
 cd $annotation_sources
 mkdir UCSC
 cd UCSC
@@ -102,7 +104,7 @@ cut -f2,3,4,11 hg19_simpleRepeat.txt > hg19_simpleRepeat.bed
 grep -v '#' hg19_simpleRepeat.bed | sort -k1,1 -k2,2n -k3,3n -t$'\t' | bgzip -c > hg19_simpleRepeat.bed.gz
 tabix -p bed hg19_simpleRepeat.bed.gz
 
-#Install phastCons46way vertebrate for AIdiva (custom VEP annotation)
+# Install phastCons46way vertebrate for AIdiva (custom VEP annotation)
 cd $annotation_sources
 mkdir -p phastCons
 cd phastCons
@@ -210,8 +212,8 @@ rm *.wigFix
 ./bigWigCat hg19_phastCons46way_vertebrate.bw *.phastCons46way.bw
 rm *.phastCons46way.bw
 
-#Install phastCons46way primate for AIdiva (custom VEP annotation)
-cd $dbs
+# Install phastCons46way primate for AIdiva (custom VEP annotation)
+cd $annotation_sources
 mkdir -p phastCons
 cd phastCons
 wget -c http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons46way/primates/chr1.phastCons46way.primates.wigFix.gz
@@ -318,8 +320,8 @@ rm *.wigFix
 ./bigWigCat hg19_phastCons46way_primate.bw *.phastCons46way.primates.bw
 rm *.phastCons46way.primates.bw
 
-#Install phastCons46way mammal for AIdiva (custom VEP annotation)
-cd $dbs
+# Install phastCons46way mammal for AIdiva (custom VEP annotation)
+cd $annotation_sources
 mkdir -p phastCons
 cd phastCons
 wget -c http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons46way/placentalMammals/chr1.phastCons46way.placental.wigFix.gz
@@ -426,8 +428,8 @@ rm *.wigFix
 ./bigWigCat hg19_phastCons46way_mammal.bw *.phastCons46way.placental.bw
 rm *.phastCons46way.placental.bw
 
-#Install phyloP46way primate for AIdiva (custom VEP annotation)
-cd $dbs
+# Install phyloP46way primate for AIdiva (custom VEP annotation)
+cd $annotation_sources
 mkdir -p phyloP
 cd phyloP
 wget -c http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phyloP46way/primates/chr1.phyloP46way.primate.wigFix.gz
@@ -533,8 +535,8 @@ rm *.wigFix
 ./bigWigCat hg19_phyloP46way_primate.bw *.phyloP46way.primate.bw
 rm *.phyloP46way.primate.bw
 
-#Install phyloP46way mammal for AIdiva (custom VEP annotation)
-cd $dbs
+# Install phyloP46way mammal for AIdiva (custom VEP annotation)
+cd $annotation_sources
 mkdir -p phyloP
 cd phyloP
 wget -c http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phyloP46way/placentalMammals/chr1.phyloP46way.placental.wigFix.gz
@@ -640,8 +642,8 @@ rm *.wigFix
 ./bigWigCat hg19_phyloP46way_mammal.bw *.phyloP46way.placental.bw
 rm *.phyloP46way.placental.bw
 
-#Install phyloP46way vertebrate for AIdiva (custom VEP annotation)
-cd $dbs
+# Install phyloP46way vertebrate for AIdiva (custom VEP annotation)
+cd $annotation_sources
 mkdir -p phyloP
 cd phyloP
 wget -c http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phyloP46way/vertebrate/chr1.phyloP46way.wigFix.gz
