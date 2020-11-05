@@ -6,17 +6,17 @@ mkdir -p $annotation_sources
 
 # Install REVEL for VEP - https://sites.google.com/site/revelgenomics/downloads
 cd $annotation_sources
-mkdir REVEL
+mkdir -p REVEL
 cd REVEL
-wget https://rothsj06.u.hpc.mssm.edu/revel/revel_all_chromosomes.csv.zip
+wget -c https://rothsj06.u.hpc.mssm.edu/revel/revel_all_chromosomes.csv.zip
 unzip -p revel_all_chromosomes.csv.zip | tr ',' '\t' | sed '1s/.*/#&/' | bgzip > revel_all_chromosomes.tsv.gz
 tabix -f -s 1 -b 2 -e 2 revel_all_chromosomes.tsv.gz
 
 # Install fathmm-XF for AIdiva (custom VEP annotation) - https://fathmm.biocompute.org.uk/fathmm-xf
 cd $annotation_sources
-mkdir fathmm-XF
+mkdir -p fathmm-XF
 cd fathmm-XF
-wget http://fathmm.biocompute.org.uk/fathmm-xf/fathmm_xf_coding.vcf.gz
+wget -c http://fathmm.biocompute.org.uk/fathmm-xf/fathmm_xf_coding.vcf.gz
 python3 $folder/create_fathmm-XF_vcf.py fathmm_xf_coding.vcf.gz hg19_fathmm_xf_coding.vcf
 bgzip hg19_fathmm_xf_coding.vcf
 tabix -p vcf hg19_fathmm_xf_coding.vcf.gz
@@ -24,8 +24,9 @@ rm fathmm_xf_coding.vcf.gz
 
 # Install ABB score for AIdiva (custom VEP annotation) - https://github.com/Francesc-Muyas/ABB
 cd $annotation_sources
-mkdir ABB
+mkdir -p ABB
 cd ABB
+wget -c https://public_docs.crg.es/sossowski/publication_data/ABB/ABB_SCORE.txt
 python3 $folder/create_ABB-SCORE_bed.py ABB_SCORE.txt hg19_ABB-SCORE.bed
 bgzip hg19_ABB-SCORE.bed
 tabix -p bed hg19_ABB-SCORE.bed.gz
@@ -33,7 +34,7 @@ rm ABB_SCORE.txt
 
 # Install Eigen phred for AIdiva (custom VEP annotation)
 cd $annotation_sources
-mkdir Eigen
+mkdir -p Eigen
 cd Eigen
 wget -c http://web.corral.tacc.utexas.edu/WGSAdownload/resources/Eigen/Eigen_hg19_combined.tab.chr1.gz
 wget -c http://web.corral.tacc.utexas.edu/WGSAdownload/resources/Eigen/Eigen_hg19_combined.tab.chr2.gz
@@ -67,7 +68,7 @@ rm *.tab.chr*.gz
 
 # Install Condel for AIdiva (custom VEP annotation)
 cd $annotation_sources
-mkdir Condel
+mkdir -p Condel
 cd Condel
 wget -c https://bbglab.irbbarcelona.org/fannsdb/downloads/fannsdb.tsv.gz
 python3 $folder/create_Condel_vcf.py fannsdb.tsv.gz hg19_precomputed_Condel.vcf
@@ -77,7 +78,7 @@ rm fannsdb.tsv.gz
 
 # Install MutationAssessor for AIdiva (custom VEP annotation)
 cd $annotation_sources
-mkdir MutationAssessor
+mkdir -p MutationAssessor
 cd MutationAssessor
 wget -c http://mutationassessor.org/r3/MA_scores_rel3_hg19_full.tar.gz
 tar -xzf MA_scores_rel3_hg19_full.tar.gz
@@ -91,7 +92,7 @@ rm -r MA_scores_rel3_hg19_full/
 
 # Install segment duplication and simple repeats for AIdiva (custom VEP annotation)
 cd $annotation_sources
-mkdir UCSC
+mkdir -p UCSC
 cd UCSC
 wget -O hg19_genomicSuperDups.txt.gz ftp://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/genomicSuperDups.txt.gz
 gunzip hg19_genomicSuperDups.txt.gz
