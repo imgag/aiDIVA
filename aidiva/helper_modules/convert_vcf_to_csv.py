@@ -309,7 +309,6 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
     return vcf_as_dataframe
 
 
-## TODO: Add parallelization
 def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 

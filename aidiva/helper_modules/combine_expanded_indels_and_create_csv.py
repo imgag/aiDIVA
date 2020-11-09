@@ -210,11 +210,12 @@ def combine_vcf_dataframes(vcf_as_dataframe):
     global grouped_expanded_vcf
 
     for feature in feature_list:
-        if feature == "MaxAF":
+        if (feature == "MaxAF") | (feature == "MAX_AF"):
             continue
-        if (feature == "simpleRepeat"):
+        elif (feature == "simpleRepeat"):
             continue
-        vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
+        else:
+            vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
 
     return vcf_as_dataframe
 
@@ -226,10 +227,9 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
     for feature in feature_list:
         if (feature == "MaxAF") | (feature == "MAX_AF"):
             continue
-        ## TODO: check if the following is needed
-        if (feature == "simpleRepeat"):
+        elif (feature == "simpleRepeat"):
             continue
-        if "SIFT" in feature:
+        elif (feature == "SIFT"):
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
         else:
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))

@@ -87,13 +87,13 @@ def prepare_input_data(input_data):
     # fill Allele Frequence missing values with -> 0
     # fill missing values from other features with -> median or mean
 
-    for allele_frequency in allele_frequencies:
-        input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
-        input_data[allele_frequency] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
+    #for allele_frequency in allele_frequencies:
+    #    input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
+    #    input_data[allele_frequency] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
 
     # compute maximum Minor Allele Frequency (MAF)
-    if (not "MAX_AF" in input_data.columns) & (not "MaxAF" in input_data.columns):
-        input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
+    #if (not "MAX_AF" in input_data.columns) & (not "MaxAF" in input_data.columns):
+    #    input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
 
     global features
 
