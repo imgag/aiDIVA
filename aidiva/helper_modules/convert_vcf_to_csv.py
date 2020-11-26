@@ -149,6 +149,7 @@ def extract_annotation_header(header):
 
 
 ## TODO: Add flags to indicate indel_ID present and or RANK present
+## TODO: ADD homAF and oe_lof
 def extract_columns(cell):
     info_fields = str(cell).split(";")
     new_cols = []
@@ -159,6 +160,9 @@ def extract_columns(cell):
     condel = np.nan
     eigen_phred = np.nan
     mutation_assessor = np.nan
+    gnomAD_hom = np.nan
+    gnomAD_an = np.nan
+    gnomAD_homAF = np.nan
     annotation = ""
 
     if "indel_ID" in str(cell):
@@ -181,7 +185,17 @@ def extract_columns(cell):
             if field.startswith("MutationAssessor="):
                 if field.split("=")[1] != "nan":
                     mutation_assessor = field.split("=")[1]
-        return [rank, indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor]
+            if field.startswith("gnomAD_Hom"):
+                if field.split("=")[1] != "nan":
+                    gnomAD_hom = float(field.split("=")[1])
+            if field.startswith("gnomAD_AN"):
+                if field.split("=")[1] != "nan":
+                    gnomAD_an = float(field.split("=")[1])
+
+            if (gnomAD_hom > 0.0) & (gnomAD_an > 0.0):
+                gnomAD_homAF = gnomAD_hom / gnomAD_an
+
+        return [rank, indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
     else:
         for field in info_fields:
             if field.startswith("RANK"):
@@ -200,8 +214,17 @@ def extract_columns(cell):
             if field.startswith("MutationAssessor="):
                 if field.split("=")[1] != "nan":
                     mutation_assessor = field.split("=")[1]
+            if field.startswith("gnomAD_Hom"):
+                if field.split("=")[1] != "nan":
+                    gnomAD_hom = float(field.split("=")[1])
+            if field.startswith("gnomAD_AN"):
+                if field.split("=")[1] != "nan":
+                    gnomAD_an = float(field.split("=")[1])
 
-        return [rank, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor]
+            if (gnomAD_hom > 0.0) & (gnomAD_an > 0.0):
+                gnomAD_homAF = gnomAD_hom / gnomAD_an
+
+        return [rank, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
 
 
 def extract_vep_annotation(cell, annotation_header):
@@ -278,11 +301,12 @@ def extract_sample_information(row, sample):
     return sample_information
 
 
+## TODO: ADD homAF and oe_lof
 def add_INFO_fields_to_dataframe(vcf_as_dataframe):
     if indel_set:
-        vcf_as_dataframe[["RANK", "indel_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["RANK", "indel_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     else:
-        vcf_as_dataframe[["RANK", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["RANK", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 

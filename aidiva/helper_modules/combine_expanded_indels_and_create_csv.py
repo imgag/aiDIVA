@@ -214,6 +214,8 @@ def combine_vcf_dataframes(vcf_as_dataframe):
             continue
         elif (feature == "simpleRepeat"):
             continue
+        elif (feature == "oe_lof"):
+            continue
         else:
             vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
 
@@ -228,6 +230,8 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
         if (feature == "MaxAF") | (feature == "MAX_AF"):
             continue
         elif (feature == "simpleRepeat"):
+            continue
+        elif (feature == "oe_lof"):
             continue
         elif (feature == "SIFT"):
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
@@ -276,7 +280,7 @@ def convert_vcf_to_pandas_dataframe(input_file):
 
 
 def write_vcf_to_csv(vcf_combined_as_dataframe, out_file):
-    vcf_as_dataframe.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
+    vcf_combined_as_dataframe.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
 
 
 if __name__=="__main__":

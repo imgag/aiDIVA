@@ -25,6 +25,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = vep_command + "--offline" + " "
     vep_command = vep_command + "--cache" + " "
     vep_command = vep_command + "--dir_cache " + database_path + vep_annotation_dict["cache-path"] + " "
+    #vep_command = vep_command + "--genecode_basic" + " "
     vep_command = vep_command + "--sift s" + " "
     vep_command = vep_command + "--polyphen s" + " "
     vep_command = vep_command + "--symbol" + " "

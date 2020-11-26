@@ -8,8 +8,8 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: prediction_models/rf_model_snp_scikit0-19-1.pkl
-    scoring-model-indel: prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl
+    scoring-model-snp: prediction_models/rf_snp_clinvar_hgmd_1to1_oe_hom_scikit0-19-1.pkl #prediction_models/rf_model_snp_scikit0-19-1.pkl
+    scoring-model-indel: prediction_models/rf_model_inframe_indel_oe_hom_scikit0-19-1.pkl #prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl
 
     prioritization-information:
         # List of genes that should be excluded in the analysis, because they are normally false positives
@@ -61,6 +61,8 @@ Model-Features:
         - phyloP46mammal
         - phyloP46primate
         - phyloP46vertebrate
+        - oe_lof
+        - homAF
 
 
 Analysis-Output:

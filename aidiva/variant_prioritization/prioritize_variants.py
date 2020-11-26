@@ -223,6 +223,8 @@ def compute_hpo_relatedness_and_final_score(variant):
 
             if gene_distances:
                 hpo_relatedness = str(max(gene_distances, default=0.0))
+                ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS (eg 0.7 and 0.3)
+                # final_score = str((float(variant["AIDIVA_SCORE"]) * 0.7) + (float(hpo_relatedness) * 0.3))
                 final_score = str((float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2)
             else:
                 final_score = variant["AIDIVA_SCORE"]

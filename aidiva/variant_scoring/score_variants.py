@@ -25,7 +25,8 @@ mean_dict = {"phastCons46mammal": 0.09691308336428194,
              "FATHMM_XF": 0.35846023623584666,
              "SIFT": 0.35216996259535444,
              "REVEL": 0.28019263637740743,
-             "PolyPhen": 0.5169017014355943}
+             "PolyPhen": 0.5169017014355943,
+             "oe_lof": 0.53667483333333332}
 
 median_dict = {"MutationAssessor": 1.87,
                "CONDEL": 0.4805749233199981,
@@ -34,7 +35,8 @@ median_dict = {"MutationAssessor": 1.87,
                "FATHMM_XF": 0.209614,
                "SIFT": 0.153,
                "REVEL": 0.193,
-               "PolyPhen": 0.547}
+               "PolyPhen": 0.547,
+               "oe_lof": 0.48225}
 
 coding_variants = ["splice_acceptor_variant",
                    "splice_donor_variant",
@@ -100,14 +102,19 @@ def prepare_input_data(input_data):
     for feature in features:
         if feature == "MaxAF" or feature == "MAX_AF":
             input_data[feature] = input_data[feature].fillna(0)
+        elif feature == "homAF":
+            input_data[feature] = input_data[feature].fillna(0)
         elif feature == "segmentDuplication":
             input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(0)
         elif feature == "ABB_SCORE":
             input_data[feature] = input_data[feature].fillna(0)
-        elif "SIFT" in feature:
+        elif "SIFT" == feature:
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(median_dict["SIFT"])
+        elif feature == "oe_lof":
+            input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != "") & (not ":" in value) & (not "-" in value))], default=np.nan), axis=1)
+            input_data[feature] = input_data[feature].fillna(median_dict["oe_lof"])
         else:
             input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan), axis=1)
             if ("phastCons" in feature) | ("phyloP" in feature):
@@ -214,13 +221,29 @@ def perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, rf_
     print("Finished data preparation in: %.2f seconds" % (time.time() - t))
 
     t = time.time()
+    print(prepared_input_data_indel.dtypes)
     predicted_data_snp, predicted_data_indel = predict_pathogenicity(rf_model_snp, rf_model_indel, prepared_input_data_snp, input_features_snp, prepared_input_data_indel, input_features_indel)
+    print(predicted_data_indel["MAX_AF"].unique())
+    print(predicted_data_indel.dtypes)
+    print(sum(predicted_data_indel["MAX_AF"].isna()))
+
+    predicted_data_snp.to_csv("/mnt/storage1/users/ahboced1/test/snp_predicted.csv", sep="\t", index=False)
+    predicted_data_indel.to_csv("/mnt/storage1/users/ahboced1/test/indel_predicted.csv", sep="\t", index=False)
     print("Finished prediction in: %.2f seconds" % (time.time() - t))
 
-    # frameshift variants are not covered in the used model
-    # the following line might produce an SettingWithCopyWarning this Warning should be a false positive in this case
     t = time.time()
-    predicted_data_indel.loc[(abs(predicted_data_indel.REF.str.len() - predicted_data_indel.ALT.str.len()) % 3 != 0), "AIDIVA_SCORE"] = np.nan # could also be set to 1.0
+    # frameshift variants are not covered in the used model, set them to 1.0 if the MAX_AF is less or equal than 0.02
+    # the following line might produce an SettingWithCopyWarning this Warning should be a false positive in this case
+    predicted_data_indel.loc[((abs(predicted_data_indel["REF"].str.len() - predicted_data_indel["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = 1.0 #np.nan # could also be set to 1.0
+    predicted_data_indel.loc[np.greater_equal(pd.to_numeric(prepared_input_data_indel["MAX_AF"]), 0.01), "AIDIVA_SCORE"] = np.nan
+
+    # set splicing donor/acceptor variants to NaN or 1.0
+    predicted_data_snp.loc[(predicted_data_snp["Consequence"].str.contains("splice_acceptor_variant") | predicted_data_snp["Consequence"].str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0 #np.nan
+    predicted_data_indel.loc[(predicted_data_indel["Consequence"].str.contains("splice_acceptor_variant") | predicted_data_indel["Consequence"].str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0 #np.nan
+
+    # set synonymous variants to NaN (could also be set to 0.0)
+    predicted_data_snp.loc[(predicted_data_snp["Consequence"].str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0 #np.nan
+    predicted_data_indel.loc[(predicted_data_indel["Consequence"].str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0 #np.nan
 
     # set score for non-coding variants to NaN
     # the models are only for coding variants
@@ -228,16 +251,10 @@ def perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, rf_
     predicted_data_indel.loc[((predicted_data_indel.CODING == 0)), "AIDIVA_SCORE"] = np.nan
 
     # exclude chromosomes Y and MT
-    predicted_data_snp.loc[((predicted_data_snp.CHROM == "Y") | (predicted_data_snp.CHROM == "chrY") | (predicted_data_snp.CHROM == "MT") | (predicted_data_snp.CHROM == "chrMT") | (predicted_data_snp.CHROM == "M") | (predicted_data_snp.CHROM == "chrM")), "AIDIVA_SCORE"] = np.nan
-    predicted_data_indel.loc[((predicted_data_indel.CHROM == "Y") | (predicted_data_indel.CHROM == "chrY") | (predicted_data_indel.CHROM == "MT") | (predicted_data_indel.CHROM == "chrMT") | (predicted_data_indel.CHROM == "M") | (predicted_data_indel.CHROM == "chrM")), "AIDIVA_SCORE"] = np.nan
-
-    # set splicing donor/acceptor variants to NaN
-    predicted_data_snp.loc[(predicted_data_snp.Consequence.str.contains("splice_acceptor_variant") | predicted_data_snp.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = np.nan
-    predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("splice_acceptor_variant") | predicted_data_indel.Consequence.str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = np.nan
-
-    # set synonymous variants to NaN (could also be set to 0.0)
-    predicted_data_snp.loc[(predicted_data_snp.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = np.nan
-    predicted_data_indel.loc[(predicted_data_indel.Consequence.str.contains("synonymous")), "AIDIVA_SCORE"] = np.nan
+    #predicted_data_snp.loc[((predicted_data_snp["CHROM"] == "Y") | (predicted_data_snp["CHROM"] == "chrY")), "AIDIVA_SCORE"] = np.nan
+    #predicted_data_indel.loc[((predicted_data_indel["CHROM"] == "Y") | (predicted_data_indel["CHROM"] == "chrY")), "AIDIVA_SCORE"] = np.nan
+    predicted_data_snp.loc[((predicted_data_snp["CHROM"] == "MT") | (predicted_data_snp["CHROM"] == "chrMT") | (predicted_data_snp["CHROM"] == "M") | (predicted_data_snp["CHROM"] == "chrM")), "AIDIVA_SCORE"] = np.nan
+    predicted_data_indel.loc[((predicted_data_indel["CHROM"] == "MT") | (predicted_data_indel["CHROM"] == "chrMT") | (predicted_data_indel["CHROM"] == "M") | (predicted_data_indel["CHROM"] == "chrM")), "AIDIVA_SCORE"] = np.nan
     print("Finished score adjustments in: %.2f seconds" % (time.time() - t))
 
     # combine snp and indel data
