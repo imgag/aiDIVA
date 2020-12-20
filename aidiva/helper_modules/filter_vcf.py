@@ -86,10 +86,27 @@ def filter_coding_variants(filepath, filepath_out):
             continue
 
         # check if variant is coding and write to outfile
-        consequnce_list = [consequence for consequence in splitted_line[7].split("|")[consequence_index].split("&")]
-        if any(term for term in coding_variants if term in consequnce_list):
-            splitted_line[7] = "."
-            outfile.write("\t".join(splitted_line))
+        ## TODO: check all present transcripts not only the first one
+        annotation_field = ""
+        for field in splitted_line[7].split(";"):
+            if field.startswith("CSQ="):
+                annotation_field = field.replace("CSQ=", "")
+
+        if annotation_field:
+            transcript_annotations = [annotation for annotation in annotation_field.split(",")]
+            consequence_list = [transcript.split("|")[consequence_index] for transcript in transcript_annotations]
+            consequences = []
+
+            for consequence in consequence_list:
+                consequences += consequence.split("&")
+
+            #print(str(splitted_line[0] + ":" + splitted_line[1] + "_" + splitted_line[3] + ">" + splitted_line[4]), consequences)
+            if any(term for term in coding_variants if term in consequences):
+                #print("Filt:", consequences)
+                splitted_line[7] = "."
+                outfile.write("\t".join(splitted_line))
+        else:
+            print("WARNING: Annotation field missing!")
 
     vcf_file_to_reformat.close()
     outfile.close()
