@@ -54,7 +54,7 @@ def list_distance(DG, Q, G, Query_distances):
             return (0, 0)
 
         # IC stored as count
-        Query_distances["maxval"] = 2 * (max([d["count"] for n, d in DG.nodes(data=True)]))
+        Query_distances["maxval"] = 2 * (max([d["IC"] for n, d in DG.nodes(data=True)]))
 
     # now I have the query distances value
     # map the genes HPO and extract values.
@@ -84,6 +84,7 @@ def precompute_query_distances(DG, Q, Query_distances):
         else:
             print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
+        ## TODO: compute shortest path lengths for all nodes not only for k_q
         distance =  nx.shortest_path_length(DG, k_q, weight="dist")
         if Query_distances == 0:
             Query_distances = {key: float(value) % offset for (key, value) in distance.items()}
@@ -100,7 +101,7 @@ def precompute_query_distances(DG, Q, Query_distances):
         return 0
 
     # IC stored as count
-    Query_distances["maxval"] = 2 * (max([d["count"] for n, d in DG.nodes(data=True)]))
+    Query_distances["maxval"] = 2 * (max([d["IC"] for n, d in DG.nodes(data=True)]))
 
     return Query_distances
 
