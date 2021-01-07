@@ -17,8 +17,8 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: prediction_models/rf_model_snp_scikit0-19-1.pkl
-    scoring-model-indel: prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl
+    scoring-model-snp: prediction_models/rf_model_snp_scikit0-19-1.pkl #prediction_models/clinvar_snp_rf.pkl
+    scoring-model-indel: prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl #prediction_models/clinvar_indel_rf.pkl
 
     prioritization-information:
         # file containing the HPO terms that are associated with the disease (one term per line)
@@ -79,6 +79,8 @@ Model-Features:
         - phyloP46mammal
         - phyloP46primate
         - phyloP46vertebrate
+        - homAF
+        - oe_lof
 
 VEP-Annotation:
     # Flag indicating whether to annotate the input data with VEP or not, if False then AIdiva assumes that the data is already annotated

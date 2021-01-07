@@ -221,34 +221,35 @@ def perform_pathogenicity_score_prediction(input_data_snp, input_data_indel, rf_
     print("Finished data preparation in: %.2f seconds" % (time.time() - t))
 
     t = time.time()
-    print(prepared_input_data_indel.dtypes)
+    #print(prepared_input_data_indel.dtypes)
     predicted_data_snp, predicted_data_indel = predict_pathogenicity(rf_model_snp, rf_model_indel, prepared_input_data_snp, input_features_snp, prepared_input_data_indel, input_features_indel)
-    print(predicted_data_indel["MAX_AF"].unique())
-    print(predicted_data_indel.dtypes)
-    print(sum(predicted_data_indel["MAX_AF"].isna()))
+    #print(predicted_data_indel["MAX_AF"].unique())
+    #print(predicted_data_indel.dtypes)
+    #print(sum(predicted_data_indel["MAX_AF"].isna()))
 
-    predicted_data_snp.to_csv("/mnt/storage1/users/ahboced1/test/snp_predicted.csv", sep="\t", index=False)
-    predicted_data_indel.to_csv("/mnt/storage1/users/ahboced1/test/indel_predicted.csv", sep="\t", index=False)
+    #predicted_data_snp.to_csv("/mnt/storage1/users/ahboced1/test/snp_predicted.csv", sep="\t", index=False)
+    #predicted_data_indel.to_csv("/mnt/storage1/users/ahboced1/test/indel_predicted.csv", sep="\t", index=False)
     print("Finished prediction in: %.2f seconds" % (time.time() - t))
 
     t = time.time()
     # frameshift variants are not covered in the used model, set them to 1.0 if the MAX_AF is less or equal than 0.02
     # the following line might produce an SettingWithCopyWarning this Warning should be a false positive in this case
-    predicted_data_indel.loc[((abs(predicted_data_indel["REF"].str.len() - predicted_data_indel["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = 1.0 #np.nan # could also be set to 1.0
-    predicted_data_indel.loc[np.greater_equal(pd.to_numeric(prepared_input_data_indel["MAX_AF"]), 0.01), "AIDIVA_SCORE"] = np.nan
+    predicted_data_indel.loc[((abs(predicted_data_indel["REF"].str.len() - predicted_data_indel["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = np.nan # could also be set to 1.0
+    #predicted_data_indel.loc[np.greater_equal(pd.to_numeric(prepared_input_data_indel["MAX_AF"]), 0.01), "AIDIVA_SCORE"] = np.nan
 
     # set splicing donor/acceptor variants to NaN or 1.0
-    predicted_data_snp.loc[(predicted_data_snp["Consequence"].str.contains("splice_acceptor_variant") | predicted_data_snp["Consequence"].str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0 #np.nan
-    predicted_data_indel.loc[(predicted_data_indel["Consequence"].str.contains("splice_acceptor_variant") | predicted_data_indel["Consequence"].str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = 1.0 #np.nan
+    predicted_data_snp.loc[(predicted_data_snp["Consequence"].str.contains("splice_acceptor_variant") | predicted_data_snp["Consequence"].str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = np.nan
+    predicted_data_indel.loc[(predicted_data_indel["Consequence"].str.contains("splice_acceptor_variant") | predicted_data_indel["Consequence"].str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = np.nan
 
     # set synonymous variants to NaN (could also be set to 0.0)
-    predicted_data_snp.loc[(predicted_data_snp["Consequence"].str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0 #np.nan
-    predicted_data_indel.loc[(predicted_data_indel["Consequence"].str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0 #np.nan
+    predicted_data_snp.loc[(predicted_data_snp["Consequence"].str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0 # np.nan
+    predicted_data_indel.loc[(predicted_data_indel["Consequence"].str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0 # np.nan
 
     # set score for non-coding variants to NaN
     # the models are only for coding variants
-    predicted_data_snp.loc[((predicted_data_snp.CODING == 0)), "AIDIVA_SCORE"] = np.nan
-    predicted_data_indel.loc[((predicted_data_indel.CODING == 0)), "AIDIVA_SCORE"] = np.nan
+    ## TODO: check if still needed, it shoudl be already filtered before
+    #predicted_data_snp.loc[((predicted_data_snp.CODING == 0)), "AIDIVA_SCORE"] = np.nan
+    #predicted_data_indel.loc[((predicted_data_indel.CODING == 0)), "AIDIVA_SCORE"] = np.nan
 
     # exclude chromosomes Y and MT
     #predicted_data_snp.loc[((predicted_data_snp["CHROM"] == "Y") | (predicted_data_snp["CHROM"] == "chrY")), "AIDIVA_SCORE"] = np.nan

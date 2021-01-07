@@ -48,23 +48,23 @@ if __name__=="__main__":
     scoring_model_snp = os.path.dirname(os.path.abspath(__file__)) + "/../data/" + configuration["Analysis-Input"]["scoring-model-snp"]
     scoring_model_indel = os.path.dirname(os.path.abspath(__file__)) + "/../data/" + configuration["Analysis-Input"]["scoring-model-indel"]
 
-    if "threads" in args:
+    if args.threads is not None:
         num_cores = args.threads
     else:
         num_cores = 1
 
     # parse disease and inheritance information
-    if "hpo_list" in args:
+    if args.hpo_list is not None:
         hpo_file = args.hpo_list
     else:
         hpo_file = None
 
-    if "gene_exclusion" in args:
+    if args.gene_exclusion is not None:
         gene_exclusion_file = args.gene_exclusion
     else:
         gene_exclusion_file = None
 
-    if "family_file" in args:
+    if args.family_file is not None:
         family_file = args.family_file
         family_type = "SINGLE" ## TODO: get correct family type based on the family file
     else:
@@ -121,5 +121,5 @@ if __name__=="__main__":
 
     write_result.write_result_vcf(prioritized_data, str(working_directory + input_filename + "_aidiva_result.vcf"), bool(family_type == "SINGLE"))
     prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.csv"), sep="\t", index=False)
-    prioritized_data[prioritized_data.FILTER == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filt.csv"), sep="\t", index=False)
+    prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filt.csv"), sep="\t", index=False)
     print("Pipeline successfully finsished!")

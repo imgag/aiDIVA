@@ -167,30 +167,30 @@ def extract_columns(cell):
 
     if "indel_ID" in str(cell):
         for field in info_fields:
-            if field.startswith("RANK"):
-                rank = field.split("=")[1]
+            if field.startswith("RANK="):
+                rank = field.split("RANK=")[1]
             if field.startswith("indel_ID"):
-                indel_ID = field.split("=")[1]
+                indel_ID = field.split("indel_ID=")[1]
             if field.startswith("CSQ="):
-                annotation = field.split("=")[1]
+                annotation = field.split("CSQ=")[1]
             if field.startswith("FATHMM_XF="):
-                if field.split("=")[1] != "nan":
-                    fathmm_xf = field.split("=")[1]
+                if field.split("FATHMM_XF=")[1] != "nan":
+                    fathmm_xf = field.split("FATHMM_XF=")[1]
             if field.startswith("CONDEL="):
-                if field.split("=")[1] != "nan":
-                    condel = field.split("=")[1]
+                if field.split("CONDEL=")[1] != "nan":
+                    condel = field.split("CONDEL=")[1]
             if field.startswith("EIGEN_PHRED="):
-                if field.split("=")[1] != "nan":
-                    eigen_phred = field.split("=")[1]
+                if field.split("EIGEN_PHRED=")[1] != "nan":
+                    eigen_phred = field.split("EIGEN_PHRED=")[1]
             if field.startswith("MutationAssessor="):
-                if field.split("=")[1] != "nan":
-                    mutation_assessor = field.split("=")[1]
+                if field.split("MutationAssessor=")[1] != "nan":
+                    mutation_assessor = field.split("MutationAssessor=")[1]
             if field.startswith("gnomAD_Hom"):
-                if field.split("=")[1] != "nan":
-                    gnomAD_hom = float(field.split("=")[1])
+                if field.split("gnomAD_Hom=")[1] != "nan":
+                    gnomAD_hom = float(field.split("gnomAD_Hom=")[1])
             if field.startswith("gnomAD_AN"):
-                if field.split("=")[1] != "nan":
-                    gnomAD_an = float(field.split("=")[1])
+                if field.split("gnomAD_AN=")[1] != "nan":
+                    gnomAD_an = float(field.split("gnomAD_AN=")[1])
 
             if (gnomAD_hom > 0.0) & (gnomAD_an > 0.0):
                 gnomAD_homAF = gnomAD_hom / gnomAD_an
@@ -198,28 +198,28 @@ def extract_columns(cell):
         return [rank, indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
     else:
         for field in info_fields:
-            if field.startswith("RANK"):
-                rank = field.split("=")[1]
+            if field.startswith("RANK="):
+                rank = field.split("RANK=")[1]
             if field.startswith("CSQ="):
-                annotation = field.split("=")[1]
+                annotation = field.split("CSQ=")[1]
             if field.startswith("FATHMM_XF="):
-                if field.split("=")[1] != "nan":
-                    fathmm_xf = field.split("=")[1]
+                if field.split("FATHMM_XF=")[1] != "nan":
+                    fathmm_xf = field.split("FATHMM_XF=")[1]
             if field.startswith("CONDEL="):
-                if field.split("=")[1] != "nan":
-                    condel = field.split("=")[1]
+                if field.split("CONDEL=")[1] != "nan":
+                    condel = field.split("CONDEL=")[1]
             if field.startswith("EIGEN_PHRED="):
-                if field.split("=")[1] != "nan":
-                    eigen_phred = field.split("=")[1]
+                if field.split("EIGEN_PHRED=")[1] != "nan":
+                    eigen_phred = field.split("EIGEN_PHRED=")[1]
             if field.startswith("MutationAssessor="):
-                if field.split("=")[1] != "nan":
-                    mutation_assessor = field.split("=")[1]
-            if field.startswith("gnomAD_Hom"):
-                if field.split("=")[1] != "nan":
-                    gnomAD_hom = float(field.split("=")[1])
-            if field.startswith("gnomAD_AN"):
-                if field.split("=")[1] != "nan":
-                    gnomAD_an = float(field.split("=")[1])
+                if field.split("MutationAssessor=")[1] != "nan":
+                    mutation_assessor = field.split("MutationAssessor=")[1]
+            if field.startswith("gnomAD_Hom="):
+                if field.split("gnomAD_Hom=")[1] != "nan":
+                    gnomAD_hom = float(field.split("gnomAD_Hom=")[1])
+            if field.startswith("gnomAD_AN="):
+                if field.split("gnomAD_AN=")[1] != "nan":
+                    gnomAD_an = float(field.split("gnomAD_AN=")[1])
 
             if (gnomAD_hom > 0.0) & (gnomAD_an > 0.0):
                 gnomAD_homAF = gnomAD_hom / gnomAD_an
@@ -228,12 +228,16 @@ def extract_columns(cell):
 
 
 def extract_vep_annotation(cell, annotation_header):
-    annotation_fields = str(cell).split(",")
+    annotation_fields = str(cell["CSQ"]).split(",")
     new_cols = []
     consequences = []
 
     # take the most severe annotation variant
     for field in annotation_fields:
+        #print(field)
+        #print(annotation_header.index("Consequence"))
+        #print(field.split("|"))
+        #print(cell["CHROM"], cell["POS"], cell["REF"], cell["ALT"])
         consequences.append(min([variant_consequences.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
 
     target_index = min(enumerate(consequences), key=itemgetter(1))[0]
@@ -314,7 +318,8 @@ def add_INFO_fields_to_dataframe(vcf_as_dataframe):
 
 
 def add_VEP_annotation_to_dataframe(vcf_as_dataframe):
-    vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
+    #vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
+    vcf_as_dataframe[annotation_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)), axis=1)
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
 
     return vcf_as_dataframe

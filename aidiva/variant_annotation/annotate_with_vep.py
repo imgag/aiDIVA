@@ -19,7 +19,10 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     #vcf_annotation = vep_annotation_dict["custom"]["vcf-files"]
 
     # set the correct paths to the needed perl modules
-    os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+    if "PERL5LIB" in os.environ:
+        os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+    else:
+        os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/"
 
     # add essential parameters
     vep_command = vep_command + "--offline" + " "
@@ -62,6 +65,8 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     else:
         vep_command = vep_command + "--custom " + database_path + bed_annotation["simpleRepeat"]["file"]  + "," + "simpleRepeat" + ",bed," + bed_annotation["simpleRepeat"]["method"] + ",0" + " "
 
+    vep_command = vep_command + "--custom /mnt/storage1/users/ahboced1/AIdiva_project/current_model/gnomAD_OE_sorted.bed.gz,oe_lof,bed,overlap,0 "
+
     vep_command = vep_command + "-i " + input_vcf_file + " "
     vep_command = vep_command + "-o " + output_vcf_file + " "
     vep_command = vep_command + "--fork " + str(vep_annotation_dict["num-threads"]) + " "
@@ -73,13 +78,14 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     print("The annotated VCF is saved as %s" % (output_vcf_file))
 
 
-def annotate_from_vcf(input_vcf_file, output_vcf_file, num_cores=1):
+def annotate_from_vcf(input_vcf_file, output_vcf_file, num_cores):
     tmp = tempfile.NamedTemporaryFile(mode="w+b", suffix=".config", delete=False)
 
     database_path = "/mnt/storage1/share/data/dbs/"
     # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
     tool_path = "/mnt/storage1/share/opt/"
     # tool_path = os.path.dirname(__file__) + "/../../tools/"
+
     command = tool_path + "ngs-bits-current/VcfAnnotateFromVCF -config_file " + tmp.name + " -in " + input_vcf_file + " -out " + output_vcf_file + " -threads " + str(num_cores)
 
     try:
@@ -87,6 +93,7 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, num_cores=1):
         tmp.write(str(database_path + "Eigen/hg19_Eigen-phred_coding_chrom1-22.vcf.gz\t\tEIGEN_PHRED\t\ttrue\n").encode())
         tmp.write(str(database_path + "fathmm-XF/hg19_fathmm_xf_coding.vcf.gz\t\tFATHMM_XF\t\ttrue\n").encode())
         tmp.write(str(database_path + "MutationAssessor/hg19_precomputed_MutationAssessor.vcf.gz\t\tMutationAssessor\t\ttrue\n").encode())
+        tmp.write(str(database_path + "gnomAD/gnomAD_genome_r2.1.1.vcf.gz\tgnomAD\tAN,Hom\t\ttrue\n").encode())
         tmp.close()
 
         subprocess.run(command, shell=True, check=True)
