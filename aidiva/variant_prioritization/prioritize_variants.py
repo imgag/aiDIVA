@@ -297,7 +297,6 @@ def check_filters(variant):
     genenames = set(genecolumn.split(";"))
 
     consequences = str(variant["Consequence"])
-    #found_consequences = [variant_consequences[consequence] for consequence in consequences.split("&")]
     found_consequences = consequences.split("&")
     seg_dup = float(variant[duplication_identifier])
     tandem = str(variant[repeat_identifier])
@@ -325,33 +324,31 @@ def check_filters(variant):
         return filter_passed, filter_comment
 
     ## TODO: filter later compound only less than 0.01
+    ## TODO: change frequency based on inheritance mode (hom/het)
     if float(maf) <= 0.02:
         if any(term for term in coding_variants if term in found_consequences):
-        #if (("exonic" in found_consequences) | ("splicing" in found_consequences) | ("exonic;splicing" in found_consequences)):
-            ## TODO: should be enough to only look for synonymous variants (the split part is obsolete since the it is already mathcing the substring)
-            #if not (("synonymous_variant" in consequences.split("&")) & ("unknown" != consequences) & ("UNKNOWN" != consequences)):
             if not "synonymous_variant" in found_consequences:
                 # make the filter different, check if any of the wanted terms is in found_consequences ["stop_gained","stop_lost","start_lost","inframe_insertion","inframe_deletion","missense_variant","protein_altering_variant","incomplete_terminal_codon_variant","start_retained_variant","stop_retained_variant","coding_sequence_variant"]
-                if ("frameshift_variant" not in found_consequences) & (any(term for term in found_consequences if term in ["stop_gained","stop_lost","start_lost","inframe_insertion","inframe_deletion","missense_variant","protein_altering_variant","incomplete_terminal_codon_variant","start_retained_variant","stop_retained_variant","coding_sequence_variant"])): # ["splice_acceptor_variant","splice_donor_variant","splice_region_variant","frameshift_variant","intron_variant"]):
-                    ## TODO: is zero the right condition to withdraw ?!?
-                    if (seg_dup == 0.0):
-                        if not np.isnan(variant["AIDIVA_SCORE"]):
-                            if (len(HPO_query) > 1) & ("NONE" not in HPO_query):
-                                ## TODO: maybe it is better to remove this filter step
-                                if float(variant["HPO_RELATEDNESS"]) > 0.0:
-                                    filter_passed = 1
-                                else:
-                                    filter_passed = 0 # no relation to reported HPO terms
-                                    filter_comment = "no HPO relation"
+                if ("frameshift_variant" not in found_consequences) & (any(term for term in found_consequences if term in ["stop_gained","stop_lost","start_lost","inframe_insertion","inframe_deletion","missense_variant","protein_altering_variant","incomplete_terminal_codon_variant","start_retained_variant","stop_retained_variant","coding_sequence_variant"])):
+                    ## TODO: remove segment duplication filter, it is already covered in the ML prediction
+                    #if (seg_dup == 0.0):
+                    if not np.isnan(variant["AIDIVA_SCORE"]):
+                        if len(HPO_query) >= 1:
+                            if float(variant["HPO_RELATEDNESS"]) > 0.0:
+                                filter_passed = 1
+                                filter_comment = "passed all"
                             else:
-                                filter_passed = 1 # skip hpo filter if no terms are present
+                                filter_passed = 0 # no relation to reported HPO terms
+                                filter_comment = "no HPO relation"
                         else:
-                            filter_passed = 0 # no prediction present (eg. variant type not covered by the used ML models)
-                            filter_comment = "missing AIDIVA_SCORE"
+                            filter_passed = 1 # skip hpo filter if no terms are present
+                            filter_comment = "no HPO terms given"
                     else:
-                        ## TODO: check if HPO relation is present, if so accept the variant
-                        filter_passed = 0 # segment duplication
-                        filter_comment = "segment duplication"
+                        filter_passed = 0 # no prediction present (eg. variant type not covered by the used ML models)
+                        filter_comment = "missing AIDIVA_SCORE"
+                    #else:
+                    #    filter_passed = 0 # segment duplication
+                    #    filter_comment = "segment duplication"
                 else:
                     filter_passed = 0 # splicing, intron and frameshift variants are not covered by the used ML models (the predictions cannot be trusted), skip variants that have no covered consequence
                     filter_comment = "variant type not covered"
