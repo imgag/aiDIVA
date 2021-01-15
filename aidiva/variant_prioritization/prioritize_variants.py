@@ -79,7 +79,7 @@ family = None
 family_type = "SINGLE"
 genes2exclude = None
 gene_2_HPO = None
-gene_2_hgnc = None
+hgnc_2_gene = None
 HPO_graph = None
 HPO_query = None
 query_dist = 0
@@ -91,13 +91,13 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     #load HPO resources
     print(hpo_resources_folder)
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo_v1_new.pkl" #"gene2hpo_v1.pkl"
-    gene_2_hgnc_f = hpo_resources_folder + "prev_gene_2_hgnc.pkl" #"gene2hpo_v1.pkl"
+    hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.pkl" #"gene2hpo_v1.pkl"
     HPO_graph_file = hpo_resources_folder + "hpo_graph_v1_new.pkl" #"hpo_graph_v1.pkl"
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 
-    global gene_2_hgnc
-    gene_2_hgnc = pickle.load(open(gene_2_hgnc_f, "rb"))
+    global hgnc_2_gene
+    hgnc_2_gene = pickle.load(open(hgnc_2_gene_f, "rb"))
 
     global gene_2_HPO
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
@@ -223,26 +223,29 @@ def compute_hpo_relatedness_and_final_score(variant):
             hpo_relatedness = np.nan
         else:
             genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"])) # shouldn't be needed
+            hgnc_id = str(variant["HGNC_ID"])
             genenames = set(genecolumn.split(";"))
             gene_distances = []
             processed_HPO_genes = dict()
 
+            # we use the hgnc ID to prevent problems if a gene symbol is used that isn't used anymore
             for gene_id in genenames:
                 if gene_id in genes2exclude:
                     continue
                 if gene_id in processed_HPO_genes.keys():
                     gene_distances.append(processed_HPO_genes[gene_id])
                 else:
-                    #process ex novo
-                    #get HPOs related to the gene
-
-                    # check if the gene id is outdated and use the current approved id instead to compute the hpo_relatedness
-                    if gene_id in gene_2_hgnc.keys():
-                        #print("gene_id", gene_id)
-                        #print("hgnc_id", gene_2_hgnc[gene_id])
-                        gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_2_hgnc[gene_id])
-                    else:
+                    if gene_id in gene_2_HPO.keys():
                         gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
+                    else:
+                        print(hgnc_id)
+                        if (hgnc_id != "nan") & (hgnc_id in hgnc_2_gene.keys()):
+                            print("I am wrong", hgnc_id, gene_id)
+                            gene_symbol = hgnc_2_gene[hgnc_id]
+                            gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_symbol)
+                        else:
+                            print("WARNING: Given gene is not covered!")
+                            gene_HPO_list = []
 
                     # do we need to update query_dist here???
                     global query_dist
