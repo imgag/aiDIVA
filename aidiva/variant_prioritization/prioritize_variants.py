@@ -79,6 +79,7 @@ family = None
 family_type = "SINGLE"
 genes2exclude = None
 gene_2_HPO = None
+gene_2_hgnc = None
 HPO_graph = None
 HPO_query = None
 query_dist = 0
@@ -90,9 +91,13 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     #load HPO resources
     print(hpo_resources_folder)
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo_v1_new.pkl" #"gene2hpo_v1.pkl"
+    gene_2_hgnc_f = hpo_resources_folder + "prev_gene_2_hgnc.pkl" #"gene2hpo_v1.pkl"
     HPO_graph_file = hpo_resources_folder + "hpo_graph_v1_new.pkl" #"hpo_graph_v1.pkl"
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
+
+    global gene_2_hgnc
+    gene_2_hgnc = pickle.load(open(gene_2_hgnc_f, "rb"))
 
     global gene_2_HPO
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
@@ -230,9 +235,16 @@ def compute_hpo_relatedness_and_final_score(variant):
                 else:
                     #process ex novo
                     #get HPOs related to the gene
-                    gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
-                    # do we need to update query_dist here???
 
+                    # check if the gene id is outdated and use the current approved id instead to compute the hpo_relatedness
+                    if gene_id in gene_2_hgnc.keys():
+                        #print("gene_id", gene_id)
+                        #print("hgnc_id", gene_2_hgnc[gene_id])
+                        gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_2_hgnc[gene_id])
+                    else:
+                        gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
+
+                    # do we need to update query_dist here???
                     global query_dist
                     (g_dist, query_distance) = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, query_dist)
                     query_dist = query_distance

@@ -112,6 +112,10 @@ def extract_HPO_related_to_gene(gene_2_HPO, gene):
         gene_2_HPO_dict = gene_2_HPO
     else:
         gene_2_HPO_dict = pickle.load(open(gene_2_HPO, "rb"))
-    outlist = gene_2_HPO_dict.get(gene, [])
+
+    if gene in gene_2_HPO_dict.keys():
+        outlist = gene_2_HPO_dict[gene]
+    else:
+        outlist = []
 
     return outlist

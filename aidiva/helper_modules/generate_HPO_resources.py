@@ -247,7 +247,7 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
             print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
     # count is the IC of the node then
 
-    # convert directed graph to an undirected graph 
+    # convert directed graph to an undirected graph
     hpo_graph = hpo_graph.to_undirected()
 
     #pickle.dump(hpo_graph,open(output,"wb"))
@@ -263,6 +263,25 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
     print("HPO graph successfully generated and saved as %s" % (hpo_graph_file))
 
 
+# on the following website https://www.genenames.org/download/custom/
+# select only the following column data: HGNC_ID, APPROVED_SYMBOL, PREVIOUS_SYMBOLS
+# and download the resulting TXT file, this will be the input for this method
+def create_gene2hgnc_mapping_file(hgnc_symbol_file, gene_2_hgnc):
+    file = open(hgnc_symbol_file, "r")
+    gene_dict = dict()
+
+    for line in file:
+        if line.startswith("#"):
+            continue
+
+        splitted_line = line.split("\t")
+
+        for entry in splitted_line[2].split(","):
+            gene_dict[entry.strip()] = splitted_line[1]
+
+    pickle.dump(gene_dict, open(gene_2_hgnc, "wb"))
+
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser("Script to generate the HPO resources needed in the prioritization step of AIdiva")
     parser.add_argument("--hpo_ontology", type=str, dest="hpo_ontology", metavar="hp.obo", required=True, help="File containing the HPO ontology\n")
@@ -271,8 +290,11 @@ if __name__=="__main__":
     parser.add_argument("--hpo_edges", type=str, dest="hpo_edges", metavar="hpo_edges.pkl", required=True, help="File where the extracted hpo edges are stored\n")
     parser.add_argument("--hpo_counts", type=str, dest="hpo_counts", metavar="HPO_counts.txt", required=True, help="File containing the hpo counts needed for the hpo graph construction\n")
     parser.add_argument("--hpo_graph", type=str, dest="hpo_graph", metavar="hpo_graph.pkl", required=True, help="File to save the generated hpo graph\n")
+    parser.add_argument("--hgnc_symbols", type=str, dest="hgnc_symbols", metavar="hgnc_approved_symbols.txt", required=True, help="File containing the approved hgnc genes and their previous gene symbols if there are any\n")
+    parser.add_argument("--gene_hgnc", type=str, dest="gene_hgnc", metavar="gene2hgnc.pkl", required=True, help="File to save the generated gene to hgnc mapping\n")
     args = parser.parse_args()
 
     generate_gene2hpo_dict(args.gene_phenotype, args.gene_hpo)
     extract_hpo_graph_edges(args.hpo_ontology, args.hpo_edges)
     generate_hpo_graph(args.hpo_counts, args.hpo_edges, args.hpo_graph)
+    create_gene2hgnc_mapping_file(args.hgnc_symbols, args.gene_hgnc)
