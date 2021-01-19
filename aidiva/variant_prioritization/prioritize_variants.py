@@ -90,9 +90,9 @@ num_cores = 5
 def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fam_type="SINGLE", hpo_list=None, gene_exclusion_list=None, n_cores=1):
     #load HPO resources
     print(hpo_resources_folder)
-    gene_2_HPO_f = hpo_resources_folder + "gene2hpo_v1_new.pkl" #"gene2hpo_v1.pkl"
-    hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.pkl" #"gene2hpo_v1.pkl"
-    HPO_graph_file = hpo_resources_folder + "hpo_graph_v1_new.pkl" #"hpo_graph_v1.pkl"
+    gene_2_HPO_f = hpo_resources_folder + "gene2hpo.pkl"
+    hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.pkl"
+    HPO_graph_file = hpo_resources_folder + "hpo_graph.pkl"
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 

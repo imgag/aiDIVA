@@ -107,3 +107,6 @@ venv.bak/
 #data/
 data/prediction_models/
 data/annotation_resources/Makefile_*
+
+# old files
+data/hpo_resources/old/
