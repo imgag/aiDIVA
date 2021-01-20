@@ -31,6 +31,7 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
 
             for i in range(abs(window_end-window_start)):
                 alt_variant = ""
+                ## TODO: Handle the case if "N" is in the reference
                 if (extended_ref_seq[i] == "A") | (extended_ref_seq[i] == "T"):
                     alt_variant = random.choice(["G", "C"])
                 elif (extended_ref_seq[i] == "G") | (extended_ref_seq[i] == "C"):
@@ -46,8 +47,6 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                             "." + "\t" +
                             "." + "\t" +
                             str(row.INFO).strip() + "\n")
-
-    #data_combined = pd.concat(data_grouped)
 
 
 def import_csv_data(in_data):
@@ -75,12 +74,7 @@ def import_csv_data(in_data):
 
     data = pd.read_csv(in_data, names=header_line.split("\t"), sep="\t", comment="#", low_memory=False)
     data.fillna(".", inplace=True)
-
     data = data.rename(columns={"#CHROM": "CHROM"})
-
-    #if "indel_ID" not in data.columns:
-    #    data["indel_ID"] = data.index + 1
-    #    data["indel_ID"] = data.apply(lambda row: "indel_" + str(row["indel_ID"]), axis=1)
 
     return data, comment_lines
 

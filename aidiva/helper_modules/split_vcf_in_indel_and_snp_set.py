@@ -49,7 +49,6 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
                 outfile_snps.write(line)
             elif (ref_length > 1) | (alt_length > 1):
                 indel_ID += 1
-                #splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
                 if splitted_line[7].endswith("\n"):
                     splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
                 else:
@@ -70,7 +69,5 @@ if __name__== "__main__":
     parser.add_argument("--snp_file", type=str, dest="snp_file", metavar="snps.vcf", required=True, help="File to save the SNP variants\n")
     parser.add_argument("--indel_file", type=str, dest="indel_file", metavar="indels.vcf", required=True, help="File to save the InDel variants\n")
     args = parser.parse_args()
-    t = vars(args)
-    print(t)
 
     split_vcf_file_in_indel_and_snps_set(args.in_file, args.snp_file, args.indel_file)

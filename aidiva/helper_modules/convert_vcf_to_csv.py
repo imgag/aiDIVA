@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import multiprocessing as mp
 import tempfile
 import argparse
 from operator import itemgetter
@@ -41,6 +42,12 @@ variant_consequences = {"transcript_ablation": 1,
                         "regulatory_region_variant": 34,
                         "feature_truncation": 35,
                         "intergenic_variant": 36}
+
+num_partitions = 10
+num_cores = 5
+annotation_header = None
+indel_set = False
+
 
 
 def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel):
@@ -84,7 +91,6 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
                 outfile_snps.write(line)
             elif (ref_length > 1) | (alt_length > 1):
                 indel_ID += 1
-                #splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
                 if splitted_line[7].endswith("\n"):
                     splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
                 else:
@@ -105,7 +111,6 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
 
     vcf_file_to_reformat = open(filepath, "r")
 
-    # TODO move before the header parsing
     # make sure that there are no unwanted linebreaks in the variant entries
     tmp = tempfile.NamedTemporaryFile(mode="w+")
     tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
@@ -144,40 +149,95 @@ def extract_annotation_header(header):
 
 
 ## TODO: Add flags to indicate indel_ID present and or RANK present
+## TODO: ADD homAF and oe_lof
 def extract_columns(cell):
     info_fields = str(cell).split(";")
     new_cols = []
 
-    rank = np.NaN
-    indel_ID = np.NaN
+    rank = np.nan
+    indel_ID = np.nan
+    fathmm_xf = np.nan
+    condel = np.nan
+    eigen_phred = np.nan
+    mutation_assessor = np.nan
+    gnomAD_hom = np.nan
+    gnomAD_an = np.nan
+    gnomAD_homAF = np.nan
     annotation = ""
 
     if "indel_ID" in str(cell):
         for field in info_fields:
-            if field.startswith("RANK"):
-                rank = field.split("=")[1]
+            if field.startswith("RANK="):
+                rank = field.split("RANK=")[1]
             if field.startswith("indel_ID"):
-                indel_ID = field.split("=")[1]
+                indel_ID = field.split("indel_ID=")[1]
             if field.startswith("CSQ="):
-                annotation = field.split("=")[1]
-        return [rank, indel_ID, annotation]
+                annotation = field.split("CSQ=")[1]
+            if field.startswith("FATHMM_XF="):
+                if field.split("FATHMM_XF=")[1] != "nan":
+                    fathmm_xf = field.split("FATHMM_XF=")[1]
+            if field.startswith("CONDEL="):
+                if field.split("CONDEL=")[1] != "nan":
+                    condel = field.split("CONDEL=")[1]
+            if field.startswith("EIGEN_PHRED="):
+                if field.split("EIGEN_PHRED=")[1] != "nan":
+                    eigen_phred = field.split("EIGEN_PHRED=")[1]
+            if field.startswith("MutationAssessor="):
+                if field.split("MutationAssessor=")[1] != "nan":
+                    mutation_assessor = field.split("MutationAssessor=")[1]
+            if field.startswith("gnomAD_Hom"):
+                if field.split("gnomAD_Hom=")[1] != "nan":
+                    gnomAD_hom = float(field.split("gnomAD_Hom=")[1])
+            if field.startswith("gnomAD_AN"):
+                if field.split("gnomAD_AN=")[1] != "nan":
+                    gnomAD_an = float(field.split("gnomAD_AN=")[1])
+
+            if (gnomAD_hom > 0.0) & (gnomAD_an > 0.0):
+                gnomAD_homAF = gnomAD_hom / gnomAD_an
+
+        return [rank, indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
     else:
         for field in info_fields:
-            if field.startswith("RANK"):
-                rank = field.split("=")[1]
+            if field.startswith("RANK="):
+                rank = field.split("RANK=")[1]
             if field.startswith("CSQ="):
-                annotation = field.split("=")[1]
+                annotation = field.split("CSQ=")[1]
+            if field.startswith("FATHMM_XF="):
+                if field.split("FATHMM_XF=")[1] != "nan":
+                    fathmm_xf = field.split("FATHMM_XF=")[1]
+            if field.startswith("CONDEL="):
+                if field.split("CONDEL=")[1] != "nan":
+                    condel = field.split("CONDEL=")[1]
+            if field.startswith("EIGEN_PHRED="):
+                if field.split("EIGEN_PHRED=")[1] != "nan":
+                    eigen_phred = field.split("EIGEN_PHRED=")[1]
+            if field.startswith("MutationAssessor="):
+                if field.split("MutationAssessor=")[1] != "nan":
+                    mutation_assessor = field.split("MutationAssessor=")[1]
+            if field.startswith("gnomAD_Hom="):
+                if field.split("gnomAD_Hom=")[1] != "nan":
+                    gnomAD_hom = float(field.split("gnomAD_Hom=")[1])
+            if field.startswith("gnomAD_AN="):
+                if field.split("gnomAD_AN=")[1] != "nan":
+                    gnomAD_an = float(field.split("gnomAD_AN=")[1])
 
-        return [rank, annotation]
+            if (gnomAD_hom > 0.0) & (gnomAD_an > 0.0):
+                gnomAD_homAF = gnomAD_hom / gnomAD_an
+
+        return [rank, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
 
 
 def extract_vep_annotation(cell, annotation_header):
-    annotation_fields = str(cell).split(",")
+    annotation_fields = str(cell["CSQ"]).split(",")
     new_cols = []
     consequences = []
 
     # take the most severe annotation variant
     for field in annotation_fields:
+        #print(field)
+        #print(annotation_header.index("Consequence"))
+        #print(field.split("|"))
+        #print(cell["CHROM"], cell["POS"], cell["REF"], cell["ALT"])
         consequences.append(min([variant_consequences.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
 
     target_index = min(enumerate(consequences), key=itemgetter(1))[0]
@@ -245,19 +305,21 @@ def extract_sample_information(row, sample):
     return sample_information
 
 
-def add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set):
-
+## TODO: ADD homAF and oe_lof
+def add_INFO_fields_to_dataframe(vcf_as_dataframe):
     if indel_set:
-        vcf_as_dataframe[["RANK", "indel_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["RANK", "indel_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     else:
-        vcf_as_dataframe[["RANK", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["RANK", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
     return vcf_as_dataframe
 
 
-def add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header):
-    vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
+def add_VEP_annotation_to_dataframe(vcf_as_dataframe):
+    #vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
+    vcf_as_dataframe[annotation_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)), axis=1)
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
 
     return vcf_as_dataframe
@@ -276,16 +338,21 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
     return vcf_as_dataframe
 
 
-def convert_vcf_to_pandas_dataframe(input_file, indel_set):
-    print("input-file", input_file)
+def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
+
+    global annotation_header
     annotation_header = extract_annotation_header(header)
 
+    global indel_set
+    indel_set = process_indel
+
     if not vcf_as_dataframe.empty:
-        vcf_as_dataframe = add_INFO_fields_to_dataframe(vcf_as_dataframe, indel_set)
-        vcf_as_dataframe = add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_INFO_fields_to_dataframe, n_cores)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_VEP_annotation_to_dataframe, n_cores)
+
         if "FORMAT" in vcf_as_dataframe.columns:
-            vcf_as_dataframe = add_sample_information_to_dataframe(vcf_as_dataframe)
+            vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_sample_information_to_dataframe, n_cores)
         else:
             print("MISSING SAMPLE INFORMATION!")
 
@@ -293,6 +360,28 @@ def convert_vcf_to_pandas_dataframe(input_file, indel_set):
         vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True)
     else:
         print("WARNING: The given VCF file is empty!")
+
+    return vcf_as_dataframe
+
+
+def parallelize_dataframe_processing(vcf_as_dataframe, function, n_cores=1):
+    if n_cores is None:
+        num_cores = 1
+    else:
+        num_cores = n_cores
+
+    global num_partitions
+    num_partitions = num_cores * 2
+
+    if len(vcf_as_dataframe) <= num_partitions:
+        dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
+    else:
+        dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
+
+    pool = mp.Pool(num_cores)
+    vcf_as_dataframe = pd.concat(pool.map(function, dataframe_splitted))
+    pool.close()
+    pool.join()
 
     return vcf_as_dataframe
 
@@ -306,8 +395,8 @@ if __name__=="__main__":
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="VCF file to convert file\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the converted VCF file\n")
     parser.add_argument("--indel", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of indel variants or not.\n")
+    parser.add_argument("--threads", type=int, dest="threads", metavar="1", nargs="?", const=1, required=True, help="Number of threads to use.")
     args = parser.parse_args()
 
-    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel)
-
+    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.threads)
     write_vcf_to_csv(vcf_as_dataframe, args.out_data)

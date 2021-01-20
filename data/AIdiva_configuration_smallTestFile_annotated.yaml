@@ -8,16 +8,13 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: /mnt/users/ahboced1/AIdiva_project/current_model/rf_snp_clinvar_hgmd_1to1_scikit0-19-1.pkl
-    scoring-model-indel: /mnt/users/ahboced1/AIdiva_project/current_model/rf_inframe_indel_clinvar_hgmd_balanced_scikit0-19-1.pkl
-
-    # bed file to distinguish between coding and non-coding variants
-    coding-region: /mnt/share/data/dbs/hg19/Annotation/hg19.Ensembl_gene.bed
+    scoring-model-snp: prediction_models/rf_snp_clinvar_hgmd_1to1_oe_hom_scikit0-19-1.pkl #prediction_models/rf_model_snp_scikit0-19-1.pkl
+    scoring-model-indel: prediction_models/rf_model_inframe_indel_oe_hom_scikit0-19-1.pkl #prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl
 
     prioritization-information:
         # List of genes that should be excluded in the analysis, because they are normally false positives
         # None or path to the file
-        gene-exclusion: /mnt/users/ahboced1/Masterarbeit/test_data/empty_list.txt
+        gene-exclusion: hpo_resources/empty_list.txt
 
         # Identifier to get the score from the annotated file
         cadd-identifier: CADD_PHRED
@@ -27,7 +24,7 @@ Analysis-Input:
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these) if not wanted use a empty list "[]" instead
-    # this is needed if MAX_AF is present in the annotated data
+    # this is needed if MAX_AF is not present in the annotated data
     allele-frequency-list:
         - gnomAD_AFR_AF
         - gnomAD_AMR_AF
@@ -54,16 +51,18 @@ Model-Features:
         - ABB_SCORE
         - MAX_AF
         - segmentDuplication
-        - custom_EIGEN_PHRED
-        - fannsdb_CONDEL
-        - custom_FATHMM_XF
-        - custom_MutationAssessor
+        - EIGEN_PHRED
+        - CONDEL
+        - FATHMM_XF
+        - MutationAssessor
         - phastCons46mammal
         - phastCons46primate
         - phastCons46vertebrate
         - phyloP46mammal
         - phyloP46primate
         - phyloP46vertebrate
+        - oe_lof
+        - homAF
 
 
 Analysis-Output:
@@ -72,7 +71,7 @@ Analysis-Output:
 
 # make sure that the full path for the following files is present otherwise the prioritization step will fail
 Internal-Parameters:
-    hpo-resources: /mnt/users/ahboced1/AIdiva_project/AIdiva/data/
-    #gene2hpo-mapping: /mnt/users/ahboced1/AIdiva_project/HPO_resources/gene2hpo.pkl
-    #hpo-graph: /mnt/users/ahboced1/AIdiva_project/HPO_resources/hpo_graph.pkl
-    #hpo2gene-association: /mnt/users/ahboced1/AIdiva_project/HPO_resources/hpo2gene.pkl
+    hpo-resources: hpo_resources/
+    #gene2hpo-mapping: hpo_resources/gene2hpo.pkl
+    #hpo-graph: hpo_resources/hpo_graph.pkl
+    #hpo2gene-association: hpo_resources/hpo2gene.pkl

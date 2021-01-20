@@ -54,7 +54,7 @@ def list_distance(DG, Q, G, Query_distances):
             return (0, 0)
 
         # IC stored as count
-        Query_distances["maxval"] = 2 * (max([d["count"] for n, d in DG.nodes(data=True)]))
+        Query_distances["maxval"] = 2 * (max([d["IC"] for n, d in DG.nodes(data=True)]))
 
     # now I have the query distances value
     # map the genes HPO and extract values.
@@ -69,6 +69,7 @@ def list_distance(DG, Q, G, Query_distances):
     return (1 - final_value, Query_distances)
 
 
+## TODO: the following method is obsolete, "list_distance" can be used instead
 def precompute_query_distances(DG, Q, Query_distances):
     offset = 1000
     for k_q in Q:
@@ -83,6 +84,7 @@ def precompute_query_distances(DG, Q, Query_distances):
         else:
             print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
+        ## TODO: compute shortest path lengths for all nodes not only for k_q
         distance =  nx.shortest_path_length(DG, k_q, weight="dist")
         if Query_distances == 0:
             Query_distances = {key: float(value) % offset for (key, value) in distance.items()}
@@ -99,7 +101,7 @@ def precompute_query_distances(DG, Q, Query_distances):
         return 0
 
     # IC stored as count
-    Query_distances["maxval"] = 2 * (max([d["count"] for n, d in DG.nodes(data=True)]))
+    Query_distances["maxval"] = 2 * (max([d["IC"] for n, d in DG.nodes(data=True)]))
 
     return Query_distances
 
@@ -110,6 +112,10 @@ def extract_HPO_related_to_gene(gene_2_HPO, gene):
         gene_2_HPO_dict = gene_2_HPO
     else:
         gene_2_HPO_dict = pickle.load(open(gene_2_HPO, "rb"))
-    outlist = gene_2_HPO_dict.get(gene, [])
+
+    if gene in gene_2_HPO_dict.keys():
+        outlist = gene_2_HPO_dict[gene]
+    else:
+        outlist = []
 
     return outlist
