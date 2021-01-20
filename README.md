@@ -28,7 +28,7 @@ If the annotation is not made beforehand make sure that the necessary database r
 
 ## HPO resources
 The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location.
-In the data folder there is also a standalone python script to generate these files (inside the script in the comments you can find the download links to the files that are used to generate the resources). It is recommended to use the v1 resources (eg. hpo_graph_v1.pkl) to prevent problems if networkx in version 1 is used. Version 2 can still import these resources, but the graph generated with version 2 is not compatible with version 1.
+In the data folder there is also a standalone python script to generate these files (inside the script in the comments you can find the download links to the files that are used to generate the resources). For compatibility reasons the HPO graph resources were generated using networkx v1. Version 2 can still import these resources, but the graph generated with version 2 is not compatible with version 1.
 
 
 ## Pathogenicity prediction
@@ -38,7 +38,7 @@ The scripts used to train the models can be found in the following GitHub reposi
 
 _Frameshift_ variants will always get the highest score 1.0, whereas _synonymous_ variants always get the lowest score 0.0
 
-Pretrained random forest models can be found [here](https://download.imgag.de/ahboced1/AIdiva_pretrained_models/). There are two InDel and two SNP models, both are trained on the same training variants with the same parameters. The only difference is the scikit-learn version (v0.19.1 and v0.22.2) that was used since the trained models are version specific. During our tests it also worked to load the 0.19.1 model with newer versions of scikit-learn.
+Pretrained random forest models using our current feature set can be found [here](https://download.imgag.de/ahboced1/AIdiva_pretrained_models/). The models were trained using scikit-learn v0.19.1. The trained models of scikit-learn are version dependent, but during our tests it also worked to load the 0.19.1 model with newer versions of scikit-learn (only the other way round it didn't work).
 
 ## Running AIdiva
 AIdiva can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. When the variant annotation with VEP should also be performed with AIdiva this is the only required command line argument. In the other case when an already annotated file is given there are a few more arguments that needs to be passed instead of being specified in the configuration file. The reason for this different set of parameters is due to the fact that it makes it more convenient to include AIdiva in another existing pipeline.
