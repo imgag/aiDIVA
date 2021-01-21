@@ -106,7 +106,8 @@ venv.bak/
 # external data files
 #data/
 data/prediction_models/
-data/annotation_resources/Makefile_*
 
 # old files
+aidiva/helper_modules/old/
+aidiva/variant_annotation/old/
 data/hpo_resources/old/

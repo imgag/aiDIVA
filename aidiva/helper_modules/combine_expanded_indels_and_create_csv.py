@@ -43,7 +43,6 @@ variant_consequences = {"transcript_ablation": 1,
                         "feature_truncation": 35,
                         "intergenic_variant": 36}
 
-
 grouped_expanded_vcf = None
 feature_list = None
 num_partitions = 10
@@ -68,7 +67,7 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
             print("ERROR: The VCF file seems to be corrupted")
 
     tmp = tempfile.NamedTemporaryFile(mode="w")
-    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
+    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
 
     vcf_header = header_line.strip().split("\t")
 

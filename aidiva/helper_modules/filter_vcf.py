@@ -34,7 +34,7 @@ def filter_coding_variants(filepath, filepath_out):
 
     # make sure that there are no unwanted linebreaks in the variant entries
     tmp = tempfile.NamedTemporaryFile(mode="w+")
-    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
+    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
     tmp.seek(0)
 
     # extract header from vcf file
@@ -68,7 +68,6 @@ def filter_coding_variants(filepath, filepath_out):
                 continue
 
             if line.strip().startswith("##INFO=<ID=CSQ"):
-                #outfile.write(line)
                 annotation_header = line.strip().replace("\">", "").split(": ")[1].split("|")
                 for i in range(len(annotation_header)):
                     if annotation_header[i] == "Consequence":
@@ -86,13 +85,13 @@ def filter_coding_variants(filepath, filepath_out):
             continue
 
         # check if variant is coding and write to outfile
-        ## TODO: check all present transcripts not only the first one
         annotation_field = ""
         for field in splitted_line[7].split(";"):
             if field.startswith("CSQ="):
                 annotation_field = field.replace("CSQ=", "")
 
         if annotation_field:
+            # check all annotated transcripts
             transcript_annotations = [annotation for annotation in annotation_field.split(",")]
             consequence_list = [transcript.split("|")[consequence_index] for transcript in transcript_annotations]
             consequences = []
@@ -100,9 +99,7 @@ def filter_coding_variants(filepath, filepath_out):
             for consequence in consequence_list:
                 consequences += consequence.split("&")
 
-            #print(str(splitted_line[0] + ":" + splitted_line[1] + "_" + splitted_line[3] + ">" + splitted_line[4]), consequences)
             if any(term for term in coding_variants if term in consequences):
-                #print("Filt:", consequences)
                 splitted_line[7] = "."
                 outfile.write("\t".join(splitted_line))
         else:

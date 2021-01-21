@@ -8,8 +8,8 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: prediction_models/rf_snp_clinvar_hgmd_1to1_oe_hom_scikit0-19-1.pkl #prediction_models/rf_model_snp_scikit0-19-1.pkl
-    scoring-model-indel: prediction_models/rf_model_inframe_indel_oe_hom_scikit0-19-1.pkl #prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl
+    scoring-model-snp: prediction_models/rf_snp_model.pkl
+    scoring-model-indel: prediction_models/rf_inframeIndel_model.pkl
 
     prioritization-information:
         # List of genes that should be excluded in the analysis, because they are normally false positives
@@ -25,15 +25,15 @@ Analysis-Input:
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these) if not wanted use a empty list "[]" instead
     # this is needed if MAX_AF is not present in the annotated data
-    allele-frequency-list:
-        - gnomAD_AFR_AF
-        - gnomAD_AMR_AF
+    allele-frequency-list: []
+        #- gnomAD_AFR_AF
+        #- gnomAD_AMR_AF
         #- gnomAD_ASJ_AF
-        - gnomAD_EAS_AF
+        #- gnomAD_EAS_AF
         #- gnomAD_FIN_AF
-        - gnomAD_NFE_AF
+        #- gnomAD_NFE_AF
         #- gnomAD_OTH_AF
-        - gnomAD_SAS_AF
+        #- gnomAD_SAS_AF
         #- AA_AF
         #- EA_AF
         #- AFR_AF
@@ -72,6 +72,3 @@ Analysis-Output:
 # make sure that the full path for the following files is present otherwise the prioritization step will fail
 Internal-Parameters:
     hpo-resources: hpo_resources/
-    #gene2hpo-mapping: hpo_resources/gene2hpo.pkl
-    #hpo-graph: hpo_resources/hpo_graph.pkl
-    #hpo2gene-association: hpo_resources/hpo2gene.pkl
