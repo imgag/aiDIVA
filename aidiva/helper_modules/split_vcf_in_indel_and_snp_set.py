@@ -15,7 +15,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
 
     # make sure that there are no unwanted linebreaks in the variant entries
     tmp = tempfile.NamedTemporaryFile(mode="w+")
-    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
+    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
     tmp.seek(0)
 
     # extract header from vcf file
@@ -35,7 +35,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
         if line == "\n":
             continue
 
-        # remove variants with multiple alternative alleles reported (to make tests for the master thesis easier)
+        # remove variants with multiple alternative alleles reported
         # TODO decide how to handle them in general
         if "," in splitted_line[4]:
             print("Variant was removed!")

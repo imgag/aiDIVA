@@ -86,8 +86,11 @@ VEP-Annotation:
     # Flag indicating whether to annotate the input data with VEP or not, if False then AIdiva assumes that the data is already annotated
     perform-vep-annotation: True
 
-    # VEP: path to the VEP executable
-    vep: ensembl-vep-release-100.3/vep
+    # VEP install path
+    vep: tools/ensembl-vep-release-100.3/
+
+    # path to the annotation databases
+    db: data/dbs/
 
     # threads to use during the annotation
     num-threads: 5

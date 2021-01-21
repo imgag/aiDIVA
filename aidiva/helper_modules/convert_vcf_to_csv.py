@@ -57,7 +57,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
 
     # make sure that there are no unwanted linebreaks in the variant entries
     tmp = tempfile.NamedTemporaryFile(mode="w+")
-    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
+    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
     tmp.seek(0)
 
     # extract header from vcf file
@@ -113,7 +113,7 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
 
     # make sure that there are no unwanted linebreaks in the variant entries
     tmp = tempfile.NamedTemporaryFile(mode="w+")
-    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((([0-9]{1,2}|[xXyY]{1}|(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
+    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
     tmp.seek(0)
 
     # extract header from vcf file
@@ -234,10 +234,6 @@ def extract_vep_annotation(cell, annotation_header):
 
     # take the most severe annotation variant
     for field in annotation_fields:
-        #print(field)
-        #print(annotation_header.index("Consequence"))
-        #print(field.split("|"))
-        #print(cell["CHROM"], cell["POS"], cell["REF"], cell["ALT"])
         consequences.append(min([variant_consequences.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
 
     target_index = min(enumerate(consequences), key=itemgetter(1))[0]
@@ -318,7 +314,6 @@ def add_INFO_fields_to_dataframe(vcf_as_dataframe):
 
 
 def add_VEP_annotation_to_dataframe(vcf_as_dataframe):
-    #vcf_as_dataframe[annotation_header] = vcf_as_dataframe.CSQ.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)))
     vcf_as_dataframe[annotation_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)), axis=1)
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
 

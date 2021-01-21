@@ -31,11 +31,13 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
 
             for i in range(abs(window_end-window_start)):
                 alt_variant = ""
-                ## TODO: Handle the case if "N" is in the reference
                 if (extended_ref_seq[i] == "A") | (extended_ref_seq[i] == "T"):
                     alt_variant = random.choice(["G", "C"])
                 elif (extended_ref_seq[i] == "G") | (extended_ref_seq[i] == "C"):
                     alt_variant = random.choice(["A", "T"])
+                elif (extended_ref_seq[i] == "N"):
+                    print("WARNING: Reference base skipped since it was N!")
+                    continue
                 else:
                     print("ERROR: Something went wrong!")
 

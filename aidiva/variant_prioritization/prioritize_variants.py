@@ -6,51 +6,13 @@ import pandas as pd
 import multiprocessing as mp
 import pickle
 import re
-
-if not __name__=="__main__":
-    from . import get_HPO_similarity_score as gs
-
 from itertools import combinations
 from operator import itemgetter
 from scipy.stats import poisson
 
+if not __name__=="__main__":
+    from . import get_HPO_similarity_score as gs
 
-variant_consequences = {"transcript_ablation": "non_exonic",
-                        "splice_acceptor_variant": "exonic;splicing",
-                        "splice_donor_variant": "exonic;splicing",
-                        "stop_gained": "exonic",
-                        "frameshift_variant": "exonic",
-                        "stop_lost": "exonic",
-                        "start_lost": "exonic",
-                        "transcript_amplification": "non_exonic",
-                        "inframe_insertion": "exonic",
-                        "inframe_deletion": "exonic",
-                        "missense_variant": "exonic",
-                        "protein_altering_variant": "exonic",
-                        "splice_region_variant": "splicing", # maybe not
-                        "incomplete_terminal_codon_variant": "exonic",
-                        "start_retained_variant": "exonic", # maybe not
-                        "stop_retained_variant": "exonic", # maybe not
-                        "synonymous_variant": "exonic",
-                        "coding_sequence_variant": "exonic",
-                        "mature_miRNA_variant": "non_exonic",
-                        "5_prime_UTR_variant": "UTR_exonic",
-                        "3_prime_UTR_variant": "UTR_exonic",
-                        "non_coding_transcript_exon_variant": "non_exonic",
-                        "intron_variant": "intronic",
-                        "NMD_transcript_variant": "non_exonic",
-                        "non_coding_transcript_variant": "non_exonic",
-                        "upstream_gene_variant": "non_exonic",
-                        "downstream_gene_variant": "non_exonic",
-                        "TFBS_ablation": "non_exonic",
-                        "TFBS_amplification": "non_exonic",
-                        "TF_binding_site_variant": "non_exonic",
-                        "regulatory_region_ablation": "non_exonic",
-                        "regulatory_region_amplification": "non_exonic",
-                        "feature_elongation": "non_exonic",
-                        "regulatory_region_variant": "non_exonic",
-                        "feature_truncation": "non_exonic",
-                        "intergenic_variant": "non_exonic"}
 
 coding_variants = ["splice_acceptor_variant",
                    "splice_donor_variant",
@@ -71,6 +33,17 @@ coding_variants = ["splice_acceptor_variant",
                    "5_prime_UTR_variant",
                    "3_prime_UTR_variant"]
 
+supported_coding_variants = ["stop_gained",
+                             "stop_lost",
+                             "start_lost",
+                             "inframe_insertion",
+                             "inframe_deletion",
+                             "missense_variant",
+                             "protein_altering_variant",
+                             "incomplete_terminal_codon_variant",
+                             "start_retained_variant",
+                             "stop_retained_variant",
+                             "coding_sequence_variant"]
 
 cadd_identifier = "CADD_PHRED"
 duplication_identifier = "segmentDuplication"
@@ -89,7 +62,6 @@ num_cores = 5
 
 def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fam_type="SINGLE", hpo_list=None, gene_exclusion_list=None, n_cores=1):
     #load HPO resources
-    print(hpo_resources_folder)
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo.pkl"
     hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.pkl"
     HPO_graph_file = hpo_resources_folder + "hpo_graph.pkl"
@@ -104,7 +76,6 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     hpo_nodes, hpo_edges = pickle.load(open(HPO_graph_file, "rb"))
 
     global HPO_graph
-    #HPO_graph = nx.DiGraph()
     HPO_graph = nx.Graph()
     HPO_graph.add_nodes_from(hpo_nodes)
     HPO_graph.add_edges_from(hpo_edges)
@@ -121,35 +92,24 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
             print("The specified gene exclusion list %s is not a valid file" % (gene_exclusion_file))
             print("No genes are excluded during filtering!")
 
-    #fill HPO query terms
-    #if hpo_list_file == None:
-    #    hpo_list = "None"
-    #    HPO_query = list()
-    #else:
     global HPO_query
+    global query_dist
     HPO_query = set()
     if hpo_list_file:
         if os.path.isfile(hpo_list_file):
-            with open(hpo_list_file, "r") as w:
-                HPO_query = list()
-                for line in w:
-                    HPO_term = line.rstrip("\n")
-                    try:
-                        HPO_query.append(HPO_term)
-                    except:
-                        print("%s not found in database" % (HPO_term))
-            HPO_query = list(set(HPO_query)) # removes duplicate entries in the list
+            with open(hpo_list_file, "r") as hpo_file:
+                for line in hpo_file:
+                    HPO_term = line.rstrip()
+                    HPO_query.add(HPO_term)
+            HPO_query = list(HPO_query) # removes duplicate entries in the list
             HPO_query.sort() # makes sure that the gene symbols are ordered (could lead to problems otherwise)
-            global query_dist
             ## TODO: the following method is obsolete, "list_distance" can be used instead
             query_dist = gs.precompute_query_distances(HPO_graph, HPO_query, 0)
-            print("HPO-list: ", HPO_query)
         else:
             print("The specified HPO list %s is not a valid file" % (hpo_list_file))
             print("Skip HPO score finalization!")
 
-    # read family relationships
-    # TODO change to ped file
+    # read family relationship (from PED file)
     global family
     family = dict()
     if family_file:
@@ -158,15 +118,15 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
                 for line in fam_file:
                     if line.startswith("sample"):
                         continue
-                    line = line.rstrip("\n")
+                    line = line.rstrip()
                     splitline = line.split("\t")
-                    family[splitline[0]] = splitline[1]
-                    #if splitline[5] == 2:
-                    #   family[splitline[1]] = 1
-                    #elif splitline[5] == 1:
-                    #   family[splitline[1]] = 0
-                    #else:
-                    #   print("ERROR: There is a problem with the given PED file describing the family.")
+
+                    if splitline[5] == 2:
+                       family[splitline[1]] = 1
+                    elif splitline[5] == 1:
+                       family[splitline[1]] = 0
+                    else:
+                       print("ERROR: There is a problem with the given PED file describing the family.")
         else:
             print("The specified family file %s is not a valid file" % (family_file))
             print("Skip inheritance assessment!")
@@ -205,11 +165,10 @@ def parallelize_dataframe_processing(variant_data, function, n_cores):
 
 
 def parallelized_variant_processing(variant_data):
-    ## TODO: Skip the HPO adjustment if no HPO file or an empty file is given
     variant_data[["HPO_RELATEDNESS", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant)), axis=1)
     variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant)), axis=1)
 
-    ## TODO: Perform inheritance cheks only if the family information is passed
+    # Perform inheritance check only if the family information is passed
     if family and family_type != "SINGLE":
         variant_data = variant_data.apply(lambda variant: pd.Series(check_inheritance(variant_data)), axis=1)
 
@@ -222,13 +181,13 @@ def compute_hpo_relatedness_and_final_score(variant):
             final_score = np.nan
             hpo_relatedness = np.nan
         else:
-            genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"])) # shouldn't be needed
+            variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"])) # shouldn't be needed
             hgnc_id = str(variant["HGNC_ID"])
-            genenames = set(genecolumn.split(";"))
+            genenames = set(variant_genes.split(";"))
             gene_distances = []
             processed_HPO_genes = dict()
 
-            # we use the hgnc ID to prevent problems if a gene symbol is used that isn't used anymore
+            # we use the hgnc ID to prevent problems if a given gene symbol isn't used anymore
             for gene_id in genenames:
                 if gene_id in genes2exclude:
                     continue
@@ -238,9 +197,7 @@ def compute_hpo_relatedness_and_final_score(variant):
                     if gene_id in gene_2_HPO.keys():
                         gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
                     else:
-                        print(hgnc_id)
                         if (hgnc_id != "nan") & (hgnc_id in hgnc_2_gene.keys()):
-                            print("I am wrong", hgnc_id, gene_id)
                             gene_symbol = hgnc_2_gene[hgnc_id]
                             gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_symbol)
                         else:
@@ -308,8 +265,8 @@ def check_inheritance(variant):
 
 
 def check_filters(variant):
-    genecolumn = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
-    genenames = set(genecolumn.split(";"))
+    variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
+    genenames = set(variant_genes.split(";"))
 
     consequences = str(variant["Consequence"])
     found_consequences = consequences.split("&")
@@ -319,7 +276,6 @@ def check_filters(variant):
     filter_comment = ""
 
     try:
-        #maf = max(float(variant["AA_AF"]), float(variant["AFR_AF"]), float(variant["AMR_AF"]), float(variant["EA_AF"]), float(variant["EAS_AF"]), float(variant["EUR_AF"]), float(variant["SAS_AF"]), float(variant["gnomAD_AFR_AF"]), float(variant["gnomAD_AMR_AF"]), float(variant["gnomAD_ASJ_AF"]), float(variant["gnomAD_EAS_AF"]), float(variant["gnomAD_FIN_AF"]), float(variant["gnomAD_NFE_AF"]), float(variant["gnomAD_OTH_AF"]), float(variant["gnomAD_SAS_AF"]))
         maf = variant["MAX_AF"]
     except Exception as e:
         print("Allele frequency could not be identified, use 0.0 instead")
@@ -343,10 +299,7 @@ def check_filters(variant):
     if float(maf) <= 0.02:
         if any(term for term in coding_variants if term in found_consequences):
             if not "synonymous_variant" in found_consequences:
-                # make the filter different, check if any of the wanted terms is in found_consequences ["stop_gained","stop_lost","start_lost","inframe_insertion","inframe_deletion","missense_variant","protein_altering_variant","incomplete_terminal_codon_variant","start_retained_variant","stop_retained_variant","coding_sequence_variant"]
-                if ("frameshift_variant" not in found_consequences) & (any(term for term in found_consequences if term in ["stop_gained","stop_lost","start_lost","inframe_insertion","inframe_deletion","missense_variant","protein_altering_variant","incomplete_terminal_codon_variant","start_retained_variant","stop_retained_variant","coding_sequence_variant"])):
-                    ## TODO: remove segment duplication filter, it is already covered in the ML prediction
-                    #if (seg_dup == 0.0):
+                if ("frameshift_variant" not in found_consequences) & (any(term for term in supported_coding_variants if term in found_consequences)):
                     if not np.isnan(variant["AIDIVA_SCORE"]):
                         if len(HPO_query) >= 1:
                             if float(variant["HPO_RELATEDNESS"]) > 0.0:
@@ -361,9 +314,6 @@ def check_filters(variant):
                     else:
                         filter_passed = 0 # no prediction present (eg. variant type not covered by the used ML models)
                         filter_comment = "missing AIDIVA_SCORE"
-                    #else:
-                    #    filter_passed = 0 # segment duplication
-                    #    filter_comment = "segment duplication"
                 else:
                     filter_passed = 0 # splicing, intron and frameshift variants are not covered by the used ML models (the predictions cannot be trusted), skip variants that have no covered consequence
                     filter_comment = "variant type not covered"

@@ -29,30 +29,6 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
     print("Gene to HPO mapping successfully generated and saved as %s" % (gene2hpo_dict))
 
 
-# get mapping HPO -> genes
-# download from HPO charite phenotype to gene
-# wget http://compbio.charite.de/jenkins/job/hpo.annotations/lastStableBuild/artifact/util/annotation/phenotype_to_genes.txt
-## TODO: remove this method (is obsolete)
-def generate_hpo2gene_dict(gene2phenotype_list, hpo2gene_dict):
-    print("Generate HPO to gene mapping...")
-    HPO_association = dict()
-    with open(gene2phenotype_list) as rd:
-        for line in rd:
-            if line.startswith("#"):
-                pass
-            else:
-                ff = line.strip().split("\t")
-                key = ff[0]
-                value = ff[3]
-                try:
-                    HPO_association[key].append(value)
-                except:
-                    HPO_association[key] = [value]
-
-    print("HPO to gene mapping successfully generated and saved as %s" % (hpo2gene_dict))
-    pickle.dump(HPO_association, open(hpo2gene_dict, "wb"))
-
-
 # download data
 # wget https://raw.githubusercontent.com/obophenotype/human-phenotype-ontology/master/hp.obo
 def extract_hpo_graph_edges(hpo_ontology, hpo_edges_file):
@@ -139,11 +115,8 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
             counts_dict[splitted_line[0]] = int(splitted_line[1])
             tot += int(splitted_line[1])
 
-    print(tot)
-
     # load dict with edges
     edges = pickle.load(open(hpo_edges_file, "rb"))
-    print(len(edges.keys()))
 
     #get replacements of obsolete nodes
     replacements = dict(edges.get('replacements', []))
@@ -177,11 +150,6 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
                 hpo_graph.nodes[node]['IC'] = -math.log(1.0 / tot)
             else:
                 print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
-
-    print("edges")
-    print(hpo_graph.number_of_edges())
-    print("nodes")
-    print(hpo_graph.number_of_nodes())
 
     for node in hpo_graph.nodes():
         if str(nx.__version__).startswith("1."):
