@@ -20,6 +20,7 @@ if __name__=="__main__":
     parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="result", required=True, help="Prefix that is used to save the results [required]")
     parser.add_argument("--workdir", type=str, dest="workdir", metavar="workdir/", required=True, help="Path to the working directory (here all results are saved) [required]")
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient")
+    parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion", metavar="gene_exclusion.txt", required=False, help="Tab separated file containing the genes to exclude in the analysis. Genes are assumed to be in the first column.")
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", nargs="?", const=1, required=False, help="Number of threads to use.")
@@ -59,8 +60,10 @@ if __name__=="__main__":
         hpo_file = args.hpo_list
     else:
         hpo_file = None
-    gene_exclusion_file = configuration["Analysis-Input"]["prioritization-information"]["gene-exclusion"]
-
+    if "gene_exclusion" in args:
+        gene_exclusion_file = args.gene_exclusion
+    else:
+        gene_exclusion_file = None
     if "family_file" in args:
         family_file = args.family_file
         family_type = "SINGLE" ## TODO: get correct family type based on the family file

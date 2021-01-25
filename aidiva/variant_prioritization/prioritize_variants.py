@@ -85,8 +85,12 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     if gene_exclusion_file:
         if os.path.isfile(gene_exclusion_file):
             with open(gene_exclusion_file, "r") as exclusion_file:
-                for gene in exclusion_file:
-                    gene = gene.rstrip()
+                for line in exclusion_file:
+                    if line.startswith("#"):
+                        continue
+                    if line == "\n":
+                        continue
+                    gene = line.rstrip().split("\t")[0]
                     genes2exclude.add(gene)
         else:
             print("The specified gene exclusion list %s is not a valid file" % (gene_exclusion_file))
@@ -136,6 +140,7 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
 
     variant_data = parallelize_dataframe_processing(variant_data, parallelized_variant_processing, n_cores)
 
+    print(variant_data["FINAL_AIDIVA_SCORE"].tolist())
     variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False], inplace=True)
     variant_data.reset_index(inplace=True, drop=True)
 
@@ -213,10 +218,10 @@ def compute_hpo_relatedness_and_final_score(variant):
                     processed_HPO_genes[gene_id] = g_dist
 
             if gene_distances:
-                hpo_relatedness = str(max(gene_distances, default=0.0))
+                hpo_relatedness = max(gene_distances, default=0.0)
                 ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS (eg 0.7 and 0.3)
                 # final_score = str((float(variant["AIDIVA_SCORE"]) * 0.7) + (float(hpo_relatedness) * 0.3))
-                final_score = str((float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2)
+                final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2
             else:
                 final_score = variant["AIDIVA_SCORE"]
                 hpo_relatedness = np.nan
@@ -296,7 +301,7 @@ def check_filters(variant):
 
     ## TODO: filter later compound only less than 0.01
     ## TODO: change frequency based on inheritance mode (hom/het)
-    if float(maf) <= 0.02:
+    if float(maf) <= 0.01:
         if any(term for term in coding_variants if term in found_consequences):
             if not "synonymous_variant" in found_consequences:
                 if ("frameshift_variant" not in found_consequences) & (any(term for term in supported_coding_variants if term in found_consequences)):
