@@ -53,9 +53,10 @@ family_type = "SINGLE"
 genes2exclude = None
 gene_2_HPO = None
 hgnc_2_gene = None
+gene_2_interacting = None
 HPO_graph = None
 HPO_query = None
-query_dist = 0
+HPO_query_distances = 0
 num_partitions = 10
 num_cores = 5
 
@@ -64,12 +65,16 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     #load HPO resources
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo.pkl"
     hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.pkl"
+    gene_2_interacting_f = hpo_resources_folder + "gene2interacting.pkl"
     HPO_graph_file = hpo_resources_folder + "hpo_graph.pkl"
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 
     global hgnc_2_gene
     hgnc_2_gene = pickle.load(open(hgnc_2_gene_f, "rb"))
+
+    global gene_2_interacting
+    gene_2_interacting = pickle.load(open(gene_2_interacting_f, "rb"))
 
     global gene_2_HPO
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
@@ -97,7 +102,7 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
             print("No genes are excluded during filtering!")
 
     global HPO_query
-    global query_dist
+    global HPO_query_distances
     HPO_query = set()
     if hpo_list_file:
         if os.path.isfile(hpo_list_file):
@@ -108,7 +113,7 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
             HPO_query = list(HPO_query) # removes duplicate entries in the list
             HPO_query.sort() # makes sure that the gene symbols are ordered (could lead to problems otherwise)
             ## TODO: the following method is obsolete, "list_distance" can be used instead
-            query_dist = gs.precompute_query_distances(HPO_graph, HPO_query, 0)
+            HPO_query_distances = gs.precompute_query_distances(HPO_graph, HPO_query)
         else:
             print("The specified HPO list %s is not a valid file" % (hpo_list_file))
             print("Skip HPO score finalization!")
@@ -170,7 +175,7 @@ def parallelize_dataframe_processing(variant_data, function, n_cores):
 
 
 def parallelized_variant_processing(variant_data):
-    variant_data[["HPO_RELATEDNESS", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant)), axis=1)
+    variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant)), axis=1)
     variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant)), axis=1)
 
     # Perform inheritance check only if the family information is passed
@@ -185,63 +190,78 @@ def compute_hpo_relatedness_and_final_score(variant):
         if np.isnan(variant["AIDIVA_SCORE"]):
             final_score = np.nan
             hpo_relatedness = np.nan
+            hpo_relatedness_interacting = np.nan
         else:
-            variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"])) # shouldn't be needed
+            variant_gene = str(variant["SYMBOL"])
             hgnc_id = str(variant["HGNC_ID"])
-            genenames = set(variant_genes.split(";"))
             gene_distances = []
+            gene_distances_interacting = []
             processed_HPO_genes = dict()
 
-            # we use the hgnc ID to prevent problems if a given gene symbol isn't used anymore
-            for gene_id in genenames:
-                if gene_id in genes2exclude:
-                    continue
-                if gene_id in processed_HPO_genes.keys():
-                    gene_distances.append(processed_HPO_genes[gene_id])
-                else:
-                    if gene_id in gene_2_HPO.keys():
-                        gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_id)
-                    else:
-                        if (hgnc_id != "nan") & (hgnc_id in hgnc_2_gene.keys()):
-                            gene_symbol = hgnc_2_gene[hgnc_id]
-                            gene_HPO_list = gs.extract_HPO_related_to_gene(gene_2_HPO, gene_symbol)
-                        else:
-                            print("WARNING: Given gene is not covered!")
-                            gene_HPO_list = []
-
-                    # do we need to update query_dist here???
-                    global query_dist
-                    (g_dist, query_distance) = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, query_dist)
-                    query_dist = query_distance
-
-                    gene_distances.append(g_dist)
-                    processed_HPO_genes[gene_id] = g_dist
-
-            if gene_distances:
-                hpo_relatedness = max(gene_distances, default=0.0)
-                ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS (eg 0.7 and 0.3)
-                # final_score = str((float(variant["AIDIVA_SCORE"]) * 0.7) + (float(hpo_relatedness) * 0.3))
-                final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness)) / 2
+            if variant_gene in gene_2_interacting.keys():
+                interacting_genes = [gene_interaction["interacting_gene"] for gene_interaction in gene_2_interacting[variant_gene]]
             else:
-                final_score = variant["AIDIVA_SCORE"]
+                interacting_genes = []
+
+            # we use the hgnc ID to prevent problems if a given gene symbol isn't used anymore           
+            if not variant_gene in genes2exclude:
+                if variant_gene in gene_2_HPO.keys():
+                    gene_HPO_list = gene_2_HPO.get(variant_gene, [])
+                else:
+                    if (hgnc_id != "nan") & (hgnc_id in hgnc_2_gene.keys()):
+                        gene_symbol = hgnc_2_gene[hgnc_id]
+                        gene_HPO_list = gene_2_HPO.get(gene_symbol, [])
+                    else:
+                        print("WARNING: Given gene is not covered!")
+                        gene_HPO_list = []
+
+                g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
+                gene_distances.append(g_dist)
+
+                ## TODO: look at interacting genes only if HPO relation missing or zero???
+                for interacting_gene in interacting_genes:
+                    if interacting_gene in genes2exclude:
+                        continue
+                    if interacting_gene in gene_2_HPO.keys():
+                        gene_HPO_list = gene_2_HPO.get(interacting_gene, [])
+                    else:
+                        print("WARNING: Given gene is not covered!")
+                        gene_HPO_list = []
+
+                    g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
+                    gene_distances_interacting.append(g_dist)
+
+                if gene_distances or gene_distances_interacting:
+                    hpo_relatedness = max(gene_distances, default=0.0)
+                    hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
+                    ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS and HPO_RELATEDNESS_INTERACTING (eg 0.6 and 0.3 and 0.1)
+                    final_score = float(variant["AIDIVA_SCORE"]) * 0.6 + float(hpo_relatedness) * 0.3 + float(hpo_relatedness_interacting) * 0.1
+                    #final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness) + float(hpo_relatedness_interacting)) / 3
+            else:
+                final_score = np.nan
                 hpo_relatedness = np.nan
+                hpo_relatedness_interacting = np.nan
     else:
         final_score = variant["AIDIVA_SCORE"]
         hpo_relatedness = np.nan
+        hpo_relatedness_interacting = np.nan
 
-    return [hpo_relatedness, final_score]
+    return [hpo_relatedness, hpo_relatedness_interacting, final_score]
 
 
 def check_inheritance(variant):
-    variant_data["COMPOUND"] = 0
-    variant_data["DOMINANT_DENOVO"] = variant_data.apply(lambda variant: check_denovo(variant, family), axis=1)
+    ## TODO: make one inheritance column where the inheritance mode is saved in text form
+    if family_type == "SINGLE":
+        pass
+    elif family_type == "TRIO":
+        variant_data["COMPOUND"] = 0
+        variant_data["DOMINANT_DENOVO"] = variant_data.apply(lambda variant: check_denovo(variant, family), axis=1)
 
-    ## TODO: do we need a check for affected family members?
-    variant_data["DOMINANT_INHERITED"] = variant_data.apply(lambda variant: check_dominant(variant, family), axis=1)
-    variant_data["XLINKED"] = variant_data.apply(lambda variant: check_xlinked(variant, family), axis=1)
-    variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive(variant, family, family_type), axis=1)
+        ## TODO: do we need a check for affected family members?
+        variant_data["DOMINANT_INHERITED"] = variant_data.apply(lambda variant: check_dominant(variant, family), axis=1)
+        variant_data["XLINKED"] = variant_data.apply(lambda variant: check_xlinked(variant, family), axis=1)
+        variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive(variant, family, family_type), axis=1)
 
-    if family_type == "TRIO":
         variant_data_grouped = [group for key, group in variant_data.groupby("SYMBOL")]
 
         affected_child = ""
@@ -263,8 +283,11 @@ def check_inheritance(variant):
         if  affected_child and parent_1 and parent_2:
             for group in variant_data_grouped:
                 check_compound(group, affected_child, parent_1, parent_2)
-
-    variant_data = pd.concat(variant_data_grouped)
+        variant_data = pd.concat(variant_data_grouped)
+    elif family_type == "FAMILY":
+        pass
+    else:
+        print("ERROR: Unsupported family type (%s) was given!" % family_type)
 
     return variant_data
 
@@ -299,7 +322,6 @@ def check_filters(variant):
         filter_comment = "tandem repeat"
         return filter_passed, filter_comment
 
-    ## TODO: filter later compound only less than 0.01
     ## TODO: change frequency based on inheritance mode (hom/het)
     if float(maf) <= 0.01:
         if any(term for term in coding_variants if term in found_consequences):
@@ -386,7 +408,7 @@ def check_denovo(variant, family):
             if int(altcoverage) <= max(3, (float(altcoverage) + float(refcoverage)) / 10) :
                 judgement = 1
             else :
-                judgement =0
+                judgement = 0
             continue
 
         # heterozygous in non-affected - bad

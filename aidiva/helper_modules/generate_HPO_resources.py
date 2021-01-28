@@ -1,4 +1,5 @@
 import argparse
+import gzip
 import math
 import networkx as nx
 import pickle
@@ -38,43 +39,50 @@ def extract_hpo_graph_edges(hpo_ontology, hpo_edges_file):
     token = False
     obsolete = False
 
-    with open(hpo_ontology) as ontology:
-        for line in ontology:
-            if line.startswith("id: HP:"):
-                if token and not obsolete:
-                    out_HPO[name] = parents
-                    if replacement != "":
-                        replacements.append((name,replacement))
+    ontology = open(hpo_ontology, "r") as :
+    for line in ontology:
+        if line.startswith("id: HP:"):
+            if token and not obsolete:
+                out_HPO[name] = parents
+                if replacement != "":
+                    replacements.append((name,replacement))
 
-                token = True
-                name = line.strip().split("id: ")[1]
-                parents = []
-                replacement = ""
-                obsolete =False
+            token = True
+            name = line.strip().split("id: ")[1]
+            parents = []
+            replacement = ""
+            obsolete =False
 
-            elif line.startswith("is_a:"):
-                parents.append(line.strip().split("is_a: ")[1].split(" !")[0])
-            elif line.startswith('is_obsolete:'):
-                obsolete =True
-            elif line.startswith('replaced_by:'):
-                # add a field to say it's replaced
-                replacement = line.strip().split('replaced_by: ')[1]
-                obsolete =False #means we can backtrack it
-            #elif line.startswith('alt_id:'):
-                #add alternative nodes, will be later added with
-                # replacement field for the most common one
-                #alt = line.strip().split('alt_id: ')[1]
-                #alternatives.append((name,alt))
-            #elif line.startswith('consider:'):
-                #add alternative nodes, will be later added with
-                # replacement field for the most common one
-                #alt = line.strip().split('consider: ')[1]
-                #alternatives.append((alt,name))
-                #obsolete =False # means we can backtrack it
+        elif line.startswith("is_a:"):
+            parents.append(line.strip().split("is_a: ")[1].split(" !")[0])
+        elif line.startswith('is_obsolete:'):
+            obsolete =True
+        elif line.startswith('replaced_by:'):
+            # add a field to say it's replaced
+            replacement = line.strip().split('replaced_by: ')[1]
+            obsolete =False #means we can backtrack it
+        #elif line.startswith('alt_id:'):
+            #add alternative nodes, will be later added with
+            # replacement field for the most common one
+            #alt = line.strip().split('alt_id: ')[1]
+            #alternatives.append((name,alt))
+        #elif line.startswith('consider:'):
+            #add alternative nodes, will be later added with
+            # replacement field for the most common one
+            #alt = line.strip().split('consider: ')[1]
+            #alternatives.append((alt,name))
+            #obsolete =False # means we can backtrack it
 
-    out_HPO[name] = parents
+    # add information of the last entry of the file to the HPO edges file
+    if token and not obsolete:
+        out_HPO[name] = parents
+        if replacement != "":
+            replacements.append((name,replacement))
+    
     out_HPO['replacements'] = replacements
     #out_HPO['alternatives'] = alternatives
+
+    ontology.close()
     pickle.dump(out_HPO, open(hpo_edges_file, "wb"))
     print("HPO edges successfully extracted and saved as %s" % (hpo_edges_file))
 
@@ -244,7 +252,47 @@ def create_gene2hgnc_mapping_file(hgnc_symbol_file, hgnc_2_gene):
         hgnc_id = splitted_line[0].replace("HGNC:", "")
         gene_dict[hgnc_id] = splitted_line[1]
 
+    file.close()
     pickle.dump(gene_dict, open(hgnc_2_gene, "wb"))
+
+
+# wget https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.gz
+# wget https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
+def create_string_db_graph(string_mapping, string_db_links, string_interactions):
+    string_mapping_file = gzip.open(string_mapping, "rt")
+    string2name = dict()
+
+    for line in string_mapping_file:
+        if line.startswith("#") | (line == "\n"):
+            continue
+        splitted_line = line.replace("\n", "").split("\t")
+        string2name[splitted_line[2]] = splitted_line[1]
+
+    string_mapping_file.close()
+
+    string_links_file = gzip.open(string_db_links, "rt")
+    string_interaction_mapping = dict()
+
+    for line in string_links_file:
+        if line.startswith("protein") | (line == "\n"):
+            continue
+        splitted_line = line.replace("\n", "").split(" ")
+        prot1 = splitted_line[0]
+        prot2 = splitted_line[1]
+        conf_exp = int(splitted_line[6])
+        conf_db = int(splitted_line[7])
+
+        ## TODO: should we compute the combined score based on the two sources here???
+        if ((prot1 in string2name.keys()) & (prot2 in string2name.keys())) & ((conf_exp >= 900) | (conf_db >= 900)):
+            gene_name = string2name[prot1]
+            interacting_gene = string2name[prot2]
+            if gene_name in string_interaction_mapping.keys():
+                string_interaction_mapping[gene_name].append({"interacting_gene": interacting_gene, "confidence_experimental": conf_exp, "confidence_database": conf_db})
+            else:
+                string_interaction_mapping[gene_name] = [{"interacting_gene": interacting_gene, "confidence_experimental": conf_exp, "confidence_database": conf_db}]
+    
+    string_links_file.close()
+    pickle.dump(string_interaction_mapping, open(string_interactions, "wb"))
 
 
 if __name__=="__main__":
