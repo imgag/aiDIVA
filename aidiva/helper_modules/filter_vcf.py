@@ -24,7 +24,7 @@ coding_variants = ["splice_acceptor_variant",
                    "3_prime_UTR_variant"]
 
 
-def filter_coding_variants(filepath, filepath_out):
+def filter_coding_variants(filepath, filepath_out, annotation_field_name):
     if filepath.endswith(".gz"):
         vcf_file_to_reformat = gzip.open(filepath, "rt")
     else:
@@ -67,7 +67,7 @@ def filter_coding_variants(filepath, filepath_out):
                 outfile.write(line)
                 continue
 
-            if line.strip().startswith("##INFO=<ID=CSQ"):
+            if line.strip().startswith("##INFO=<ID=" + annotation_field_name):
                 annotation_header = line.strip().replace("\">", "").split(": ")[1].split("|")
                 for i in range(len(annotation_header)):
                     if annotation_header[i] == "Consequence":
@@ -87,8 +87,8 @@ def filter_coding_variants(filepath, filepath_out):
         # check if variant is coding and write to outfile
         annotation_field = ""
         for field in splitted_line[7].split(";"):
-            if field.startswith("CSQ="):
-                annotation_field = field.replace("CSQ=", "")
+            if field.startswith(annotation_field_name + "="):
+                annotation_field = field.replace(annotation_field_name + "=", "")
 
         if annotation_field:
             # check all annotated transcripts

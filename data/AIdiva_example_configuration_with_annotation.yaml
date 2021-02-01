@@ -103,7 +103,7 @@ VEP-Annotation:
     #condel: /mnt/users/ahboced1/Tools/vep_data/plugins/config/Condel/config
 
     # REVEL: path to the REVEL database file
-    revel: revel_all_chromosomes.tsv.gz
+    revel: REVEL/revel_all_chromosomes.tsv.gz
 
     # dbNSFP
     #dbNSFP: /mnt/users/ahbranl1/data_vep/dbNSFP/dbNSFP_hg19_3.5.gz
@@ -120,6 +120,9 @@ VEP-Annotation:
             ABB_SCORE:
                 file: abb_score.bedGraph.gz
                 method: exact
+            oe_lof:
+                file: gnomAD_OE_sorted.bed.gz
+                method: overlap
         # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
         vcf-files:
             EIGEN_PHRED:

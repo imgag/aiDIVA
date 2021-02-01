@@ -10,10 +10,10 @@ import helper_modules.filter_vcf as filt_vcf
 import helper_modules.split_vcf_in_indel_and_snp_set as split_vcf
 import variant_scoring.score_variants as predict
 import variant_prioritization.prioritize_variants as prio
-import variant_annotation.add_abb_score as add_abb
-import variant_annotation.add_score_from_bigwig as add_score
-import variant_annotation.add_segmentDuplication as add_segDup
-import variant_annotation.add_simpleRepeats as add_repeats
+#import variant_annotation.add_abb_score as add_abb
+#import variant_annotation.add_score_from_bigwig as add_score
+#import variant_annotation.add_segmentDuplication as add_segDup
+#import variant_annotation.add_simpleRepeats as add_repeats
 import variant_annotation.annotate_with_vep as annotate
 import yaml
 
@@ -27,7 +27,7 @@ if __name__=="__main__":
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient")
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion", metavar="gene_exclusion.txt", required=False, help="TXT file containing the genes to exclude in the analysis")
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient")
-    parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
+    #parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     args = parser.parse_args()
 
     # parse configuration file
@@ -40,7 +40,7 @@ if __name__=="__main__":
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
 
-    data_path = "/mnt/storage1/share/data/"
+    data_path = "/mnt/data/"
     # data_path = os.path.dirname(os.path.abspath(__file__)) + "/../data/"
     ref_path = data_path + configuration["Analysis-Input"]["ref-path"]
 
@@ -49,10 +49,11 @@ if __name__=="__main__":
     scoring_model_snp = os.path.dirname(os.path.abspath(__file__)) + "/../data/" + configuration["Analysis-Input"]["scoring-model-snp"]
     scoring_model_indel = os.path.dirname(os.path.abspath(__file__)) + "/../data/" + configuration["Analysis-Input"]["scoring-model-indel"]
 
-    if args.threads is not None:
-        num_cores = args.threads
-    else:
-        num_cores = 1
+    #if args.threads is not None:
+    #    num_cores = args.threads
+    #else:
+    #    num_cores = 1
+    num_cores = configuration["VEP-Annotation"]["num-threads"]
 
     # parse disease and inheritance information
     if args.hpo_list is not None:
@@ -88,7 +89,8 @@ if __name__=="__main__":
 
     print("Starting VCF preparation...")
     # filtering step to remove unsupported variants
-    filt_vcf.filter_coding_variants(input_vcf, str(working_directory + input_filename + "_filtered.vcf"))
+    annotate.annotate_consequence_information(input_vcf, str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, num_cores)
+    filt_vcf.filter_coding_variants(str(working_directory + input_filename + "_consequence.vcf"), str(working_directory + input_filename + "_filtered.vcf"), "CONS")
 
     # convert input vcf to pandas dataframe
     split_vcf.split_vcf_file_in_indel_and_snps_set(str(working_directory + input_filename + "_filtered.vcf"), str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_indel.vcf"))
@@ -96,9 +98,9 @@ if __name__=="__main__":
 
     # Annotation with VEP
     print("Starting VEP annotation...")
-    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_snp_vep.vcf"), vep_annotation_dict, False, num_cores)
-    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_vep.vcf"), vep_annotation_dict, True, num_cores)
-    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_vep.vcf"), vep_annotation_dict, False, num_cores)
+    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_snp_vep.vcf"), vep_annotation_dict, False, False, num_cores)
+    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_vep.vcf"), vep_annotation_dict, True, False, num_cores)
+    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_vep.vcf"), vep_annotation_dict, False, True, num_cores)
 
     # Additional annotation with AnnotateFromVCF (a ngs-bits tool)
     # If VCF is used as output format VEP won't annotate from custom VCF files
@@ -116,7 +118,14 @@ if __name__=="__main__":
 
     # predict pathogenicity score
     print("Score variants...")
-    predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp_annotated, input_data_indel_combined_annotated, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, num_cores)
+    #predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp_annotated, input_data_indel_combined_annotated, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, num_cores)
+    predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp_annotated, allele_frequency_list, feature_list, num_cores)
+    predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_indel_combined_annotated, allele_frequency_list, feature_list, num_cores)
+
+    predicted_data = pd.concat([predicted_data_snp, predicted_data_indel])
+    predicted_data.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
+    predicted_data.reset_index(inplace=True, drop=True)
+    predicted_data = predicted_data[predicted_data_snp.columns]
 
     # prioritize and filter variants
     print("Filter variants and finalize score...")

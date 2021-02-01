@@ -99,7 +99,7 @@ if __name__=="__main__":
         predicted_data = predicted_data[predicted_data_snp.columns]
 
         # prioritize and filter variants
-        print("Filter variants and finalize score ...")
+        print("Prioritize variants and finalize score ...")
         prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, family_file, family_type, hpo_file, gene_exclusion_file)
 
         write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))

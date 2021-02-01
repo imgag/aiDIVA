@@ -5,12 +5,12 @@ import time
 import os
 
 
-def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, basic=False, num_cores=1):
+def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, basic=False, expanded=False, num_cores=1):
     # the path to the executable
-    database_path = "/mnt/storage1/share/data/dbs/"
+    database_path = "/mnt/data/dbs/"
     # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
 
-    tool_path = "/mnt/storage1/share/opt/"
+    tool_path = "/mnt/data/tools/"
     # tool_path = os.path.dirname(__file__) + "/../../tools/"
     vep_command = tool_path + vep_annotation_dict["vep"] + " "
 
@@ -25,26 +25,30 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/"
 
     # add essential parameters
+    vep_command = vep_command + "--species homo_sapiens --assembly GRCh37" + " "
     vep_command = vep_command + "--offline" + " "
     vep_command = vep_command + "--cache" + " "
     vep_command = vep_command + "--dir_cache " + database_path + vep_annotation_dict["cache-path"] + " "
-    #vep_command = vep_command + "--genecode_basic" + " "
-    vep_command = vep_command + "--sift s" + " "
-    vep_command = vep_command + "--polyphen s" + " "
+    vep_command = vep_command + "--gencode_basic" + " "
     vep_command = vep_command + "--symbol" + " "
     vep_command = vep_command + "--biotype" + " "
     vep_command = vep_command + "--variant_class" + " "
 
-    # allele frequencies to include
-    vep_command = vep_command + "--max_af" + " "
-    # the following AF annotations could be dropped since we only need the max AF
-    vep_command = vep_command + "--af" + " "
-    vep_command = vep_command + "--af_1kg" + " "
-    vep_command = vep_command + "--af_esp" + " "
-    vep_command = vep_command + "--af_gnomad" + " "
+    if not expanded:
+        # allele frequencies to include
+        vep_command = vep_command + "--max_af" + " "
+        # the following AF annotations could be dropped since we only need the max AF
+        #vep_command = vep_command + "--af" + " "
+        #vep_command = vep_command + "--af_1kg" + " "
+        #vep_command = vep_command + "--af_esp" + " "
+        #vep_command = vep_command + "--af_gnomad" + " "
+        vep_command = vep_command + "--custom " + database_path + bed_annotation["simpleRepeat"]["file"]  + "," + "simpleRepeat" + ",bed," + bed_annotation["simpleRepeat"]["method"] + ",0" + " "
+        vep_command = vep_command + "--custom " + database_path + bed_annotation["oe_lof"]["file"]  + "," + "oe_lof" + ",bed," + bed_annotation["oe_lof"]["method"] + ",0" + " "
 
     # vep plugins to use
     if not basic:
+        vep_command = vep_command + "--sift s" + " "
+        vep_command = vep_command + "--polyphen s" + " "
         #vep_command = vep_command + "--plugin Condel," + vep_annotation_dict["condel"] + ",s" + " "
         vep_command = vep_command + "--plugin CADD," + database_path + vep_annotation_dict["cadd-snps"] + "," + database_path + vep_annotation_dict["cadd-indel"] + " "
         vep_command = vep_command + "--plugin REVEL," + database_path + vep_annotation_dict["revel"] + " "
@@ -52,7 +56,8 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
         if bed_annotation:
             for key in bed_annotation:
-                vep_command = vep_command + "--custom " + database_path + bed_annotation[key]["file"]  + "," + key + ",bed," + bed_annotation[key]["method"] + ",0" + " "
+                if (key != "simpleRepeat") & (key != "oe_lof"):
+                    vep_command = vep_command + "--custom " + database_path + bed_annotation[key]["file"]  + "," + key + ",bed," + bed_annotation[key]["method"] + ",0" + " "
 
         # does not work (seems to be a problem with VEP)
         #if vcf_annotation:
@@ -62,10 +67,6 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         if bigwig_annotation:
             for key in bigwig_annotation:
                 vep_command = vep_command + "--custom " + database_path + bigwig_annotation[key]["file"] + "," + key + ",bigwig," + bigwig_annotation[key]["method"] + ",0" + " "
-    else:
-        vep_command = vep_command + "--custom " + database_path + bed_annotation["simpleRepeat"]["file"]  + "," + "simpleRepeat" + ",bed," + bed_annotation["simpleRepeat"]["method"] + ",0" + " "
-
-    vep_command = vep_command + "--custom /mnt/storage1/users/ahboced1/AIdiva_project/current_model/gnomAD_OE_sorted.bed.gz,oe_lof,bed,overlap,0 "
 
     vep_command = vep_command + "-i " + input_vcf_file + " "
     vep_command = vep_command + "-o " + output_vcf_file + " "
@@ -78,15 +79,52 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     print("The annotated VCF is saved as %s" % (output_vcf_file))
 
 
+def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annotation_dict, num_cores=1):
+	# the path to the executable
+    database_path = "/mnt/data/dbs/"
+    # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
+
+    tool_path = "/mnt/data/tools/"
+    # tool_path = os.path.dirname(__file__) + "/../../tools/"
+    vep_command = tool_path + vep_annotation_dict["vep"] + " "
+
+    # set the correct paths to the needed perl modules
+    if "PERL5LIB" in os.environ:
+        os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+    else:
+        os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/"
+
+    # add essential parameters
+    vep_command = vep_command + "--species homo_sapiens --assembly GRCh37" + " "
+    vep_command = vep_command + "--offline" + " "
+    vep_command = vep_command + "--cache" + " "
+    vep_command = vep_command + "--dir_cache " + database_path + vep_annotation_dict["cache-path"] + " "
+    vep_command = vep_command + "--gencode_basic" + " "
+
+
+    vep_command = vep_command + "-i " + input_vcf_file + " "
+    vep_command = vep_command + "-o " + output_vcf_file + " "
+    vep_command = vep_command + "--fields Consequence "
+    vep_command = vep_command + "--vcf_info_field CONS "
+    vep_command = vep_command + "--fork " + str(vep_annotation_dict["num-threads"]) + " "
+    vep_command = vep_command + "--vcf" + " "
+    vep_command = vep_command + "--no_stats" + " "
+    vep_command = vep_command + "--force_overwrite"
+
+    subprocess.run(vep_command, shell=True, check=True)
+    print("The annotated VCF is saved as %s" % (output_vcf_file))
+
+
 def annotate_from_vcf(input_vcf_file, output_vcf_file, num_cores):
     tmp = tempfile.NamedTemporaryFile(mode="w+b", suffix=".config", delete=False)
 
-    database_path = "/mnt/storage1/share/data/dbs/"
+    database_path = "/mnt/data/dbs/"
     # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
-    tool_path = "/mnt/storage1/share/opt/"
+    #tool_path = "/mnt/storage1/share/opt/"
+    tool_path = "/mnt/data/tools/"
     # tool_path = os.path.dirname(__file__) + "/../../tools/"
 
-    command = tool_path + "ngs-bits-current/VcfAnnotateFromVCF -config_file " + tmp.name + " -in " + input_vcf_file + " -out " + output_vcf_file + " -threads " + str(num_cores)
+    command = tool_path + "ngs-bits/bin/VcfAnnotateFromVcf -config_file " + tmp.name + " -in " + input_vcf_file + " -out " + output_vcf_file + " -threads " + str(num_cores)
 
     try:
         tmp.write(str(database_path + "Condel/hg19_precomputed_Condel.vcf.gz\t\tCONDEL\t\ttrue\n").encode())
@@ -111,17 +149,17 @@ if __name__=="__main__":
     output_vcf_file = args.out_data
 
     ## TODO: change to readfrom yaml file
-    vep_annotation_dict = {"vep": "/mnt/users/ahbranl1/data_vep/ensembl-vep-release-98.3/vep",
+    vep_annotation_dict2 = {"vep": "/mnt/users/ahbranl1/data_vep/ensembl-vep-release-98.3/vep",
                            "cache-path": "/mnt/users/ahbranl1/data_vep/ensembl-vep-cache/cache",
                            "num-threads": 10,
                            "plugin-path": "/mnt/users/ahboced1/data_vep/plugins",
                            "condel": "/mnt/users/ahboced1/Tools/vep_data/plugins/config/Condel/config",
                            "cadd-snps": "/mnt/share/data/dbs/CADD/whole_genome_SNVs.tsv.gz",
                            "cadd-indel": "/mnt/share/data/dbs/CADD/InDels.tsv.gz",
-                           "revel": "/mnt/share/data/dbs/REVEl/revel_all_chromosomes.tsv.gz",
+                           "revel": "/mnt/share/data/dbs/REVEL/revel_all_chromosomes.tsv.gz",
                            "dbNSFP": "/mnt/users/ahbranl1/data_vep/dbNSFP/dbNSFP_hg19_3.5.gz",
                            "custom": {"bed-files": {"simpleRepeat": {"file": "/mnt/users/ahboced1/databases/hg19/simpleRepeats.bedGraph.gz", "method": "overlap"},
                            "segmentDuplication": {"file": "/mnt/users/ahboced1/databases/hg19/segmentDuplication.bedGraph.gz", "method": "overlap"},
                            "ABB_SCORE": {"file": "/mnt/users/ahboced1/databases/hg19/abb_score.bedGraph.gz", "method": "exact"}}}}
 
-    call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, True)
+    call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict2, True)

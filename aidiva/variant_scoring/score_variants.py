@@ -113,6 +113,7 @@ def predict_pathogenicity(rf_model, input_data, input_features):
 
 
 def parallel_pathogenicity_prediction(rf_model, input_data, input_features, n_cores):
+    global num_cores
     if n_cores is None:
         num_cores = 1
     else:

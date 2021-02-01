@@ -17,8 +17,8 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: prediction_models/rf_model_snp_scikit0-19-1.pkl #prediction_models/clinvar_snp_rf.pkl
-    scoring-model-indel: prediction_models/rf_model_inframe_indel_scikit0-19-1.pkl #prediction_models/clinvar_indel_rf.pkl
+    scoring-model-snp: prediction_models/rf_snp_model.pkl
+    scoring-model-indel: prediction_models/rf_inframeIndel_model.pkl
 
     prioritization-information:
         # file containing the HPO terms that are associated with the disease (one term per line)
@@ -87,13 +87,13 @@ VEP-Annotation:
     perform-vep-annotation: True
 
     # VEP install path
-    vep: tools/ensembl-vep-release-100.3/
+    vep: ensembl-vep-release-100.3/vep
 
     # path to the annotation databases
-    db: data/dbs/
+    db: dbs/
 
     # threads to use during the annotation
-    num-threads: 5
+    num-threads: 8
 
     # Cache directory and plugin directory
     cache-path: ensembl-vep-100/cache
@@ -104,7 +104,7 @@ VEP-Annotation:
     cadd-indel: CADD/CADD_InDels_1.6.tsv.gz
 
     # REVEL: path to the REVEL database file
-    revel: REVEl/revel_all_chromosomes.tsv.gz
+    revel: REVEL/revel_all_chromosomes.tsv.gz
 
     # dbNSFP
     #dbNSFP: dbNSFP/dbNSFP_hg19_3.5.gz
@@ -121,6 +121,9 @@ VEP-Annotation:
             ABB_SCORE:
                 file: ABB/hg19_ABB-SCORE.bed.gz
                 method: exact
+            oe_lof:
+                file: gnomAD/gnomAD_OE_sorted.bed.gz
+                method: overlap
 
         # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
         vcf-files:
