@@ -235,8 +235,8 @@ def compute_hpo_relatedness_and_final_score(variant):
                     hpo_relatedness = max(gene_distances, default=0.0)
                     hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
                     ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS and HPO_RELATEDNESS_INTERACTING (eg 0.6 and 0.3 and 0.1)
-                    final_score = float(variant["AIDIVA_SCORE"]) * 0.6 + float(hpo_relatedness) * 0.3 + float(hpo_relatedness_interacting) * 0.1
-                    #final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness) + float(hpo_relatedness_interacting)) / 3
+                    #final_score = (float(variant["AIDIVA_SCORE"]) * 0.6 + float(hpo_relatedness) * 0.3 + float(hpo_relatedness_interacting) * 0.1)# / 3
+                    final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness) + float(hpo_relatedness_interacting)) / 3
             else:
                 final_score = np.nan
                 hpo_relatedness = np.nan
@@ -332,6 +332,9 @@ def check_filters(variant):
                             if float(variant["HPO_RELATEDNESS"]) > 0.0:
                                 filter_passed = 1
                                 filter_comment = "passed all"
+                            elif float(variant["HPO_RELATEDNESS_INTERACTING"]) > 0.0:
+                                filter_passed = 1
+                                filter_comment = "HPO related to interacting genes"
                             else:
                                 filter_passed = 0 # no relation to reported HPO terms
                                 filter_comment = "no HPO relation"

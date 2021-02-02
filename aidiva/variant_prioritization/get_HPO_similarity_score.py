@@ -37,7 +37,6 @@ def list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances):
     return 1 - final_value
 
 
-## TODO: the following method is obsolete, "list_distance" can be used instead
 def precompute_query_distances(HPO_graph, HPO_query):
     HPO_query_distances = dict()
     offset = 1000
@@ -73,19 +72,3 @@ def precompute_query_distances(HPO_graph, HPO_query):
 
     # now I have the query distances value
     return HPO_query_distances
-
-
-## TODO: remove method is obsolete
-def extract_HPO_related_to_gene(gene_2_HPO, gene):
-    # gene_2_HPO : dict with [gene] --- HPO_list
-    if type(gene_2_HPO) is dict:
-        gene_2_HPO_dict = gene_2_HPO
-    else:
-        gene_2_HPO_dict = pickle.load(open(gene_2_HPO, "rb"))
-
-    if gene in gene_2_HPO_dict.keys():
-        outlist = gene_2_HPO_dict[gene]
-    else:
-        outlist = []
-
-    return outlist
