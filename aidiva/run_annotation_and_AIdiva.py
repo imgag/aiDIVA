@@ -27,6 +27,7 @@ if __name__=="__main__":
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient")
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion", metavar="gene_exclusion.txt", required=False, help="TXT file containing the genes to exclude in the analysis")
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient")
+    parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="String indicating the present family type [SINGLE, TRIO, FAMILY]")
     #parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     args = parser.parse_args()
 
@@ -68,7 +69,12 @@ if __name__=="__main__":
 
     if args.family_file is not None:
         family_file = args.family_file
-        family_type = "SINGLE" ## TODO: get correct family type based on the family file
+
+        if args.family_type is not None:
+            family_type = args.family_type
+        else:
+            family_type = "SINGLE" ## TODO: get correct family type based on the family file
+    
     else:
         family_file = None
         family_type = "SINGLE"
@@ -130,6 +136,8 @@ if __name__=="__main__":
     # prioritize and filter variants
     print("Filter variants and finalize score...")
     prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, family_file, family_type, hpo_file, gene_exclusion_file, num_cores)
+
+    ## TODO: create additional output files according to the inheritance information (only filtered data)
 
     write_result.write_result_vcf(prioritized_data, str(working_directory + input_filename + "_aidiva_result.vcf"), bool(family_type == "SINGLE"))
     prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.csv"), sep="\t", index=False)

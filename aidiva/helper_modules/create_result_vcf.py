@@ -65,7 +65,7 @@ def write_result_vcf(input_data, vcf_file, single):
                 hpo_relatedness_interacting = str(row.HPO_RELATEDNESS_INTERACTING)
 
             if not single:
-                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + str(row.FILTER_PASSED) + ";AIDIVA_INHERITANCE=" + str(row.DOMINANT_INHERITED) + "," + str(row.DOMINANT_DENOVO) + "," + str(row.RECESSIVE) + "," + str(row.XLINKED) + "," + str(row.COMPOUND)
+                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + str(row.FILTER_PASSED) + ";AIDIVA_INHERITANCE=" + str(row.DOMINANT) + "," + str(row.DOMINANT_DENOVO) + "," + str(row.RECESSIVE) + "," + str(row.XLINKED) + "," + str(row.COMPOUND)
             else:
                 info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + str(row.FILTER_PASSED)
 

@@ -125,14 +125,14 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
         if os.path.isfile(family_file):
             with open(family_file, "r") as fam_file:
                 for line in fam_file:
-                    if line.startswith("sample"):
-                        continue
+                    #if line.startswith("sample"):
+                    #    continue
                     line = line.rstrip()
                     splitline = line.split("\t")
 
-                    if splitline[5] == 2:
+                    if splitline[5] == "2":
                        family[splitline[1]] = 1
-                    elif splitline[5] == 1:
+                    elif splitline[5] == "1":
                        family[splitline[1]] = 0
                     else:
                        print("ERROR: There is a problem with the given PED file describing the family.")
@@ -145,7 +145,7 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
 
     variant_data = parallelize_dataframe_processing(variant_data, parallelized_variant_processing, n_cores)
 
-    print(variant_data["FINAL_AIDIVA_SCORE"].tolist())
+    #print(variant_data["FINAL_AIDIVA_SCORE"].tolist())
     variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False], inplace=True)
     variant_data.reset_index(inplace=True, drop=True)
 
@@ -179,8 +179,9 @@ def parallelized_variant_processing(variant_data):
     variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant)), axis=1)
 
     # Perform inheritance check only if the family information is passed
-    if family and family_type != "SINGLE":
-        variant_data = variant_data.apply(lambda variant: pd.Series(check_inheritance(variant_data)), axis=1)
+    #if family and family_type != "SINGLE":
+    #variant_data = variant_data.apply(lambda variant: pd.Series(check_inheritance(variant_data, family_type, family)), axis=1)
+    variant_data = check_inheritance(variant_data, family_type, family)
 
     return variant_data
 
@@ -249,48 +250,100 @@ def compute_hpo_relatedness_and_final_score(variant):
     return [hpo_relatedness, hpo_relatedness_interacting, final_score]
 
 
-def check_inheritance(variant):
+def check_inheritance(variant_data, family_type="SINGLE", family=None):
     ## TODO: make one inheritance column where the inheritance mode is saved in text form
+    variant_columns = variant_data.columns
     if family_type == "SINGLE":
-        pass
-    elif family_type == "TRIO":
         variant_data["COMPOUND"] = 0
-        variant_data["DOMINANT_DENOVO"] = variant_data.apply(lambda variant: check_denovo(variant, family), axis=1)
-
-        ## TODO: do we need a check for affected family members?
-        variant_data["DOMINANT_INHERITED"] = variant_data.apply(lambda variant: check_dominant(variant, family), axis=1)
-        variant_data["XLINKED"] = variant_data.apply(lambda variant: check_xlinked(variant, family), axis=1)
-        variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive(variant, family, family_type), axis=1)
-
         variant_data_grouped = [group for key, group in variant_data.groupby("SYMBOL")]
 
-        affected_child = ""
-        parent_1 = ""
-        parent_2 = ""
+        variant_data["DOMINANT"] = variant_data.apply(lambda variant: check_dominant_single(variant, variant_columns), axis=1)
+        variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive_single(variant, variant_columns), axis=1)
 
-        for name in family.keys():
-            if family[name] == "1":
-                affected_child = name
-            elif family[name] == "0":
-                if not parent_1:
-                    parent_1 = name
-                    continue
-                if not parent_2:
-                    parent_2 = name
-                    continue
-                else:
-                    print("Something went wrong!")
-        if  affected_child and parent_1 and parent_2:
-            for group in variant_data_grouped:
-                check_compound(group, affected_child, parent_1, parent_2)
+        for group in variant_data_grouped:
+            check_compound(group, affected_child, parent_1, parent_2)
         variant_data = pd.concat(variant_data_grouped)
-    elif family_type == "FAMILY":
+
+    elif family_type == "TRIO":
+        if not family is None:
+            variant_data["COMPOUND"] = 0
+            variant_data["DOMINANT_DENOVO"] = variant_data.apply(lambda variant: check_denovo(variant, family), axis=1)
+
+            ## TODO: do we need a check for affected family members?
+            variant_data["DOMINANT"] = variant_data.apply(lambda variant: check_dominant(variant, family), axis=1)
+            variant_data["XLINKED"] = variant_data.apply(lambda variant: check_xlinked(variant, family), axis=1)
+            variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive(variant, family, family_type), axis=1)
+
+            variant_data_grouped = [group for key, group in variant_data.groupby("SYMBOL")]
+
+            affected_child = ""
+            parent_1 = ""
+            parent_2 = ""
+
+            ## TODO: handle the case if affected status is given as unknown
+            for name in family.keys():
+                if family[name] == 1:
+                    affected_child = name
+                elif family[name] == 0:
+                    if not parent_1:
+                        parent_1 = name
+                        continue
+                    elif not parent_2:
+                        parent_2 = name
+                        continue
+                    else:
+                        print("Something went wrong!")
+            if  affected_child and parent_1 and parent_2:
+                for group in variant_data_grouped:
+                    check_compound(group, affected_child, parent_1, parent_2)
+            variant_data = pd.concat(variant_data_grouped)
+        else:
+            print("ERROR: If family type (TRIO) is used a proper PED file defining the family relations is required")
+        
+    elif (family_type == "FAMILY") & (family is not None):
         pass
+        if not family is None:
+            variant_data["DOMINANT"] = variant_data.apply(lambda variant: check_dominant(variant, family), axis=1)
+            variant_data["XLINKED"] = variant_data.apply(lambda variant: check_xlinked(variant, family), axis=1)
+            variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive(variant, family, family_type), axis=1)
+        else:
+            print("ERROR: If family type (FAMILY) is used a proper PED file defining the family relations is required")
+        
     else:
         print("ERROR: Unsupported family type (%s) was given!" % family_type)
 
+    variant_columns = variant_data.columns
+    variant_data["INHERITANCE"] = variant_data.apply(lambda variant: add_inheritance_mode(variant, variant_columns), axis=1)
+
     return variant_data
 
+
+def add_inheritance_mode(variant, variant_columns):
+    inheritance_list = []
+
+    if "DOMINANT" in variant_columns:
+        if variant["DOMINANT"] == 1:
+            inheritance_list.append("DOMINANT")
+
+    if "DOMINANT_DENOVO" in variant_columns:
+        if variant["DOMINANT_DENOVO"] == 1:
+            inheritance_list.append("DOMINANT_DENOVO")
+    
+    if "RECESSIVE" in variant_columns:
+        if variant["RECESSIVE"] == 1:
+            inheritance_list.append("RECESSIVE")
+    
+    if "COMPOUND" in variant_columns:
+        if variant["COMPOUND"] == 1:
+            inheritance_list.append("COMPOUND")
+
+    if "XLINKED" in variant_columns:
+        if variant["XLINKED"] == 1:
+            inheritance_list.append("XLINKED")
+    
+    inheritance_mode = ";".join(inheritance_list)
+
+    return inheritance_mode
 
 def check_filters(variant):
     variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
@@ -371,6 +424,18 @@ def check_compound(gene_variants, affected_child, parent_1, parent_2):
                 gene_variants.loc[index_pair[1], "COMPOUND"] = 1
 
 
+def check_compound_single(gene_variants, variant_columns):
+    genotype_column = [column for column in variant_columns if column.startswith("GT.")][0]
+    num_variant_candidates = gene_variants.shape[0]
+
+    if num_variant_candidates >= 2:
+        candidate_indices = [x for x in combinations(gene_variants.index.tolist(), 2)]
+        for index_pair in candidate_indices:
+            if (((gene_variants.loc[index_pair[0], genotype_column] == "0/1") & (gene_variants.loc[index_pair[1], genotype_column] == "0/1"))):
+                gene_variants.loc[index_pair[0], "COMPOUND"] = 1
+                gene_variants.loc[index_pair[1], "COMPOUND"] = 1
+
+
 def check_denovo(variant, family):
     judgement = 0
     check_samples = dict()
@@ -402,12 +467,12 @@ def check_denovo(variant, family):
             check_samples[name] = 1
 
         # heterozygous in affected individual - good
-        if zygosity == "0/1" and family[name] == "1":
+        if zygosity == "0/1" and family[name] == 1:
             judgement = 1
             continue
 
         # hom ref, not affected - good
-        elif zygosity == "0/0" and family[name] == "0" :
+        elif zygosity == "0/0" and family[name] == 0 :
             if int(altcoverage) <= max(3, (float(altcoverage) + float(refcoverage)) / 10) :
                 judgement = 1
             else :
@@ -415,12 +480,12 @@ def check_denovo(variant, family):
             continue
 
         # heterozygous in non-affected - bad
-        elif zygosity == "0/1" and family[name] == "0":
+        elif zygosity == "0/1" and family[name] == 0:
             judgement = 0
             break
 
         # hom ref in affected - bad
-        elif zygosity == "0/0" and family[name] == "1":
+        elif zygosity == "0/0" and family[name] == 1:
             judgement = 0
             break
 
@@ -430,7 +495,7 @@ def check_denovo(variant, family):
             break
 
         # now a few more complex steps, if genotype is missing (only non-affected individuals should have missing values)
-        elif zygosity == "./." and family[name] == "0":
+        elif zygosity == "./." and family[name] == 0:
 
             # if vcf file was not supplemented by pileup data
             # reject it variants which could not be called in the parents
@@ -442,9 +507,7 @@ def check_denovo(variant, family):
             # e.g. 10ref, 0alt
             # if coverage > 8, the chance is less than 0.5% to miss out on one alt read
             # http://stattrek.com/online-calculator/poisson.aspx
-            refcoverage = float(refcoverage)
-            altcoverage = float(altcoverage)
-            coverage = refcoverage + altcoverage
+            coverage = float(refcoverage) + float(altcoverage)
 
             if coverage == 0:
                 judgement = 0
@@ -453,7 +516,7 @@ def check_denovo(variant, family):
             # hom ref, non called genotype
             # poisson for low coverage and percentage for high coverage
             # poisson 10 reads (poisson average rate of success = 5) and alt reads = 0 - should get still accepted
-            elif (poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007) and (altcoverage / coverage <= 0.05):
+            elif (poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007) and (float(altcoverage) / float(coverage) <= 0.05):
                 judgement = 1
                 continue
 
@@ -464,7 +527,7 @@ def check_denovo(variant, family):
                 break
 
         # do not accept missing values for affected individuals
-        elif zygosity == "./." and family[name] == "1":
+        elif zygosity == "./." and family[name] == 1:
 
             # except if vcf file was not supplemented by pileup data
             # reject variants which could not be called in the parents
@@ -515,38 +578,38 @@ def check_dominant(variant, family):
             check_samples[name] = 1
 
         # affected family members should have the mutation (hom ref not allowed)
-        if zygosity == "0/0" and family[name] == "1":
+        if zygosity == "0/0" and family[name] == 1:
             judgement = 0
             break
 
         # affected family members might be het
-        elif zygosity == "0/1" and family[name] == "1":
+        elif zygosity == "0/1" and family[name] == 1:
             judgement = 1
             continue
 
         # affected family members might be hom alt
         # that"s the major difference to de novo...
-        elif zygosity == "1/1" and family[name] == "1":
+        elif zygosity == "1/1" and family[name] == 1:
             judgement = 1
             continue
 
         # non-affected family members must not have the mutation - hom ref is OK
-        elif zygosity == "0/0" and family[name] == "0":
+        elif zygosity == "0/0" and family[name] == 0:
             judgement = 1
             continue
 
         # non-affected family members must not have the mutation - het is bad
-        elif zygosity == "0/1" and family[name] == "0":
+        elif zygosity == "0/1" and family[name] == 0:
             judgement = 0
             break
 
         # non-affected family members must not have the mutation - hom alt is worst
-        elif zygosity == "1/1" and family[name] == "0":
+        elif zygosity == "1/1" and family[name] == 0:
             judgement = 0
             break
 
         # now a few more complex steps, if genotype is missing (only non-affected individuals should have missing values)
-        elif zygosity == "./." and family[name] == "0":
+        elif zygosity == "./." and family[name] == 0:
 
             # if vcf file was not supplemented
             # accept variants which could not be called
@@ -561,7 +624,7 @@ def check_dominant(variant, family):
             continue
 
         # accept some missing values for affected individuals
-        elif zygosity == "./." and family[name] == "1":
+        elif zygosity == "./." and family[name] == 1:
 
             # if vcf file was not supplemented by pileup data
             # accept variants which could not be called
@@ -577,26 +640,24 @@ def check_dominant(variant, family):
 
             # now a few more complex steps, if genotype is missing (only non-affected individuals should have missing values)
 
-            refcoverage = float(refcoverage)
-            altcoverage = float(altcoverage)
-            coverage = refcoverage + altcoverage
+            coverage = float(refcoverage) + float(altcoverage)
 
             if coverage == 0:
                 judgement = 0
                 break
 
             # hom ref
-            elif poisson.cdf(float(altcoverage), float(coverage) / 2) <= 0.007 and altcoverage / coverage <= 0.05:
+            elif poisson.cdf(float(altcoverage), float(coverage) / 2) <= 0.007 and float(altcoverage) / float(coverage) <= 0.05:
                 judgement = 0
                 break
 
             # hom alt
-            elif poisson.cdf(float(refcoverage), float(coverage / 2)) <= 0.007  and refcoverage / coverage <= 0.05:
+            elif poisson.cdf(float(refcoverage), float(coverage / 2)) <= 0.007  and float(refcoverage) / float(coverage) <= 0.05:
                 judgement = 1
                 continue
 
             # het
-            elif poisson.cdf(float(altcoverage), float(coverage) / 2) >= 0.007 or altcoverage / coverage >= 0.05:
+            elif poisson.cdf(float(altcoverage), float(coverage) / 2) >= 0.007 or float(altcoverage) / float(coverage) >= 0.05:
                 judgement = 1
                 continue
 
@@ -609,6 +670,19 @@ def check_dominant(variant, family):
             break
 
     return judgement
+
+
+def check_dominant_single(variant, variant_columns):
+    ## TODO: implement inheritance check
+    genotype_column = [column for column in variant_columns if column.startswith("GT.")][0]
+
+    judgement = 0
+
+    if (variant[genotype_column] == "0/1"):
+                judgement = 1
+
+    return judgement
+
 
 def check_recessive(variant, family, family_type):
     judgement = 0
@@ -638,37 +712,37 @@ def check_recessive(variant, family, family_type):
             check_samples[name] = 1
 
         # affected individuals have to be homozygous
-        if zygosity == "1/1" and family[name] == "1":
+        if zygosity == "1/1" and family[name] == 1:
             judgement = 1
             continue
 
         # affected individuals should not be hom ref or het
-        elif ( zygosity == "0/0" or zygosity == "0/1" ) and family[name] == "1":
+        elif ( zygosity == "0/0" or zygosity == "0/1" ) and family[name] == 1:
             judgement = 0
             break
 
         # non-affected individuals might be het
-        elif zygosity == "0/1" and family[name] == "0":
+        elif zygosity == "0/1" and family[name] == 0:
             judgement = 1
             continue
 
         # non-affected individuals might be hom ref, if a family is interrogated
-        elif zygosity == "0/0" and family[name] == "0" and family_type == "FAMILY":
+        elif zygosity == "0/0" and family[name] == 0 and family_type == "FAMILY":
             judgement = 1
             continue
 
         # non-affected individuals in a trio are the parents and have to be het
-        elif zygosity == "0/0" and family[name] == "0" and family_type == "TRIO":
+        elif zygosity == "0/0" and family[name] == 0 and family_type == "TRIO":
             judgement = 0
             break
 
         # non-affected individuals must not be hom alt
-        elif zygosity == "1/1" and family[name] == "0":
+        elif zygosity == "1/1" and family[name] == 0:
             judgement = 0
             break
 
         # now a few more complex steps, if genotype is missing (only non-affected individuals should have missing values)
-        elif zygosity == "./." and family[name] == "0":
+        elif zygosity == "./." and family[name] == 0:
             # which chance has the current read distribution to miss out on an alt read
             # e.g. 10ref, 0alt
             # if coverage > 8, the chance is less than 0.5% to miss out on one alt read
@@ -680,26 +754,24 @@ def check_recessive(variant, family, family_type):
                 judgement = 1
                 continue
 
-            refcoverage = float(refcoverage)
-            altcoverage = float(altcoverage)
-            coverage = refcoverage + altcoverage
+            coverage = float(refcoverage) + float(altcoverage)
 
             if coverage == 0:
                 judgement = 0
                 break
 
             # hom ref
-            elif poisson.cdf(float(altcoverage), float(coverage) / 2) <= 0.007 and altcoverage / coverage <= 0.05:
+            elif poisson.cdf(float(altcoverage), float(coverage) / 2) <= 0.007 and float(altcoverage) / float(coverage) <= 0.05:
                 judgement = 0
                 break
 
             # hom alt
-            elif poisson.cdf(float(refcoverage), float(coverage / 2)) <= 0.007  and refcoverage / coverage <= 0.05:
+            elif poisson.cdf(float(refcoverage), float(coverage / 2)) <= 0.007  and float(refcoverage) / float(coverage) <= 0.05:
                 judgement = 0
                 break
 
             # het, which is OK
-            elif poisson.cdf(float(altcoverage), float(coverage) / 2) >= 0.007 or altcoverage / coverage >= 0.05:
+            elif poisson.cdf(float(altcoverage), float(coverage) / 2) >= 0.007 or float(altcoverage) / float(coverage) >= 0.05:
                 judgement = 1
                 continue
 
@@ -720,7 +792,7 @@ def check_recessive(variant, family, family_type):
 
         # do not accept missing values for affected individuals
         # they should be called hom alt by the SNP caller
-        elif zygosity == "./." and family[name] == "1":
+        elif zygosity == "./." and family[name] == 1:
             judgement = 0
             break
 
@@ -732,12 +804,25 @@ def check_recessive(variant, family, family_type):
     return judgement
 
 
+def check_recessive_single(variant, variant_columns):
+    ## TODO: implement inheritance check
+    genotype_column = [column for column in variant_columns if column.startswith("GT.")][0]
+
+    is_recessive = 0
+
+    # recessive variants have to be homozygous in affected samples
+    if (variant[genotype_column] == "1/1") | (variant[genotype_column] == "1|1"):
+        is_recessive = 1
+    
+    return is_recessive
+
+
 def check_xlinked(variant, family):
     judgement = 0
     check_samples = dict()
     inheritance_logic = dict()
 
-    if not ((variant["CHROM"] == "X") | (variant["CHROM"] == "x") | (variant["CHROM"] == "23")):
+    if not ((variant["CHROM"] == "X") | (variant["CHROM"] == "x") | (variant["CHROM"] == "chrX") | (variant["CHROM"] == "chrx") | (variant["CHROM"] == "23")):
         return 0
 
     # create data structure for completeness check
@@ -763,36 +848,36 @@ def check_xlinked(variant, family):
         if name in check_samples:
             check_samples[name] = 1
 
-        if family[name] == "0":
+        if family[name] == 0:
             inheritance_logic[name] = zygosity
 
         # affected individuals have to be homozygous
-        if zygosity == "1/1" and family[name] == "1":
+        if zygosity == "1/1" and family[name] == 1:
             judgement = 1
             continue
 
         # affected individuals should not be hom ref or het
-        elif ( zygosity == "0/0" or zygosity == "0/1" ) and family[name] == "1":
+        elif ( zygosity == "0/0" or zygosity == "0/1" ) and family[name] == 1:
             judgement = 0
             break
 
         # non-affected individuals might be het
-        elif zygosity == "0/1" and family[name] == "0":
+        elif zygosity == "0/1" and family[name] == 0:
             judgement = 1
             continue
 
         # non-affected individuals might be hom ref
-        elif zygosity == "0/0" and family[name] == "0":
+        elif zygosity == "0/0" and family[name] == 0:
             judgement = 1
             continue
 
         # non-affected individuals must not be hom alt
-        elif zygosity == "1/1" and family[name] == "0":
+        elif zygosity == "1/1" and family[name] == 0:
             judgement = 0
             break
 
         # now a few more complex steps, if genotype is missing (only non-affected individuals should have missing values)
-        elif zygosity == "./." and family[name] == "0":
+        elif zygosity == "./." and family[name] == 0:
             # which chance has the current read distribution to miss out on an alt read
             # e.g. 10ref, 0alt
             # if coverage > 8, the chance is less than 0.5% to miss out on one alt read
@@ -804,28 +889,26 @@ def check_xlinked(variant, family):
                 judgement = 1
                 continue
 
-            refcoverage = float(refcoverage)
-            altcoverage = float(altcoverage)
-            coverage = refcoverage + altcoverage
+            coverage = float(refcoverage) + float(altcoverage)
 
             if coverage == 0:
                 judgement = 0
                 break
 
             # hom ref
-            elif poisson.cdf(float(altcoverage), float(coverage) / 2) <= 0.007 and altcoverage / coverage <= 0.05:
+            elif poisson.cdf(float(altcoverage), float(coverage) / 2) <= 0.007 and float(altcoverage) / float(coverage) <= 0.05:
                 inheritance_logic[name] = "0/0"
                 judgement = 1
                 continue
 
             # hom alt
-            if poisson.cdf(float(refcoverage), float(coverage) / 2) <= 0.007 and refcoverage / coverage <= 0.05:
+            if poisson.cdf(float(refcoverage), float(coverage) / 2) <= 0.007 and float(refcoverage) / float(coverage) <= 0.05:
                 inheritance_logic[name] = "1/1"
                 judgement = 0
                 break
 
             # het, which is OK
-            elif poisson.cdf(float(altcoverage), float(coverage) / 2) >= 0.007 or altcoverage / coverage >= 0.05:
+            elif poisson.cdf(float(altcoverage), float(coverage) / 2) >= 0.007 or float(altcoverage) / float(coverage) >= 0.05:
                 inheritance_logic[name] = "0/1"
                 judgement = 1
                 continue
@@ -837,7 +920,7 @@ def check_xlinked(variant, family):
 
         # do not accept missing values for affected individuals
         # they should be called hom alt by the SNP caller
-        elif zygosity == "./." and family[name] == "1":
+        elif zygosity == "./." and family[name] == 1:
             judgement = 0
             break
 
@@ -845,12 +928,17 @@ def check_xlinked(variant, family):
     het_checker = 0
     hom_checker = 0
 
+    print(inheritance_logic)
+
     for values in inheritance_logic.values():
         if values == "0/1":
             het_checker = 1
         if values == "0/0":
             hom_checker = 1
 
+    print("xlinked", judgement, hom_checker, het_checker, check_samples)
+
+    ## TODO: recheck if this is correct here
     if het_checker == 1 and hom_checker == 1:
         judgement = 1
     else:
