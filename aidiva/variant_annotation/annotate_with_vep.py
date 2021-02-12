@@ -56,7 +56,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
         if bed_annotation:
             for key in bed_annotation:
-                if (key != "simpleRepeat") & (key != "oe_lof"):
+                if (key != "simpleRepeat") and (key != "oe_lof"):
                     vep_command = vep_command + "--custom " + database_path + bed_annotation[key]["file"]  + "," + key + ",bed," + bed_annotation[key]["method"] + ",0" + " "
 
         # does not work (seems to be a problem with VEP)

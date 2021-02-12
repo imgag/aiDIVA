@@ -20,10 +20,10 @@ import numpy as np
 # or no HPO provided, or no HPO
 # associated with the gene
 def list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances):
-    if "NONE" in HPO_query or "NONE" in gene_HPO_list:
+    if ("NONE" in HPO_query) or ("NONE" in gene_HPO_list):
         return 0
     
-    if len(HPO_query) < 1 or len(gene_HPO_list) < 1:
+    if (len(HPO_query) < 1) or (len(gene_HPO_list) < 1):
         return 0
     
     # map the genes HPO and extract values.

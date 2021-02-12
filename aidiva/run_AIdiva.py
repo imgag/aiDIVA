@@ -60,13 +60,15 @@ if __name__=="__main__":
         hpo_file = args.hpo_list
     else:
         hpo_file = None
+
     if "gene_exclusion" in args:
         gene_exclusion_file = args.gene_exclusion
     else:
         gene_exclusion_file = None
-    if "family_file" in args:
+
+    if ("family_file" in args) and ("family_type" in args):
         family_file = args.family_file
-        family_type = "SINGLE" ## TODO: get correct family type based on the family file
+        family_type = args.family_type
     else:
         family_file = None
         family_type = "SINGLE"
@@ -83,7 +85,7 @@ if __name__=="__main__":
 
     ## TODO: handle the situation if one or more (but not all) of the input dataframes are empty
     ## TODO: make it work if only InDel or only SNP variants are given
-    if (not input_data_snp.empty) & (not input_data_indel.empty) & (not input_data_expanded_indel.empty):
+    if (not input_data_snp.empty) and (not input_data_indel.empty) and (not input_data_expanded_indel.empty):
         print("Combine InDel variants ...")
         input_data_combined_indel = combine_expanded_indels.parallelized_indel_combination(input_data_indel, input_data_expanded_indel, feature_list, num_cores)
 
@@ -103,9 +105,9 @@ if __name__=="__main__":
         prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, family_file, family_type, hpo_file, gene_exclusion_file)
 
         write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
+        write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + output_filename + "_filtered.vcf"), bool(family_type == "SINGLE"))
         prioritized_data.to_csv(str(working_directory + output_filename + ".csv"), sep="\t", index=False)
         prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_passed_filters.csv"), sep="\t", index=False)
         print("Pipeline successfully finsished!")
     else:
         print("ERROR: The given input files were empty!")
-        #write_result.write_result_vcf(pd.concat([input_data_snp, input_data_indel, input_data_expanded_indel]), str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))

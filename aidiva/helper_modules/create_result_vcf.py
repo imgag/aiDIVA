@@ -34,11 +34,12 @@ def write_header(out_file, single):
     out_file.write("##contig=<ID=chr21,length=48129895,assembly=hg19>\n")
     out_file.write("##contig=<ID=chr22,length=51304566,assembly=hg19>\n")
     out_file.write("##contig=<ID=chrX,length=155270560,assembly=hg19>\n")
+    out_file.write("##contig=<ID=chrY,length=59373566,assembly=hg19>\n")
     out_file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
 
 def write_result_vcf(input_data, vcf_file, single):
-    input_data.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
-    input_data.reset_index(inplace=True, drop=True)
+    input_data = input_data.sort_values(["CHROM", "POS"], ascending=[True, True])
+    input_data = input_data.reset_index(drop=True)
 
     with open(vcf_file, "w") as out:
         write_header(out, single)

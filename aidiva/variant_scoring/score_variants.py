@@ -70,7 +70,7 @@ def read_input_data(input_file):
 # fill missing values from other features with -> median or mean
 def prepare_input_data(input_data):
     # compute maximum Minor Allele Frequency (MAF) from population frequencies if not present
-    if (not "MaxAF" in input_data.columns) & (not "MAX_AF" in input_data.columns):
+    if ("MaxAF" not in input_data.columns) and ("MAX_AF" not in input_data.columns):
         if allele_frequencies:
             for allele_frequency in allele_frequencies:
                 input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
@@ -80,24 +80,24 @@ def prepare_input_data(input_data):
             print("ERROR: Empty allele frequency list was given!")
 
     for feature in features:
-        if feature == "MaxAF" or feature == "MAX_AF":
+        if (feature == "MaxAF") or (feature == "MAX_AF"):
             input_data[feature] = input_data[feature].fillna(0)
         elif feature == "homAF":
             input_data[feature] = input_data[feature].fillna(0)
         elif feature == "segmentDuplication":
-            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan), axis=1)
+            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(0)
         elif feature == "ABB_SCORE":
             input_data[feature] = input_data[feature].fillna(0)
         elif "SIFT" == feature:
-            input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan), axis=1)
+            input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(median_dict["SIFT"])
         elif feature == "oe_lof":
-            input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != "") & (not ":" in value) & (not "-" in value))], default=np.nan), axis=1)
+            input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != "") and (":" not in value) and ("-" not in value))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(median_dict["oe_lof"])
         else:
-            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != ""))], default=np.nan), axis=1)
-            if ("phastCons" in feature) | ("phyloP" in feature):
+            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
+            if ("phastCons" in feature) or ("phyloP" in feature):
                 input_data[feature] = input_data[feature].fillna(mean_dict[feature])
             else:
                 input_data[feature] = input_data[feature].fillna(median_dict[feature])
@@ -176,6 +176,7 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     predicted_data.loc[(predicted_data["Consequence"].str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0
 
     # exclude chromosomes MT
+    ## TODO: can be removed (mitochondrial variants should already be filtered out)
     predicted_data.loc[((predicted_data["CHROM"] == "MT") | (predicted_data["CHROM"] == "chrMT") | (predicted_data["CHROM"] == "M") | (predicted_data["CHROM"] == "chrM")), "AIDIVA_SCORE"] = np.nan
 
     return predicted_data

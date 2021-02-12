@@ -49,11 +49,8 @@ if __name__=="__main__":
     input_vcf = args.vcf
     scoring_model_snp = os.path.dirname(os.path.abspath(__file__)) + "/../data/" + configuration["Analysis-Input"]["scoring-model-snp"]
     scoring_model_indel = os.path.dirname(os.path.abspath(__file__)) + "/../data/" + configuration["Analysis-Input"]["scoring-model-indel"]
-
-    #if args.threads is not None:
-    #    num_cores = args.threads
-    #else:
-    #    num_cores = 1
+    
+    # obtain number of threads to use during computation
     num_cores = configuration["VEP-Annotation"]["num-threads"]
 
     # parse disease and inheritance information
@@ -73,7 +70,7 @@ if __name__=="__main__":
         if args.family_type is not None:
             family_type = args.family_type
         else:
-            family_type = "SINGLE" ## TODO: get correct family type based on the family file
+            family_type = "SINGLE"
     
     else:
         family_file = None
@@ -138,8 +135,8 @@ if __name__=="__main__":
     prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, family_file, family_type, hpo_file, gene_exclusion_file, num_cores)
 
     ## TODO: create additional output files according to the inheritance information (only filtered data)
-
     write_result.write_result_vcf(prioritized_data, str(working_directory + input_filename + "_aidiva_result.vcf"), bool(family_type == "SINGLE"))
+    write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + input_filename + "_aidiva_result_filtered.vcf"), bool(family_type == "SINGLE"))
     prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.csv"), sep="\t", index=False)
     prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filt.csv"), sep="\t", index=False)
     print("Pipeline successfully finsished!")

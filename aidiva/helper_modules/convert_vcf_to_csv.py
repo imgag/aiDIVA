@@ -47,6 +47,7 @@ num_partitions = 10
 num_cores = 5
 annotation_header = None
 indel_set = False
+sample_ids = []
 
 
 
@@ -87,9 +88,9 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
             ref_length = len(splitted_line[3])
             alt_length = max([len(alt) for alt in splitted_line[4].split(",")])
 
-            if (ref_length == 1) & (alt_length == 1):
+            if (ref_length == 1) and (alt_length == 1):
                 outfile_snps.write(line)
-            elif (ref_length > 1) | (alt_length > 1):
+            elif (ref_length > 1) or (alt_length > 1):
                 indel_ID += 1
                 if splitted_line[7].endswith("\n"):
                     splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
@@ -137,7 +138,7 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     tmp.close()
 
     vcf_as_dataframe = vcf_as_dataframe.rename(columns={"#CHROM": "CHROM"})
-    vcf_as_dataframe = vcf_as_dataframe.drop(columns=["ID", "QUAL", "FILTER"])
+    #vcf_as_dataframe = vcf_as_dataframe.drop(columns=["ID", "QUAL", "FILTER"])
 
     return comment_lines, vcf_as_dataframe
 
@@ -148,13 +149,9 @@ def extract_annotation_header(header):
     return annotation_header
 
 
-## TODO: Add flags to indicate indel_ID present and or RANK present
-## TODO: ADD homAF and oe_lof
 def extract_columns(cell):
     info_fields = str(cell).split(";")
-    new_cols = []
 
-    rank = np.nan
     indel_ID = np.nan
     fathmm_xf = np.nan
     condel = np.nan
@@ -165,66 +162,40 @@ def extract_columns(cell):
     gnomAD_homAF = np.nan
     annotation = ""
 
-    if "indel_ID" in str(cell):
-        for field in info_fields:
-            if field.startswith("RANK="):
-                rank = field.split("RANK=")[1]
+    for field in info_fields:
+        if indel_set:
             if field.startswith("indel_ID"):
                 indel_ID = field.split("indel_ID=")[1]
-            if field.startswith("CSQ="):
-                annotation = field.split("CSQ=")[1]
-            if field.startswith("FATHMM_XF="):
-                if field.split("FATHMM_XF=")[1] != "nan":
-                    fathmm_xf = field.split("FATHMM_XF=")[1]
-            if field.startswith("CONDEL="):
-                if field.split("CONDEL=")[1] != "nan":
-                    condel = field.split("CONDEL=")[1]
-            if field.startswith("EIGEN_PHRED="):
-                if field.split("EIGEN_PHRED=")[1] != "nan":
-                    eigen_phred = field.split("EIGEN_PHRED=")[1]
-            if field.startswith("MutationAssessor="):
-                if field.split("MutationAssessor=")[1] != "nan":
-                    mutation_assessor = field.split("MutationAssessor=")[1]
-            if field.startswith("gnomAD_Hom"):
-                if field.split("gnomAD_Hom=")[1] != "nan":
-                    gnomAD_hom = float(field.split("gnomAD_Hom=")[1])
-            if field.startswith("gnomAD_AN"):
-                if field.split("gnomAD_AN=")[1] != "nan":
-                    gnomAD_an = float(field.split("gnomAD_AN=")[1])
+        if field.startswith("CSQ="):
+            annotation = field.split("CSQ=")[1]
+        if field.startswith("FATHMM_XF="):
+            if field.split("FATHMM_XF=")[1] != "nan":
+                fathmm_xf = field.split("FATHMM_XF=")[1]
+        if field.startswith("CONDEL="):
+            if field.split("CONDEL=")[1] != "nan":
+                condel = field.split("CONDEL=")[1]
+        if field.startswith("EIGEN_PHRED="):
+            if field.split("EIGEN_PHRED=")[1] != "nan":
+                eigen_phred = field.split("EIGEN_PHRED=")[1]
+        if field.startswith("MutationAssessor="):
+            if field.split("MutationAssessor=")[1] != "nan":
+                mutation_assessor = field.split("MutationAssessor=")[1]
+        if field.startswith("gnomAD_Hom"):
+            if field.split("gnomAD_Hom=")[1] != "nan":
+                gnomAD_hom = float(field.split("gnomAD_Hom=")[1])
+        if field.startswith("gnomAD_AN"):
+            if field.split("gnomAD_AN=")[1] != "nan":
+                gnomAD_an = float(field.split("gnomAD_AN=")[1])
 
-            if (gnomAD_hom > 0.0) & (gnomAD_an > 0.0):
-                gnomAD_homAF = gnomAD_hom / gnomAD_an
+    if (gnomAD_hom > 0.0) and (gnomAD_an > 0.0):
+        gnomAD_homAF = gnomAD_hom / gnomAD_an
 
-        return [rank, indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
+    if indel_set:
+        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
     else:
-        for field in info_fields:
-            if field.startswith("RANK="):
-                rank = field.split("RANK=")[1]
-            if field.startswith("CSQ="):
-                annotation = field.split("CSQ=")[1]
-            if field.startswith("FATHMM_XF="):
-                if field.split("FATHMM_XF=")[1] != "nan":
-                    fathmm_xf = field.split("FATHMM_XF=")[1]
-            if field.startswith("CONDEL="):
-                if field.split("CONDEL=")[1] != "nan":
-                    condel = field.split("CONDEL=")[1]
-            if field.startswith("EIGEN_PHRED="):
-                if field.split("EIGEN_PHRED=")[1] != "nan":
-                    eigen_phred = field.split("EIGEN_PHRED=")[1]
-            if field.startswith("MutationAssessor="):
-                if field.split("MutationAssessor=")[1] != "nan":
-                    mutation_assessor = field.split("MutationAssessor=")[1]
-            if field.startswith("gnomAD_Hom="):
-                if field.split("gnomAD_Hom=")[1] != "nan":
-                    gnomAD_hom = float(field.split("gnomAD_Hom=")[1])
-            if field.startswith("gnomAD_AN="):
-                if field.split("gnomAD_AN=")[1] != "nan":
-                    gnomAD_an = float(field.split("gnomAD_AN=")[1])
+       extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
 
-            if (gnomAD_hom > 0.0) & (gnomAD_an > 0.0):
-                gnomAD_homAF = gnomAD_hom / gnomAD_an
-
-        return [rank, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
+    return extracted_columns
 
 
 def extract_vep_annotation(cell, annotation_header):
@@ -277,7 +248,7 @@ def extract_sample_information(row, sample):
     else:
         sample_gq_information = "."
 
-    if sample_ref_information != "." and sample_alt_information != ".":
+    if (sample_ref_information != ".") and (sample_alt_information != "."):
         divisor = (int(sample_ref_information) + int(sample_alt_information))
         if divisor == 0:
             sample_af_information = 0
@@ -285,28 +256,17 @@ def extract_sample_information(row, sample):
             sample_af_information = (int(sample_alt_information) / divisor)
     else:
         sample_af_information = "."
-
-    if sample_ref_information != "." and sample_alt_information != ".":
-        divisor = (int(sample_ref_information) + int(sample_alt_information))
-        if divisor == 0:
-            sample_af_information = 0
-        else:
-            sample_af_information = (int(sample_alt_information) / divisor)
-    else:
-        sample_af_information = "."
-
 
     sample_information = [sample_gt_information, sample_dp_information, sample_ref_information, sample_alt_information, sample_af_information, sample_gq_information]
 
     return sample_information
 
 
-## TODO: ADD homAF and oe_lof
-def add_INFO_fields_to_dataframe(vcf_as_dataframe):
+def add_INFO_fields_to_dataframe(vcf_as_dataframe,):
     if indel_set:
-        vcf_as_dataframe[["RANK", "indel_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["indel_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     else:
-        vcf_as_dataframe[["RANK", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
@@ -321,11 +281,10 @@ def add_VEP_annotation_to_dataframe(vcf_as_dataframe):
 
 
 def add_sample_information_to_dataframe(vcf_as_dataframe):
-    for sample in [col for col in vcf_as_dataframe if col.startswith("NA")]:
+    for sample in sample_ids:
         vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
-        sample_header = [sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
+        sample_header = ["GT." + sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
         vcf_as_dataframe[sample_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample)), axis=1)
-
         vcf_as_dataframe = vcf_as_dataframe.drop(columns=[sample + ".full"])
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["FORMAT"])
@@ -335,6 +294,12 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
 
 def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
+
+    global sample_ids
+    sample_ids = []
+    # FORMAT column has index 8 (counted from 0) and sample columns follow afterwards (sample names are unique)
+    for i in range(9, len(vcf_as_dataframe.columns)):
+        sample_ids.append(vcf_as_dataframe.columns[i])
 
     global annotation_header
     annotation_header = extract_annotation_header(header)
@@ -346,8 +311,14 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
         vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_INFO_fields_to_dataframe, n_cores)
         vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_VEP_annotation_to_dataframe, n_cores)
 
-        if "FORMAT" in vcf_as_dataframe.columns:
-            vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_sample_information_to_dataframe, n_cores)
+        if len(vcf_as_dataframe.columns) > 8:
+            print(vcf_as_dataframe.columns)
+            print(len(vcf_as_dataframe.columns))
+            if "FORMAT" in vcf_as_dataframe.columns:
+                vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_sample_information_to_dataframe, n_cores)
+            else:
+                # This warning is always triggered when the expanded indel vcf file is processed. If it is only triggered once in this case it can be ignored.
+                print("WARNING: It seems that your VCF file does contain sample information but not FORMAT description!")
         else:
             print("MISSING SAMPLE INFORMATION!")
 
@@ -385,7 +356,7 @@ def write_vcf_to_csv(vcf_as_dataframe, out_file):
     vcf_as_dataframe.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="VCF file to convert file\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the converted VCF file\n")

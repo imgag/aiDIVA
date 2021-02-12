@@ -90,12 +90,7 @@ def extract_annotation_header(header):
 
 def extract_columns(cell):
     info_fields = str(cell).strip().split(";")
-    new_cols = []
     csq = ""
-    clnsig = ""
-    clnvc = ""
-    mc = ""
-    rank = ""
     indel_ID = ""
 
     for field in info_fields:
@@ -104,14 +99,6 @@ def extract_columns(cell):
             continue
         if field.startswith("CSQ="):
             csq = field.split("=")[1]
-        elif field.startswith("CLNSIG="):
-            clnsig = field.split("=")[1]
-        elif field.startswith("CLNVC="):
-            clnvc = field.split("=")[1]
-        elif field.startswith("MC="):
-            mc = field.split("=")[1]
-        elif field.startswith("RANK="):
-            rank = field.split("=")[1]
         elif field.startswith("indel_ID="):
             indel_ID = field.split("=")[1]
         else:
@@ -150,7 +137,7 @@ def extract_sample_information(row, sample):
     sample_alt_information = sample_fields[sample_header.index("AD")].split(",")[1]
     sample_gq_information = sample_fields[sample_header.index("GQ")]
 
-    if sample_ref_information != "." and sample_alt_information != ".":
+    if (sample_ref_information != ".") and (sample_alt_information != "."):
         divisor = (int(sample_ref_information) + int(sample_alt_information))
         if divisor == 0:
             sample_af_information = 0
@@ -182,7 +169,7 @@ def add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header):
 def add_sample_information_to_dataframe(vcf_as_dataframe):
     for sample in [col for col in vcf_as_dataframe if col.startswith("NA")]:
         vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
-        sample_header = [sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
+        sample_header = ["GT." + sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
         vcf_as_dataframe[sample_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample)), axis=1)
 
         vcf_as_dataframe = vcf_as_dataframe.drop(columns=[sample + ".full"])
@@ -199,17 +186,11 @@ def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, fe
         return grouped_expanded_vcf[feature].get_group(row.indel_ID).median()
 
 
-def add_simple_repeat_annotation(row, grouped_expanded_vcf):
-    simple_repeat = grouped_expanded_vcf["simpleRepeat"].get_group(row.indel_ID).unique().astype(str)
-
-    return "&".join(simple_repeat)
-
-
 def combine_vcf_dataframes(vcf_as_dataframe):
     global grouped_expanded_vcf
 
     for feature in feature_list:
-        if (feature == "MaxAF") | (feature == "MAX_AF"):
+        if (feature == "MaxAF") or (feature == "MAX_AF"):
             continue
         elif (feature == "simpleRepeat"):
             continue
@@ -226,7 +207,7 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
     feature_list = features
 
     for feature in feature_list:
-        if (feature == "MaxAF") | (feature == "MAX_AF"):
+        if (feature == "MaxAF") or (feature == "MAX_AF"):
             continue
         elif (feature == "simpleRepeat"):
             continue
@@ -267,7 +248,7 @@ def convert_vcf_to_pandas_dataframe(input_file):
 
     vcf_as_dataframe = add_INFO_fields_to_dataframe(vcf_as_dataframe)
     vcf_as_dataframe = add_VEP_annotation_to_dataframe(vcf_as_dataframe, annotation_header)
-    if "FORMAT" in vcf_as_dataframe.columns and vcf_as_dataframe["FORMAT"].unique()[0] is not ".":
+    if ("FORMAT" in vcf_as_dataframe.columns) and (vcf_as_dataframe["FORMAT"].unique()[0] is not "."):
         vcf_as_dataframe = add_sample_information_to_dataframe(vcf_as_dataframe)
     else:
         print("MISSING SAMPLE INFORMATION!")

@@ -39,7 +39,7 @@ def extract_hpo_graph_edges(hpo_ontology, hpo_edges_file):
     token = False
     obsolete = False
 
-    ontology = open(hpo_ontology, "r") as :
+    ontology = open(hpo_ontology, "r")
     for line in ontology:
         if line.startswith("id: HP:"):
             if token and not obsolete:
@@ -85,25 +85,6 @@ def extract_hpo_graph_edges(hpo_ontology, hpo_edges_file):
     ontology.close()
     pickle.dump(out_HPO, open(hpo_edges_file, "wb"))
     print("HPO edges successfully extracted and saved as %s" % (hpo_edges_file))
-
-
-def check_graph_qualtiy(DG):
-    # find if all ancestors have IC <= sons
-    # if not, why:
-    for node in DG:
-        ancestors = nx.ancestors(DG, node)
-        if str(nx.__version__).startswith("1."):
-            ancestors_val = [DG.node[x]["count"]  - DG.node[node]["count"] for x in ancestors]
-        elif str(nx.__version__).startswith("2."):
-            ancestors_val = [DG.nodes[x]["count"]  - DG.nodes[node]["count"] for x in ancestors]
-        else:
-            print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
-
-        problematic = [i for i, e in enumerate(ancestors_val) if e > 0]
-        for i in problematic:
-            print(node)
-            print(list(ancestors)[i])
-            print(ancestors_val[i])
 
 
 # counts as wget http://compbio.charite.de/jenkins/job/hpo.annotations/lastStableBuild/artifact/misc/phenotype_annotation.tab
@@ -245,7 +226,7 @@ def create_gene2hgnc_mapping_file(hgnc_symbol_file, hgnc_2_gene):
     gene_dict = dict()
 
     for line in file:
-        if line.startswith("#") | line.startswith("hgnc_id"):
+        if line.startswith("#") or line.startswith("hgnc_id"):
             continue
 
         splitted_line = line.split("\t")
@@ -263,7 +244,7 @@ def create_string_db_graph(string_mapping, string_db_links, string_interactions)
     string2name = dict()
 
     for line in string_mapping_file:
-        if line.startswith("#") | (line == "\n"):
+        if line.startswith("#") or (line == "\n"):
             continue
         splitted_line = line.replace("\n", "").split("\t")
         string2name[splitted_line[2]] = splitted_line[1]
@@ -274,7 +255,7 @@ def create_string_db_graph(string_mapping, string_db_links, string_interactions)
     string_interaction_mapping = dict()
 
     for line in string_links_file:
-        if line.startswith("protein") | (line == "\n"):
+        if line.startswith("protein") or (line == "\n"):
             continue
         splitted_line = line.replace("\n", "").split(" ")
         prot1 = splitted_line[0]
@@ -282,8 +263,7 @@ def create_string_db_graph(string_mapping, string_db_links, string_interactions)
         conf_exp = int(splitted_line[6])
         conf_db = int(splitted_line[7])
 
-        ## TODO: should we compute the combined score based on the two sources here???
-        if ((prot1 in string2name.keys()) & (prot2 in string2name.keys())) & ((conf_exp >= 900) | (conf_db >= 900)):
+        if ((prot1 in string2name.keys()) and (prot2 in string2name.keys())) and ((conf_exp >= 900) or (conf_db >= 900)):
             gene_name = string2name[prot1]
             interacting_gene = string2name[prot2]
             if gene_name in string_interaction_mapping.keys():
