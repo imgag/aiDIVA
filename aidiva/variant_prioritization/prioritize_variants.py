@@ -251,7 +251,7 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
         variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive_single(variant, variant_columns), axis=1)
 
         for group in variant_data_grouped:
-            check_compound(group, affected_child, parent_1, parent_2)
+            check_compound_single(group, variant_columns)
         variant_data = pd.concat(variant_data_grouped)
 
     elif family_type == "TRIO":
