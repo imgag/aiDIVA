@@ -245,10 +245,9 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
     variant_columns = variant_data.columns
     if family_type == "SINGLE":
         variant_data["COMPOUND"] = 0
-        variant_data_grouped = [group for key, group in variant_data.groupby("SYMBOL")]
-
-        variant_data["DOMINANT"] = variant_data.apply(lambda variant: check_dominant_single(variant, variant_columns), axis=1)
         variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive_single(variant, variant_columns), axis=1)
+
+        variant_data_grouped = [group for key, group in variant_data.groupby("SYMBOL")]
 
         for group in variant_data_grouped:
             check_compound_single(group, variant_columns)

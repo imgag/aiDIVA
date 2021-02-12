@@ -312,8 +312,6 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
         vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_VEP_annotation_to_dataframe, n_cores)
 
         if len(vcf_as_dataframe.columns) > 8:
-            print(vcf_as_dataframe.columns)
-            print(len(vcf_as_dataframe.columns))
             if "FORMAT" in vcf_as_dataframe.columns:
                 vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_sample_information_to_dataframe, n_cores)
             else:
