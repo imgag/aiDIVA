@@ -31,9 +31,9 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
 
             for i in range(abs(window_end-window_start)):
                 alt_variant = ""
-                if (extended_ref_seq[i] == "A") | (extended_ref_seq[i] == "T"):
+                if (extended_ref_seq[i] == "A") or (extended_ref_seq[i] == "T"):
                     alt_variant = random.choice(["G", "C"])
-                elif (extended_ref_seq[i] == "G") | (extended_ref_seq[i] == "C"):
+                elif (extended_ref_seq[i] == "G") or (extended_ref_seq[i] == "C"):
                     alt_variant = random.choice(["A", "T"])
                 elif (extended_ref_seq[i] == "N"):
                     print("WARNING: Reference base skipped since it was N!")
@@ -41,14 +41,7 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                 else:
                     print("ERROR: Something went wrong!")
 
-                outfile.write(str(row.CHROM).strip() + "\t" +
-                            str(window_start + i + 1).strip() + "\t" +
-                            "." + "\t" +
-                            str(extended_ref_seq[i]).strip() + "\t" +
-                            str(alt_variant).strip() + "\t" +
-                            "." + "\t" +
-                            "." + "\t" +
-                            str(row.INFO).strip() + "\n")
+                outfile.write(str(row.CHROM).strip() + "\t" + str(window_start + i + 1).strip() + "\t" + "." + "\t" + str(extended_ref_seq[i]).strip() + "\t" + str(alt_variant).strip() + "\t" + "." + "\t" + "." + "\t" + str(row.INFO).strip() + "\n")
 
 
 def import_csv_data(in_data):
@@ -92,8 +85,8 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.csv", required=True, help="CSV file to convert to VCF\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.vcf", required=True, help="output VCF file\n")
-    parser.add_argument("--hg19_path", type=str, dest="hg19_path", metavar="/path/to/hg19/Homo_sapiens.GRCh37.dna.chromosome.[ID].fa", required=True, help="Path were the reference hg19 is found.\n")
+    parser.add_argument("--ref_path", type=str, dest="ref_path", metavar="/path/to/hg19/Homo_sapiens.GRCh37.dna.chromosome.[ID].fa", required=True, help="Path were the reference hg19 is found.\n")
     args = parser.parse_args()
 
-    hg19_folder = args.hg19_path
-    convert_csv_to_vcf(args.in_data, args.out_data, args.hg19_path)
+    ref_folder = args.ref_path
+    convert_csv_to_vcf(args.in_data, args.out_data, args.ref_path)

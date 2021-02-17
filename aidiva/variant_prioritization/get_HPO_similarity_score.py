@@ -9,113 +9,66 @@ import pickle
 import numpy as np
 
 
-def list_distance(DG, Q, G, Query_distances):
-    #idea is :
-    # for each query HPO calculate all distances
-    # store them in a dict with HPOs as keys
-    # value is the minimum value of distance on the query HPOs
-    # So than for the list of genes it"s enough to
-    # collect the values at columns names
-    # and if missing set "1"
-    #cover cases where no HPO from Query
-    # or no HPO provided, or no HPO
-    # associated with the gene
-    if "NONE" in Q or "NONE" in G:
-        return (0, Query_distances)
-    if len(Q) < 1 or len(G) < 1:
-        return (0, Query_distances)
-    offset = 1000
-    if Query_distances == 0:
-        for k_q in Q:
-            if k_q not in list(DG.nodes()):
-                # missing node (obsolete not updated or just wrong value)
-                continue
-
-            if str(nx.__version__).startswith("1."):
-                k_q = DG.node[k_q].get("replaced_by", k_q)
-            elif str(nx.__version__).startswith("2."):
-                k_q = DG.nodes[k_q].get("replaced_by", k_q)
-            else:
-                print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
-
-            distance =  nx.shortest_path_length(DG, k_q, weight="dist")
-            if Query_distances == 0:
-                Query_distances = {key: float(value) % offset for (key, value) in distance.items()}
-                print("calc whole dist")
-            else:
-                for k in Query_distances.keys():
-                    try:
-                        Query_distances[k] = min([Query_distances[k] , float(distance[k]) % offset])
-                    except:
-                        Query_distances[k] = float(Query_distances[k]) % offset
-
-        if Query_distances == 0:
-            # can happen when the original list has no updated HPO or wrong values
-            return (0, 0)
-
-        # IC stored as count
-        Query_distances["maxval"] = 2 * (max([d["IC"] for n, d in DG.nodes(data=True)]))
-
-    # now I have the query distances value
+#idea is :
+# for each query HPO calculate all distances
+# store them in a dict with HPOs as keys
+# value is the minimum value of distance on the query HPOs
+# So than for the list of genes it"s enough to
+# collect the values at columns names
+# and if missing set "1"
+#cover cases where no HPO from Query
+# or no HPO provided, or no HPO
+# associated with the gene
+def list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances):
+    if ("NONE" in HPO_query) or ("NONE" in gene_HPO_list):
+        return 0
+    
+    if (len(HPO_query) < 1) or (len(gene_HPO_list) < 1):
+        return 0
+    
     # map the genes HPO and extract values.
-    # missing one : print it and add it to the db
-    maxval = Query_distances["maxval"]
-    results = [Query_distances.get(q_g,maxval) for q_g in G]
+    maxval = HPO_query_distances["maxval"]
+    results = [HPO_query_distances.get(gene_HPO, maxval) for gene_HPO in gene_HPO_list]
     final_value = np.mean(results) / maxval
 
     if final_value > 1:
         final_value = 1 # borderline cases where go up an down to get to the other node
 
-    return (1 - final_value, Query_distances)
+    return 1 - final_value
 
 
-## TODO: the following method is obsolete, "list_distance" can be used instead
-def precompute_query_distances(DG, Q, Query_distances):
+def precompute_query_distances(HPO_graph, HPO_query):
+    HPO_query_distances = dict()
     offset = 1000
-    for k_q in Q:
-        if k_q not in list(DG.nodes()):
+    for hpo_term in HPO_query:
+        if hpo_term not in list(HPO_graph.nodes()):
             # missing node (obsolete not updated or just wrong value)
+            print("INFO: %s not in HPO graph!" % hpo_term)
             continue
 
         if str(nx.__version__).startswith("1."):
-            k_q = DG.node[k_q].get("replaced_by", k_q)
+            hpo_term = HPO_graph.node[hpo_term].get("replaced_by", hpo_term)
         elif str(nx.__version__).startswith("2."):
-            k_q = DG.nodes[k_q].get("replaced_by", k_q)
+            hpo_term = HPO_graph.nodes[hpo_term].get("replaced_by", hpo_term)
         else:
             print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
-        ## TODO: compute shortest path lengths for all nodes not only for k_q
-        distance =  nx.shortest_path_length(DG, k_q, weight="dist")
-        if Query_distances == 0:
-            Query_distances = {key: float(value) % offset for (key, value) in distance.items()}
-            print("calc whole dist")
+        ## TODO: compute shortest path lengths for all nodes not only for hpo_term
+        computed_distances =  nx.shortest_path_length(HPO_graph, hpo_term, weight="dist")
+        
+        if not HPO_query_distances:
+                HPO_query_distances = {hpo_id: float(hpo_dist) % offset for (hpo_id, hpo_dist) in computed_distances.items()}
+                print("calc whole dist")
         else:
-            for k in Query_distances.keys():
-                try:
-                    Query_distances[k] = min([Query_distances[k] , float(distance[k]) % offset])
-                except:
-                    Query_distances[k] = float(Query_distances[k]) % offset
+            for hpo_id in computed_distances.keys():
+                if hpo_id in HPO_query_distances.keys():
+                    HPO_query_distances[hpo_id] = min([HPO_query_distances[hpo_id] , float(computed_distances[hpo_id]) % offset])
+                else:
+                    HPO_query_distances[hpo_id] = float(computed_distances[hpo_id]) % offset
 
-    if Query_distances == 0:
-        # can happen when the original list has no updated HPO or wrong values
-        return 0
-
+    
     # IC stored as count
-    Query_distances["maxval"] = 2 * (max([d["IC"] for n, d in DG.nodes(data=True)]))
+    HPO_query_distances["maxval"] = 2 * (max([node_data["IC"] for node, node_data in HPO_graph.nodes(data=True)]))
 
-    return Query_distances
-
-
-def extract_HPO_related_to_gene(gene_2_HPO, gene):
-    # gene_2_HPO : dict with [gene] --- HPO_list
-    if type(gene_2_HPO) is dict:
-        gene_2_HPO_dict = gene_2_HPO
-    else:
-        gene_2_HPO_dict = pickle.load(open(gene_2_HPO, "rb"))
-
-    if gene in gene_2_HPO_dict.keys():
-        outlist = gene_2_HPO_dict[gene]
-    else:
-        outlist = []
-
-    return outlist
+    # now I have the query distances value
+    return HPO_query_distances

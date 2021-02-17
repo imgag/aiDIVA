@@ -24,7 +24,7 @@ coding_variants = ["splice_acceptor_variant",
                    "3_prime_UTR_variant"]
 
 
-def filter_coding_variants(filepath, filepath_out):
+def filter_coding_variants(filepath, filepath_out, annotation_field_name):
     if filepath.endswith(".gz"):
         vcf_file_to_reformat = gzip.open(filepath, "rt")
     else:
@@ -67,7 +67,7 @@ def filter_coding_variants(filepath, filepath_out):
                 outfile.write(line)
                 continue
 
-            if line.strip().startswith("##INFO=<ID=CSQ"):
+            if line.strip().startswith("##INFO=<ID=" + annotation_field_name):
                 annotation_header = line.strip().replace("\">", "").split(": ")[1].split("|")
                 for i in range(len(annotation_header)):
                     if annotation_header[i] == "Consequence":
@@ -87,8 +87,8 @@ def filter_coding_variants(filepath, filepath_out):
         # check if variant is coding and write to outfile
         annotation_field = ""
         for field in splitted_line[7].split(";"):
-            if field.startswith("CSQ="):
-                annotation_field = field.replace("CSQ=", "")
+            if field.startswith(annotation_field_name + "="):
+                annotation_field = field.replace(annotation_field_name + "=", "")
 
         if annotation_field:
             # check all annotated transcripts
@@ -114,6 +114,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--in_file", type=str, dest="in_file", metavar="input.vcf", required=True, help="VCF file to convert file\n")
     parser.add_argument("--out_file", type=str, dest="out_file", metavar="output.vcf", required=True, help="VCF file containing only the filtered coding variants\n")
+    parser.add_argument("--annotation_field", type=str, dest="annotation_field", metavar="CSQ", required=True, help="Name of the annotation field with the Consequence information\n")
     args = parser.parse_args()
 
-    filter_coding_variants(args.in_file, args.out_file)
+    filter_coding_variants(args.in_file, args.out_file, args.annotation_field)
