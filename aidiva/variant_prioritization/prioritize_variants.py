@@ -170,9 +170,9 @@ def parallelize_dataframe_processing(variant_data, function, n_cores):
 
 
 def parallelized_variant_processing(variant_data):
+    variant_data = check_inheritance(variant_data, family_type, family)
     variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant)), axis=1)
     variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant)), axis=1)
-    variant_data = check_inheritance(variant_data, family_type, family)
 
     return variant_data
 
@@ -224,11 +224,13 @@ def compute_hpo_relatedness_and_final_score(variant):
                     gene_distances_interacting.append(g_dist)
 
                 if gene_distances or gene_distances_interacting:
-                    hpo_relatedness = max(gene_distances, default=0.0)
-                    hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
+                    # take only the maximum HPO relatedness to prevent downvoting of genes if no HPO relation in interacting genes is observed
+                    hpo_relatedness = max(max(gene_distances, default=0.0), max(gene_distances_interacting, default=0.0))
+                    #hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
                     ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS and HPO_RELATEDNESS_INTERACTING (eg 0.6 and 0.3 and 0.1)
-                    #final_score = (float(variant["AIDIVA_SCORE"]) * 0.6 + float(hpo_relatedness) * 0.3 + float(hpo_relatedness_interacting) * 0.1)# / 3
-                    final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness) + float(hpo_relatedness_interacting)) / 3
+                    # predicted pathogenicity has a higher weight than the HPO relatedness
+                    final_score = (float(variant["AIDIVA_SCORE"]) * 0.67 + float(hpo_relatedness) * 0.33 #+ float(hpo_relatedness_interacting) * 0.1)# / 3
+                    #final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness) + float(hpo_relatedness_interacting)) / 3
             else:
                 final_score = np.nan
                 hpo_relatedness = np.nan
