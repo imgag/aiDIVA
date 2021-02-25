@@ -139,6 +139,17 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, num_cores):
         os.remove(tmp.name)
 
 
+def sort_vcf(input_vcf_file, output_vcf_file):
+    database_path = "/mnt/data/dbs/"
+    # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
+    #tool_path = "/mnt/storage1/share/opt/"
+    tool_path = "/mnt/data/tools/"
+    # tool_path = os.path.dirname(__file__) + "/../../tools/"
+
+    command = tool_path + "ngs-bits/bin/VcfSort -in " + input_vcf_file + " -out " + output_vcf_file
+    subprocess.run(command, shell=True, check=True)
+
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "AIdiva -- Annotation with VEP")
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="data.vcf", required=True, help="VCF file containing the data, you want to annotate with VEP\n")

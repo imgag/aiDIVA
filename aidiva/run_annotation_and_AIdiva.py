@@ -91,8 +91,9 @@ if __name__=="__main__":
     hpo_resources_folder = os.path.dirname(os.path.abspath(__file__)) + "/../data/hpo_resources/"
 
     print("Starting VCF preparation...")
-    # filtering step to remove unsupported variants
-    annotate.annotate_consequence_information(input_vcf, str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, num_cores)
+    # sorting and filtering step to remove unsupported variants
+    annotate.sort_vcf(input_vcf, str(working_directory + input_filename + "_sorted.vcf"))
+    annotate.annotate_consequence_information(str(working_directory + input_filename + "_sorted.vcf"), str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, num_cores)
     filt_vcf.filter_coding_variants(str(working_directory + input_filename + "_consequence.vcf"), str(working_directory + input_filename + "_filtered.vcf"), "CONS")
 
     # convert input vcf to pandas dataframe
