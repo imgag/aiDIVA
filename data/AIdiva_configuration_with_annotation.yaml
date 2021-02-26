@@ -13,7 +13,7 @@ Analysis-Input:
     #work-dir: test_workdir2/
 
     # path to the reference assembly used during the expansion of the indels
-    ref-path: genomes/GRCh37.fa
+    ref-path: /mnt/share/data/genomes/GRCh37.fa
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
@@ -87,13 +87,16 @@ VEP-Annotation:
     perform-vep-annotation: True
 
     # VEP install path
-    vep: ensembl-vep-release-100.3/vep
+    vep: /mnt/share/opt/ensembl-vep-release-100.3/
 
-    # path to the annotation databases
-    db: dbs/
+    # ngs-bits install path
+    ngs-bits: /mnt/share/opt/ngs-bits-current/
+
+    # path to the annotation databases (the databases itself are given as relative path in this directory)
+    db: /mnt/share/data/dbs/
 
     # threads to use during the annotation
-    num-threads: 8
+    num-threads: 10
 
     # Cache directory and plugin directory
     cache-path: ensembl-vep-100/cache
@@ -141,6 +144,10 @@ VEP-Annotation:
                 prefix: custom
             MutationAssessor:
                 file: MutationAssessor/hg19_precomputed_MutationAssessor.vcf.gz
+                method: exact
+                prefix: custom
+            gnomAD:
+                file: gnomAD/gnomAD_genome_r2.1.1.vcf.gz
                 method: exact
                 prefix: custom
 

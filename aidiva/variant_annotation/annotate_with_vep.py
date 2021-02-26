@@ -7,12 +7,7 @@ import os
 
 def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, basic=False, expanded=False, num_cores=1):
     # the path to the executable
-    database_path = "/mnt/data/dbs/"
-    # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
-
-    tool_path = "/mnt/data/tools/"
-    # tool_path = os.path.dirname(__file__) + "/../../tools/"
-    vep_command = tool_path + vep_annotation_dict["vep"] + " "
+    vep_command = vep_annotation_dict["vep"] + "/" + "vep "
 
     bed_annotation = vep_annotation_dict["custom"]["bed-files"]
     bigwig_annotation = vep_annotation_dict["custom"]["bigwig-files"]
@@ -20,15 +15,15 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
     # set the correct paths to the needed perl modules
     if "PERL5LIB" in os.environ:
-        os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
     else:
-        os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/"
+        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
 
     # add essential parameters
     vep_command = vep_command + "--species homo_sapiens --assembly GRCh37" + " "
     vep_command = vep_command + "--offline" + " "
     vep_command = vep_command + "--cache" + " "
-    vep_command = vep_command + "--dir_cache " + database_path + vep_annotation_dict["cache-path"] + " "
+    vep_command = vep_command + "--dir_cache " + vep_annotation_dict["db"] + vep_annotation_dict["cache-path"] + " "
     vep_command = vep_command + "--gencode_basic" + " "
     vep_command = vep_command + "--symbol" + " "
     vep_command = vep_command + "--biotype" + " "
@@ -42,22 +37,22 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         #vep_command = vep_command + "--af_1kg" + " "
         #vep_command = vep_command + "--af_esp" + " "
         #vep_command = vep_command + "--af_gnomad" + " "
-        vep_command = vep_command + "--custom " + database_path + bed_annotation["simpleRepeat"]["file"]  + "," + "simpleRepeat" + ",bed," + bed_annotation["simpleRepeat"]["method"] + ",0" + " "
-        vep_command = vep_command + "--custom " + database_path + bed_annotation["oe_lof"]["file"]  + "," + "oe_lof" + ",bed," + bed_annotation["oe_lof"]["method"] + ",0" + " "
+        vep_command = vep_command + "--custom " + vep_annotation_dict["db"] + bed_annotation["simpleRepeat"]["file"]  + "," + "simpleRepeat" + ",bed," + bed_annotation["simpleRepeat"]["method"] + ",0" + " "
+        vep_command = vep_command + "--custom " + vep_annotation_dict["db"] + bed_annotation["oe_lof"]["file"]  + "," + "oe_lof" + ",bed," + bed_annotation["oe_lof"]["method"] + ",0" + " "
 
     # vep plugins to use
     if not basic:
         vep_command = vep_command + "--sift s" + " "
         vep_command = vep_command + "--polyphen s" + " "
         #vep_command = vep_command + "--plugin Condel," + vep_annotation_dict["condel"] + ",s" + " "
-        vep_command = vep_command + "--plugin CADD," + database_path + vep_annotation_dict["cadd-snps"] + "," + database_path + vep_annotation_dict["cadd-indel"] + " "
-        vep_command = vep_command + "--plugin REVEL," + database_path + vep_annotation_dict["revel"] + " "
+        vep_command = vep_command + "--plugin CADD," + vep_annotation_dict["db"] + vep_annotation_dict["cadd-snps"] + " " #"," + vep_annotation_dict["db"] + vep_annotation_dict["cadd-indel"] + " "
+        vep_command = vep_command + "--plugin REVEL," + vep_annotation_dict["db"] + vep_annotation_dict["revel"] + " "
         #vep_command = vep_command + "--plugin dbNSFP," + vep_annotation_dict["dbNSFP"] + ",MutationAssessor_score,Eigen-raw,Eigen-phred" + " "
 
         if bed_annotation:
             for key in bed_annotation:
                 if (key != "simpleRepeat") and (key != "oe_lof"):
-                    vep_command = vep_command + "--custom " + database_path + bed_annotation[key]["file"]  + "," + key + ",bed," + bed_annotation[key]["method"] + ",0" + " "
+                    vep_command = vep_command + "--custom " + vep_annotation_dict["db"] + bed_annotation[key]["file"]  + "," + key + ",bed," + bed_annotation[key]["method"] + ",0" + " "
 
         # does not work (seems to be a problem with VEP)
         #if vcf_annotation:
@@ -66,11 +61,11 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
         if bigwig_annotation:
             for key in bigwig_annotation:
-                vep_command = vep_command + "--custom " + database_path + bigwig_annotation[key]["file"] + "," + key + ",bigwig," + bigwig_annotation[key]["method"] + ",0" + " "
+                vep_command = vep_command + "--custom " + vep_annotation_dict["db"] + bigwig_annotation[key]["file"] + "," + key + ",bigwig," + bigwig_annotation[key]["method"] + ",0" + " "
 
     vep_command = vep_command + "-i " + input_vcf_file + " "
     vep_command = vep_command + "-o " + output_vcf_file + " "
-    vep_command = vep_command + "--fork " + str(vep_annotation_dict["num-threads"]) + " "
+    vep_command = vep_command + "--fork " + str(num_cores) + " "
     vep_command = vep_command + "--vcf" + " "
     vep_command = vep_command + "--no_stats" + " "
     vep_command = vep_command + "--force_overwrite"
@@ -81,24 +76,19 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
 def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annotation_dict, num_cores=1):
 	# the path to the executable
-    database_path = "/mnt/data/dbs/"
-    # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
-
-    tool_path = "/mnt/data/tools/"
-    # tool_path = os.path.dirname(__file__) + "/../../tools/"
-    vep_command = tool_path + vep_annotation_dict["vep"] + " "
+    vep_command = vep_annotation_dict["vep"] + "/" + "vep "
 
     # set the correct paths to the needed perl modules
     if "PERL5LIB" in os.environ:
-        os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
     else:
-        os.environ["PERL5LIB"] = tool_path + "/ensembl-vep-release-100.3/Bio/:" + tool_path + "/ensembl-vep-release-100.3/cpan/lib/perl5/"
+        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
 
     # add essential parameters
     vep_command = vep_command + "--species homo_sapiens --assembly GRCh37" + " "
     vep_command = vep_command + "--offline" + " "
     vep_command = vep_command + "--cache" + " "
-    vep_command = vep_command + "--dir_cache " + database_path + vep_annotation_dict["cache-path"] + " "
+    vep_command = vep_command + "--dir_cache " + vep_annotation_dict["db"] + vep_annotation_dict["cache-path"] + " "
     vep_command = vep_command + "--gencode_basic" + " "
 
 
@@ -106,7 +96,7 @@ def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annota
     vep_command = vep_command + "-o " + output_vcf_file + " "
     vep_command = vep_command + "--fields Consequence "
     vep_command = vep_command + "--vcf_info_field CONS "
-    vep_command = vep_command + "--fork " + str(vep_annotation_dict["num-threads"]) + " "
+    vep_command = vep_command + "--fork " + str(num_cores) + " "
     vep_command = vep_command + "--vcf" + " "
     vep_command = vep_command + "--no_stats" + " "
     vep_command = vep_command + "--force_overwrite"
@@ -115,23 +105,18 @@ def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annota
     print("The annotated VCF is saved as %s" % (output_vcf_file))
 
 
-def annotate_from_vcf(input_vcf_file, output_vcf_file, num_cores):
+def annotate_from_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, num_cores):
     tmp = tempfile.NamedTemporaryFile(mode="w+b", suffix=".config", delete=False)
 
-    database_path = "/mnt/data/dbs/"
-    # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
-    #tool_path = "/mnt/storage1/share/opt/"
-    tool_path = "/mnt/data/tools/"
-    # tool_path = os.path.dirname(__file__) + "/../../tools/"
-
-    command = tool_path + "ngs-bits/bin/VcfAnnotateFromVcf -config_file " + tmp.name + " -in " + input_vcf_file + " -out " + output_vcf_file + " -threads " + str(num_cores)
+    vcf_annotation = vep_annotation_dict["custom"]["vcf-files"]
+    command = vep_annotation_dict["ngs-bits"] + "/" + "VcfAnnotateFromVcf -config_file " + tmp.name + " -in " + input_vcf_file + " -out " + output_vcf_file + " -threads " + str(num_cores)
 
     try:
-        tmp.write(str(database_path + "Condel/hg19_precomputed_Condel.vcf.gz\t\tCONDEL\t\ttrue\n").encode())
-        tmp.write(str(database_path + "Eigen/hg19_Eigen-phred_coding_chrom1-22.vcf.gz\t\tEIGEN_PHRED\t\ttrue\n").encode())
-        tmp.write(str(database_path + "fathmm-XF/hg19_fathmm_xf_coding.vcf.gz\t\tFATHMM_XF\t\ttrue\n").encode())
-        tmp.write(str(database_path + "MutationAssessor/hg19_precomputed_MutationAssessor.vcf.gz\t\tMutationAssessor\t\ttrue\n").encode())
-        tmp.write(str(database_path + "gnomAD/gnomAD_genome_r2.1.1.vcf.gz\tgnomAD\tAN,Hom\t\ttrue\n").encode())
+        tmp.write(str(vep_annotation_dict["db"] + vcf_annotation["CONDEL"]["file"] + "\t\tCONDEL\t\ttrue\n").encode())
+        tmp.write(str(vep_annotation_dict["db"] + vcf_annotation["EIGEN_PHRED"]["file"] + "\t\tEIGEN_PHRED\t\ttrue\n").encode())
+        tmp.write(str(vep_annotation_dict["db"] + vcf_annotation["FATHMM_XF"]["file"] + "\t\tFATHMM_XF\t\ttrue\n").encode())
+        tmp.write(str(vep_annotation_dict["db"] + vcf_annotation["MutationAssessor"]["file"] + "\t\tMutationAssessor\t\ttrue\n").encode())
+        tmp.write(str(vep_annotation_dict["db"] + vcf_annotation["gnomAD"]["file"] + "\tgnomAD\tAN,Hom\t\ttrue\n").encode())
         tmp.close()
 
         subprocess.run(command, shell=True, check=True)
@@ -139,14 +124,8 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, num_cores):
         os.remove(tmp.name)
 
 
-def sort_vcf(input_vcf_file, output_vcf_file):
-    database_path = "/mnt/data/dbs/"
-    # database_path = os.path.dirname(__file__) + "/../../annotation_resources/
-    #tool_path = "/mnt/storage1/share/opt/"
-    tool_path = "/mnt/data/tools/"
-    # tool_path = os.path.dirname(__file__) + "/../../tools/"
-
-    command = tool_path + "ngs-bits/bin/VcfSort -in " + input_vcf_file + " -out " + output_vcf_file
+def sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict):
+    command = vep_annotation_dict["ngs-bits"] + "/" + "VcfSort -in " + input_vcf_file + " -out " + output_vcf_file
     subprocess.run(command, shell=True, check=True)
 
 

@@ -229,7 +229,7 @@ def compute_hpo_relatedness_and_final_score(variant):
                     #hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
                     ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS and HPO_RELATEDNESS_INTERACTING (eg 0.6 and 0.3 and 0.1)
                     # predicted pathogenicity has a higher weight than the HPO relatedness
-                    final_score = (float(variant["AIDIVA_SCORE"]) * 0.67 + float(hpo_relatedness) * 0.33 #+ float(hpo_relatedness_interacting) * 0.1)# / 3
+                    final_score = (float(variant["AIDIVA_SCORE"]) * 0.67 + float(hpo_relatedness) * 0.33) #+ float(hpo_relatedness_interacting) * 0.1)# / 3
                     #final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness) + float(hpo_relatedness_interacting)) / 3
             else:
                 final_score = np.nan
