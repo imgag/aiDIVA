@@ -27,7 +27,7 @@ if __name__=="__main__":
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient")
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion", metavar="gene_exclusion.txt", required=False, help="TXT file containing the genes to exclude in the analysis")
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient")
-    parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="String indicating the present family type [SINGLE, TRIO, FAMILY]")
+    parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="String indicating the present family type [SINGLE, TRIO]")
     #parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     args = parser.parse_args()
 
@@ -43,7 +43,7 @@ if __name__=="__main__":
 
     data_path = "/mnt/data/"
     # data_path = os.path.dirname(os.path.abspath(__file__)) + "/../data/"
-    ref_path = data_path + configuration["Analysis-Input"]["ref-path"]
+    ref_path = configuration["Analysis-Input"]["ref-path"]
 
     # parse input files
     input_vcf = args.vcf
@@ -91,8 +91,9 @@ if __name__=="__main__":
     hpo_resources_folder = os.path.dirname(os.path.abspath(__file__)) + "/../data/hpo_resources/"
 
     print("Starting VCF preparation...")
-    # filtering step to remove unsupported variants
-    annotate.annotate_consequence_information(input_vcf, str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, num_cores)
+    # sorting and filtering step to remove unsupported variants
+    annotate.sort_vcf(input_vcf, str(working_directory + input_filename + "_sorted.vcf"), vep_annotation_dict)
+    annotate.annotate_consequence_information(str(working_directory + input_filename + "_sorted.vcf"), str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, num_cores)
     filt_vcf.filter_coding_variants(str(working_directory + input_filename + "_consequence.vcf"), str(working_directory + input_filename + "_filtered.vcf"), "CONS")
 
     # convert input vcf to pandas dataframe
@@ -108,8 +109,8 @@ if __name__=="__main__":
     # Additional annotation with AnnotateFromVCF (a ngs-bits tool)
     # If VCF is used as output format VEP won't annotate from custom VCF files
     print("Starting AnnotateFromVCF annotation...")
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), num_cores)
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), vep_annotation_dict, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), vep_annotation_dict, num_cores)
 
     # convert annotated vcfs back to pandas dataframes
     input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snp_vep_annotated.vcf"), False, num_cores)
