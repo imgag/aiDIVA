@@ -8,8 +8,11 @@ def write_header(out_file, single):
     if not single:
         out_file.write("##INFO=<ID=AIDIVA,Number=4,Type=String,Description=\"AIdiva scores: AIdiva-score,AIdiva-final-score,AIdiva-hpo-relatedness,AIdiva-hpo-relatedness-interacting,AIdiva-filter. (AIdiva-score is the pathogenicity prediction from the random forest; AIdiva-final-score is the predction finalized with the given HPO terms; AIdiva-hpo-relatedness indicates how strong the currrent variant is associated with the given HPO terms; AIdiva-filter 0 or 1 wether all internal filters were passed or not)\">\n")
         out_file.write("##INFO=<ID=AIDIVA_INHERITANCE,Number=4,Type=String,Description=\"AIdiva inheritance flags: dominant,denovo,recessive,xlinked,compound. (Each value can be 0 or 1)\">\n")
+        out_file.write("##INFO=<ID=AIDIVA_INHERITANCE,Number=1,Type=String,Description=\"AIdiva inheritance flags (dominant,denovo,recessive,xlinked,compound) in written form\">\n")
     else:
         out_file.write("##INFO=<ID=AIDIVA,Number=4,Type=String,Description=\"AIdiva scores: AIdiva-score,AIdiva-final-score,AIdiva-hpo-relatedness,AIdiva-hpo-relatedness-interacting,AIdiva-filter. (AIdiva-score is the pathogenicity prediction from the random forest; AIdiva-final-score is the predction finalized with the given HPO terms; AIdiva-hpo-relatedness indicates how strong the currrent variant is associated with the given HPO terms; AIdiva-filter 0 or 1 wether all internal filters were passed or not)\">\n")
+        out_file.write("##INFO=<ID=AIDIVA_INHERITANCE,Number=2,Type=String,Description=\"AIdiva inheritance flags: recessive,compound. (Each value can be 0 or 1)\">\n")
+        out_file.write("##INFO=<ID=AIDIVA_INHERITANCE_COMMENT,Number=1,Type=String,Description=\"AIdiva inheritance flags (recessive,compound) in written form\">\n")
 
     out_file.write("##contig=<ID=chr1,length=249250621,assembly=hg19>\n")
     out_file.write("##contig=<ID=chr2,length=243199373,assembly=hg19>\n")
@@ -66,9 +69,9 @@ def write_result_vcf(input_data, vcf_file, single):
                 hpo_relatedness_interacting = str(row.HPO_RELATEDNESS_INTERACTING)
 
             if not single:
-                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + str(row.FILTER_PASSED) + ";AIDIVA_INHERITANCE=" + str(row.DOMINANT) + "," + str(row.DOMINANT_DENOVO) + "," + str(row.RECESSIVE) + "," + str(row.XLINKED) + "," + str(row.COMPOUND)
+                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + str(row.FILTER_PASSED) + ";AIDIVA_INHERITANCE=" + str(row.DOMINANT) + "," + str(row.DOMINANT_DENOVO) + "," + str(row.RECESSIVE) + "," + str(row.XLINKED) + "," + str(row.COMPOUND) + ";AIDIVA_INHERITANCE_COMMENT=" + str(row.INHERITANCE)
             else:
-                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + str(row.FILTER_PASSED)
+                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + str(row.FILTER_PASSED) + ";AIDIVA_INHERITANCE=" + str(row.RECESSIVE) + "," + str(row.COMPOUND) + ";AIDIVA_INHERITANCE_COMMENT=" + str(row.INHERITANCE)
 
             out.write(str(row.CHROM).strip() + "\t" + str(row.POS) + "\t" + "." + "\t" + str(row.REF) + "\t" + str(row.ALT) + "\t" + "." + "\t" + "." + "\t" + info_entry + "\n")
 
