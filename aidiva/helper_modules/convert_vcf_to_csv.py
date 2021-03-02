@@ -43,8 +43,6 @@ variant_consequences = {"transcript_ablation": 1,
                         "feature_truncation": 35,
                         "intergenic_variant": 36}
 
-num_partitions = 10
-num_cores = 5
 annotation_header = None
 indel_set = False
 sample_ids = []
@@ -292,7 +290,7 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
     return vcf_as_dataframe
 
 
-def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
+def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 
     global sample_ids
@@ -308,12 +306,12 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
     indel_set = process_indel
 
     if not vcf_as_dataframe.empty:
-        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_INFO_fields_to_dataframe, n_cores)
-        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_VEP_annotation_to_dataframe, n_cores)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_INFO_fields_to_dataframe, num_cores)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_VEP_annotation_to_dataframe, num_cores)
 
         if len(vcf_as_dataframe.columns) > 8:
             if "FORMAT" in vcf_as_dataframe.columns:
-                vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_sample_information_to_dataframe, n_cores)
+                vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_sample_information_to_dataframe, num_cores)
             else:
                 # This warning is always triggered when the expanded indel vcf file is processed. If it is only triggered once in this case it can be ignored.
                 print("WARNING: It seems that your VCF file does contain sample information but not FORMAT description!")
@@ -328,13 +326,7 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, n_cores):
     return vcf_as_dataframe
 
 
-def parallelize_dataframe_processing(vcf_as_dataframe, function, n_cores=1):
-    if n_cores is None:
-        num_cores = 1
-    else:
-        num_cores = n_cores
-
-    global num_partitions
+def parallelize_dataframe_processing(vcf_as_dataframe, function, num_cores):
     num_partitions = num_cores * 2
 
     if len(vcf_as_dataframe) <= num_partitions:

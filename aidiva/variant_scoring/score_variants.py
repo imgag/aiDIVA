@@ -39,8 +39,6 @@ median_dict = {"MutationAssessor": 1.87,
                "oe_lof": 0.48225}
 
 random_seed = 14038
-num_partitions = 10
-num_cores = 5
 
 coding_region = None
 rf_model_snp = None
@@ -112,12 +110,7 @@ def predict_pathogenicity(rf_model, input_data, input_features):
     return input_data
 
 
-def parallel_pathogenicity_prediction(rf_model, input_data, input_features, n_cores):
-    global num_cores
-    if n_cores is None:
-        num_cores = 1
-    else:
-        num_cores = n_cores
+def parallel_pathogenicity_prediction(rf_model, input_data, input_features, num_cores):
     splitted_input_data = np.array_split(input_data, num_cores)
 
     worker_pool = mp.Pool(num_cores)
@@ -131,11 +124,7 @@ def parallel_pathogenicity_prediction(rf_model, input_data, input_features, n_co
     return input_data
 
 
-def parallelize_dataframe_processing(dataframe, function):
-    global num_partitions
-    global num_cores
-    if num_cores is None:
-        num_cores = 1
+def parallelize_dataframe_processing(dataframe, function, num_cores):
     num_partitions = num_cores * 2
 
     if len(dataframe) <= num_partitions:
@@ -151,18 +140,15 @@ def parallelize_dataframe_processing(dataframe, function):
     return dataframe
 
 
-def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequency_list, feature_list, n_cores=1):
+def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequency_list, feature_list, num_cores):
     global features
     features = feature_list
 
     global allele_frequencies
     allele_frequencies = allele_frequency_list
 
-    global num_cores
-    num_cores = n_cores
-
     rf_model = import_model(rf_model)
-    prepared_input_data = parallelize_dataframe_processing(input_data, prepare_input_data)
+    prepared_input_data = parallelize_dataframe_processing(input_data, prepare_input_data, num_cores)
     input_features = np.asarray(prepared_input_data[features], dtype=np.float64)
     predicted_data = predict_pathogenicity(rf_model, prepared_input_data, input_features)
 

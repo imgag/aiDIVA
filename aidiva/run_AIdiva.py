@@ -23,11 +23,11 @@ if __name__=="__main__":
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion", metavar="gene_exclusion.txt", required=False, help="Tab separated file containing the genes to exclude in the analysis. Genes are assumed to be in the first column.")
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
-    parser.add_argument("--threads", type=int, dest="threads", metavar="1", nargs="?", const=1, required=False, help="Number of threads to use.")
+    parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use (default: 1)")
     args = parser.parse_args()
 
-    if "threads" in args:
-        num_cores = args.threads
+    if args.threads is not None:
+        num_cores = int(args.threads)
     else:
         num_cores = 1
 
@@ -56,17 +56,17 @@ if __name__=="__main__":
     output_filename = args.out_prefix
 
     # parse disease and inheritance information
-    if "hpo_list" in args:
+    if args.hpo_list is not None:
         hpo_file = args.hpo_list
     else:
         hpo_file = None
 
-    if "gene_exclusion" in args:
+    if args.gene_exclusion is not None:
         gene_exclusion_file = args.gene_exclusion
     else:
         gene_exclusion_file = None
 
-    if ("family_file" in args) and ("family_type" in args):
+    if (args.family_file is not None) and (args.family_type is not None):
         family_file = args.family_file
         family_type = args.family_type
     else:
@@ -102,7 +102,7 @@ if __name__=="__main__":
 
         # prioritize and filter variants
         print("Prioritize variants and finalize score ...")
-        prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, family_file, family_type, hpo_file, gene_exclusion_file)
+        prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, num_cores, family_file, family_type, hpo_file, gene_exclusion_file)
 
         write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
         write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + output_filename + "_filtered.vcf"), bool(family_type == "SINGLE"))
