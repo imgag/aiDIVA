@@ -45,7 +45,6 @@ variant_consequences = {"transcript_ablation": 1,
 
 grouped_expanded_vcf = None
 feature_list = None
-num_partitions = 10
 
 
 def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
@@ -202,7 +201,7 @@ def combine_vcf_dataframes(vcf_as_dataframe):
     return vcf_as_dataframe
 
 
-def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, features, n_cores):
+def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, features, num_cores):
     global feature_list
     feature_list = features
 
@@ -221,12 +220,6 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
     global grouped_expanded_vcf
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("indel_ID")
 
-    if n_cores is None:
-        num_cores = 1
-    else:
-        num_cores = n_cores
-
-    global num_partitions
     num_partitions = num_cores * 2
 
     if len(vcf_as_dataframe) <= num_partitions:

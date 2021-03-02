@@ -57,11 +57,9 @@ gene_2_interacting = None
 HPO_graph = None
 HPO_query = None
 HPO_query_distances = 0
-num_partitions = 10
-num_cores = 5
 
 
-def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fam_type="SINGLE", hpo_list=None, gene_exclusion_list=None, n_cores=1):
+def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_file=None, fam_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     #load HPO resources
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo.pkl"
     hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.pkl"
@@ -140,20 +138,14 @@ def prioritize_variants(variant_data, hpo_resources_folder, family_file=None, fa
     global family_type
     family_type = fam_type
 
-    variant_data = parallelize_dataframe_processing(variant_data, parallelized_variant_processing, n_cores)
+    variant_data = parallelize_dataframe_processing(variant_data, parallelized_variant_processing, num_cores)
     variant_data = variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False])
     variant_data = variant_data.reset_index(drop=True)
 
     return variant_data
 
 
-def parallelize_dataframe_processing(variant_data, function, n_cores):
-    if n_cores is None:
-        num_cores = 1
-    else:
-        num_cores = n_cores
-
-    global num_partitions
+def parallelize_dataframe_processing(variant_data, function, num_cores):
     num_partitions = num_cores * 2
 
     if len(variant_data) <= num_partitions:
@@ -225,11 +217,11 @@ def compute_hpo_relatedness_and_final_score(variant):
 
                 if gene_distances or gene_distances_interacting:
                     # take only the maximum HPO relatedness to prevent downvoting of genes if no HPO relation in interacting genes is observed
-                    hpo_relatedness = max(max(gene_distances, default=0.0), max(gene_distances_interacting, default=0.0))
-                    #hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
+                    hpo_relatedness = max(gene_distances, default=0.0)
+                    hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
                     ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS and HPO_RELATEDNESS_INTERACTING (eg 0.6 and 0.3 and 0.1)
                     # predicted pathogenicity has a higher weight than the HPO relatedness
-                    final_score = (float(variant["AIDIVA_SCORE"]) * 0.67 + float(hpo_relatedness) * 0.33) #+ float(hpo_relatedness_interacting) * 0.1)# / 3
+                    final_score = (float(variant["AIDIVA_SCORE"]) * 0.67 + float(max(hpo_relatedness, hpo_relatedness_interacting)) * 0.33) #+ float(hpo_relatedness_interacting) * 0.1)# / 3
                     #final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness) + float(hpo_relatedness_interacting)) / 3
             else:
                 final_score = np.nan
