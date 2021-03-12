@@ -325,7 +325,7 @@ def add_inheritance_mode(variant, variant_columns):
         if variant["XLINKED"] == 1:
             inheritance_list.append("XLINKED")
     
-    inheritance_mode = ";".join(inheritance_list)
+    inheritance_mode = "&".join(inheritance_list)
 
     return inheritance_mode
 

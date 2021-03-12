@@ -6,11 +6,11 @@ import argparse
 def write_header(out_file, single):
     out_file.write("##fileformat=VCFv4.1\n")
     if not single:
-        out_file.write("##INFO=<ID=AIDIVA,Number=4,Type=String,Description=\"AIdiva scores: AIdiva-score,AIdiva-final-score,AIdiva-hpo-relatedness,AIdiva-hpo-relatedness-interacting,AIdiva-filter. (AIdiva-score is the pathogenicity prediction from the random forest; AIdiva-final-score is the predction finalized with the given HPO terms; AIdiva-hpo-relatedness indicates how strong the currrent variant is associated with the given HPO terms; AIdiva-filter 0 or 1 wether all internal filters were passed or not)\">\n")
+        out_file.write("##INFO=<ID=AIDIVA,Number=5,Type=String,Description=\"AIdiva scores: AIdiva-score,AIdiva-final-score,AIdiva-hpo-relatedness,AIdiva-hpo-relatedness-interacting,AIdiva-filter. (AIdiva-score is the pathogenicity prediction from the random forest; AIdiva-final-score is the predction finalized with the given HPO terms; AIdiva-hpo-relatedness indicates how strong the currrent variant is associated with the given HPO terms; AIdiva-filter 0 or 1 wether all internal filters were passed or not)\">\n")
         out_file.write("##INFO=<ID=AIDIVA_INHERITANCE,Number=4,Type=String,Description=\"AIdiva inheritance flags: dominant,denovo,recessive,xlinked,compound. (Each value can be 0 or 1)\">\n")
         out_file.write("##INFO=<ID=AIDIVA_INHERITANCE_COMMENT,Number=1,Type=String,Description=\"AIdiva inheritance flags (dominant,denovo,recessive,xlinked,compound) in written form\">\n")
     else:
-        out_file.write("##INFO=<ID=AIDIVA,Number=4,Type=String,Description=\"AIdiva scores: AIdiva-score,AIdiva-final-score,AIdiva-hpo-relatedness,AIdiva-hpo-relatedness-interacting,AIdiva-filter. (AIdiva-score is the pathogenicity prediction from the random forest; AIdiva-final-score is the predction finalized with the given HPO terms; AIdiva-hpo-relatedness indicates how strong the currrent variant is associated with the given HPO terms; AIdiva-filter 0 or 1 wether all internal filters were passed or not)\">\n")
+        out_file.write("##INFO=<ID=AIDIVA,Number=5,Type=String,Description=\"AIdiva scores: AIdiva-score,AIdiva-final-score,AIdiva-hpo-relatedness,AIdiva-hpo-relatedness-interacting,AIdiva-filter. (AIdiva-score is the pathogenicity prediction from the random forest; AIdiva-final-score is the predction finalized with the given HPO terms; AIdiva-hpo-relatedness indicates how strong the currrent variant is associated with the given HPO terms; AIdiva-filter 0 or 1 wether all internal filters were passed or not)\">\n")
         out_file.write("##INFO=<ID=AIDIVA_INHERITANCE,Number=2,Type=String,Description=\"AIdiva inheritance flags: recessive,compound. (Each value can be 0 or 1)\">\n")
         out_file.write("##INFO=<ID=AIDIVA_INHERITANCE_COMMENT,Number=1,Type=String,Description=\"AIdiva inheritance flags (recessive,compound) in written form\">\n")
 
@@ -43,35 +43,104 @@ def write_header(out_file, single):
 def write_result_vcf(input_data, vcf_file, single):
     input_data = input_data.sort_values(["CHROM", "POS"], ascending=[True, True])
     input_data = input_data.reset_index(drop=True)
+    colnames = input_data.columns
 
     with open(vcf_file, "w") as out:
         write_header(out, single)
 
         for row in input_data.itertuples():
-            if str(row.AIDIVA_SCORE) == "nan":
-                aidiva_score = ""
+            if ("AIDIVA_SCORE" in colnames):
+                if (str(row.AIDIVA_SCORE) == "nan"):
+                    aidiva_score = "."
+                else:
+                    aidiva_score = str(row.AIDIVA_SCORE)
             else:
-                aidiva_score = str(row.AIDIVA_SCORE)
+                aidiva_score = "."
 
-            if str(row.FINAL_AIDIVA_SCORE) == "nan":
-                final_aidiva_score = ""
+            if ("FINAL_AIDIVA_SCORE" in colnames):
+                if (str(row.FINAL_AIDIVA_SCORE) == "nan"):
+                    final_aidiva_score = "."
+                else:
+                    final_aidiva_score = str(row.FINAL_AIDIVA_SCORE)
             else:
-                final_aidiva_score = str(row.FINAL_AIDIVA_SCORE)
+                final_aidiva_score = "."
 
-            if str(row.HPO_RELATEDNESS) == "nan":
-                hpo_relatedness = ""
+            if ("HPO_RELATEDNESS" in colnames):
+                if (str(row.HPO_RELATEDNESS) == "nan"):
+                    hpo_relatedness = "."
+                else:
+                    hpo_relatedness = str(row.HPO_RELATEDNESS)
             else:
-                hpo_relatedness = str(row.HPO_RELATEDNESS)
+                hpo_relatedness = "."
 
-            if str(row.HPO_RELATEDNESS_INTERACTING) == "nan":
-                hpo_relatedness_interacting = ""
+            if ("HPO_RELATEDNESS_INTERACTING" in colnames):
+                if (str(row.HPO_RELATEDNESS_INTERACTING) == "nan"):
+                    hpo_relatedness_interacting = "."
+                else:
+                    hpo_relatedness_interacting = str(row.HPO_RELATEDNESS_INTERACTING)
             else:
-                hpo_relatedness_interacting = str(row.HPO_RELATEDNESS_INTERACTING)
+                hpo_relatedness_interacting = "."
+            
+            if ("FILTER_PASSED" in colnames):
+                if (str(row.FILTER_PASSED) == "nan"):
+                    filter_passed = "."
+                else:
+                    filter_passed = str(row.FILTER_PASSED)
+            else:
+                filter_passed = "."
+            
+            if ("DOMINANT" in colnames):
+                if (str(row.DOMINANT) == "nan"):
+                    dominant = "."
+                else:
+                    dominant = str(row.DOMINANT)
+            else:
+                dominant = "."
+            
+            if ("DOMINANT_DENOVO" in colnames):
+                if (str(row.DOMINANT_DENOVO) == "nan"):
+                    dominant_denovo = "."
+                else:
+                    dominant_denovo = str(row.DOMINANT_DENOVO)
+            else:
+                dominant_denovo = "."
+            
+            if ("RECESSIVE" in colnames):
+                if (str(row.RECESSIVE) == "nan"):
+                    recessive = "."
+                else:
+                    recessive = str(row.RECESSIVE)
+            else:
+                recessive = "."
+            
+            if ("XLINKED" in colnames):
+                if (str(row.XLINKED) == "nan"):
+                    xlinked = "."
+                else:
+                    xlinked = str(row.XLINKED)
+            else:
+                xlinked = "."
+            
+            if ("COMPOUND" in colnames):
+                if (str(row.COMPOUND) == "nan"):
+                    compound = "."
+                else:
+                    compound = str(row.COMPOUND)
+            else:
+                compound = "."
+            
+            if ("INHERITANCE" in colnames):
+                if (str(row.INHERITANCE) == "nan") or (str(row.INHERITANCE) == ""):
+                    inheritance_comment = "."
+                else:
+                    inheritance_comment = str(row.INHERITANCE)
+            else:
+                inheritance_comment = "."
 
             if not single:
-                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + str(row.FILTER_PASSED) + ";AIDIVA_INHERITANCE=" + str(row.DOMINANT) + "," + str(row.DOMINANT_DENOVO) + "," + str(row.RECESSIVE) + "," + str(row.XLINKED) + "," + str(row.COMPOUND) + ";AIDIVA_INHERITANCE_COMMENT=" + str(row.INHERITANCE)
+                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + filter_passed + ";AIDIVA_INHERITANCE=" + dominant + "," + dominant_denovo + "," + recessive + "," + xlinked + "," + compound + ";AIDIVA_INHERITANCE_COMMENT=" + inheritance_comment
             else:
-                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + str(row.FILTER_PASSED) + ";AIDIVA_INHERITANCE=" + str(row.RECESSIVE) + "," + str(row.COMPOUND) + ";AIDIVA_INHERITANCE_COMMENT=" + str(row.INHERITANCE)
+                info_entry = "AIDIVA=" + aidiva_score + "," + final_aidiva_score + "," + hpo_relatedness + "," + hpo_relatedness_interacting + "," + filter_passed + ";AIDIVA_INHERITANCE=" + recessive + "," + compound + ";AIDIVA_INHERITANCE_COMMENT=" + inheritance_comment
 
             out.write(str(row.CHROM).strip() + "\t" + str(row.POS) + "\t" + "." + "\t" + str(row.REF) + "\t" + str(row.ALT) + "\t" + "." + "\t" + "." + "\t" + info_entry + "\n")
 
