@@ -138,6 +138,6 @@ if __name__=="__main__":
     ## TODO: create additional output files according to the inheritance information (only filtered data)
     write_result.write_result_vcf(prioritized_data, str(working_directory + input_filename + "_aidiva_result.vcf"), bool(family_type == "SINGLE"))
     write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + input_filename + "_aidiva_result_filtered.vcf"), bool(family_type == "SINGLE"))
-    prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.csv"), sep="\t", index=False)
-    prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filtered.csv"), sep="\t", index=False)
+    prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.tsv"), sep="\t", index=False)
+    prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
     print("Pipeline successfully finsished!")
