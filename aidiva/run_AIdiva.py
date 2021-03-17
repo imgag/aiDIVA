@@ -106,8 +106,8 @@ if __name__=="__main__":
 
         write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
         write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + output_filename + "_filtered.vcf"), bool(family_type == "SINGLE"))
-        prioritized_data.to_csv(str(working_directory + output_filename + ".csv"), sep="\t", index=False)
-        prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_filtered.csv"), sep="\t", index=False)
+        prioritized_data.to_csv(str(working_directory + output_filename + ".tsv"), sep="\t", index=False)
+        prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_filtered.tsv"), sep="\t", index=False)
         print("Pipeline successfully finsished!")
     else:
         write_result.write_result_vcf(input_data_snp, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
