@@ -81,6 +81,7 @@ Model-Features:
         - phyloP46vertebrate
         - homAF
         - oe_lof
+        - CAPICE
 
 VEP-Annotation:
     # Flag indicating whether to annotate the input data with VEP or not, if False then AIdiva assumes that the data is already annotated
@@ -137,7 +138,7 @@ VEP-Annotation:
             CONDEL:
                 file: Condel/hg19_precomputed_Condel.vcf.gz
                 method: exact
-                prefix: fannsdb
+                prefix: custom
             FATHMM_XF:
                 file: fathmm-XF/hg19_fathmm_xf_coding.vcf.gz
                 method: exact
@@ -148,6 +149,10 @@ VEP-Annotation:
                 prefix: custom
             gnomAD:
                 file: gnomAD/gnomAD_genome_r2.1.1.vcf.gz
+                method: exact
+                prefix: custom
+            CAPICE:
+                file: CAPICE/capice_v1_grch37_snvs.vcf.gz
                 method: exact
                 prefix: custom
 

@@ -63,6 +63,7 @@ Model-Features:
         - phyloP46vertebrate
         - oe_lof
         - homAF
+        - CAPICE
 
 
 Analysis-Output:
