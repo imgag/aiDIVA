@@ -354,7 +354,7 @@ def check_filters(variant):
     if len(genes2exclude & genenames) > 0:
         for gene in genenames:
             ## TODO: let variants with a high AIDIVA_SCORE (>=0.8) pass
-            if gene in genes2exclude:
+            if (gene in genes2exclude) and (float(variant["AIDIVA_SCORE"]) < 0.8):
                 filter_passed = 0 # gene in exclusion list
                 filter_comment = "gene exclusion"
                 return filter_passed, filter_comment
