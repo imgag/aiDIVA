@@ -19,7 +19,7 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
             else:
                 ff = line.strip().split("\t")
                 # Format: HPO-id<tab>HPO label<tab>entrez-gene-id<tab>entrez-gene-symbol<tab>Additional Info from G-D source<tab>G-D source<tab>disease-ID for link
-                key = ff[3]
+                key = ff[3].upper()
                 HPO = ff[0]
                 to_add = gene_2_HPO.get(key,[])
                 to_add.append(HPO)
@@ -231,7 +231,7 @@ def create_gene2hgnc_mapping_file(hgnc_symbol_file, hgnc_2_gene):
 
         splitted_line = line.split("\t")
         hgnc_id = splitted_line[0].replace("HGNC:", "")
-        gene_dict[hgnc_id] = splitted_line[1]
+        gene_dict[hgnc_id] = splitted_line[1].upper()
 
     file.close()
     pickle.dump(gene_dict, open(hgnc_2_gene, "wb"))
@@ -247,7 +247,7 @@ def create_string_db_graph(string_mapping, string_db_links, string_interactions)
         if line.startswith("#") or (line == "\n"):
             continue
         splitted_line = line.replace("\n", "").split("\t")
-        string2name[splitted_line[2]] = splitted_line[1]
+        string2name[splitted_line[2]] = splitted_line[1].upper()
 
     string_mapping_file.close()
 
