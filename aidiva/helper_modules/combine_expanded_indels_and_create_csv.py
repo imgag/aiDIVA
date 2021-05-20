@@ -98,7 +98,7 @@ def extract_columns(cell):
             continue
         if field.startswith("CSQ="):
             csq = field.split("=")[1]
-        elif field.startswith("indel_ID="):
+        elif field.startswith("INDEL_ID="):
             indel_ID = field.split("=")[1]
         else:
             print("SKIP INFORMATION ENTRY")
@@ -152,7 +152,7 @@ def extract_sample_information(row, sample):
 
 
 def add_INFO_fields_to_dataframe(vcf_as_dataframe):
-    vcf_as_dataframe[["indel_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+    vcf_as_dataframe[["INDEL_ID", "CSQ"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
     return vcf_as_dataframe
@@ -179,10 +179,10 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
 
 
 def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature):
-    if grouped_expanded_vcf[feature].get_group(row.indel_ID).empty:
+    if grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).empty:
         return np.nan
     else:
-        return grouped_expanded_vcf[feature].get_group(row.indel_ID).median()
+        return grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).median()
 
 
 def combine_vcf_dataframes(vcf_as_dataframe):
@@ -218,7 +218,7 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
     global grouped_expanded_vcf
-    grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("indel_ID")
+    grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("INDEL_ID")
 
     num_partitions = num_cores * 2
 

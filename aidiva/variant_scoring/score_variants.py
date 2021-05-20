@@ -87,6 +87,8 @@ def prepare_input_data(input_data):
             input_data[feature] = input_data[feature].fillna(0)
         elif feature == "ABB_SCORE":
             input_data[feature] = input_data[feature].fillna(0)
+        elif feature == "CAPICE":
+            input_data[feature] = input_data[feature].fillna(0.5)
         elif "SIFT" == feature:
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(median_dict["SIFT"])

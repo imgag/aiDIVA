@@ -91,9 +91,9 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel
             elif (ref_length > 1) or (alt_length > 1):
                 indel_ID += 1
                 if splitted_line[7].endswith("\n"):
-                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
+                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID) + "\n"
                 else:
-                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID)
+                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID)
                 outfile_indel.write("\t".join(splitted_line))
             else:
                 print("Something was not rigtht!")
@@ -158,12 +158,13 @@ def extract_columns(cell):
     gnomAD_hom = np.nan
     gnomAD_an = np.nan
     gnomAD_homAF = np.nan
+    capice = np.nan
     annotation = ""
 
     for field in info_fields:
         if indel_set:
-            if field.startswith("indel_ID"):
-                indel_ID = field.split("indel_ID=")[1]
+            if field.startswith("INDEL_ID"):
+                indel_ID = field.split("INDEL_ID=")[1]
         if field.startswith("CSQ="):
             annotation = field.split("CSQ=")[1]
         if field.startswith("FATHMM_XF="):
@@ -184,14 +185,17 @@ def extract_columns(cell):
         if field.startswith("gnomAD_AN"):
             if field.split("gnomAD_AN=")[1] != "nan":
                 gnomAD_an = float(field.split("gnomAD_AN=")[1])
+        if field.startswith("CAPICE"):
+            if field.split("CAPICE=")[1] != "nan":
+                capice = float(field.split("CAPICE=")[1])
 
     if (gnomAD_hom > 0.0) and (gnomAD_an > 0.0):
         gnomAD_homAF = gnomAD_hom / gnomAD_an
 
     if indel_set:
-        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
+        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice]
     else:
-       extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
+       extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice]
 
     return extracted_columns
 
@@ -262,9 +266,9 @@ def extract_sample_information(row, sample):
 
 def add_INFO_fields_to_dataframe(vcf_as_dataframe,):
     if indel_set:
-        vcf_as_dataframe[["indel_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
     else:
-        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
