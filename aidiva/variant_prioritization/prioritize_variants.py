@@ -176,6 +176,7 @@ def compute_hpo_relatedness_and_final_score(variant):
             hpo_relatedness = np.nan
             hpo_relatedness_interacting = np.nan
         else:
+            ## TODO: make gene name uppercase to match future hpo resources
             variant_gene = str(variant["SYMBOL"])
             hgnc_id = str(variant["HGNC_ID"])
             gene_distances = []
@@ -187,10 +188,11 @@ def compute_hpo_relatedness_and_final_score(variant):
             else:
                 interacting_genes = []
 
-            # we use the hgnc ID to prevent problems if a given gene symbol isn't used anymore           
-            if variant_gene not in genes2exclude:
-                if variant_gene in gene_2_HPO.keys():
-                    gene_HPO_list = gene_2_HPO.get(variant_gene, [])
+            # we use the hgnc ID to prevent problems if a given gene symbol isn't used anymore   
+            ## TODO: let variants with a high AIDIVA_SCORE (>=0.8) pass        
+            if (variant_gene not in genes2exclude) or (float(variant["AIDIVA_SCORE"]) >= 0.8):
+                if variant_gene.upper() in gene_2_HPO.keys():
+                    gene_HPO_list = gene_2_HPO.get(variant_gene.upper(), [])
                 else:
                     if (hgnc_id != "nan") and (hgnc_id in hgnc_2_gene.keys()):
                         gene_symbol = hgnc_2_gene[hgnc_id]
@@ -204,6 +206,7 @@ def compute_hpo_relatedness_and_final_score(variant):
 
                 ## TODO: look at interacting genes only if HPO relation missing or zero???
                 for interacting_gene in interacting_genes:
+                    ## TODO: decide if it is useful to check for gene exclusion
                     if interacting_gene in genes2exclude:
                         continue
                     if interacting_gene in gene_2_HPO.keys():
@@ -350,12 +353,14 @@ def check_filters(variant):
     # exclude gene, if it is on the exclusion list
     if len(genes2exclude & genenames) > 0:
         for gene in genenames:
+            ## TODO: let variants with a high AIDIVA_SCORE (>=0.8) pass
             if gene in genes2exclude:
                 filter_passed = 0 # gene in exclusion list
                 filter_comment = "gene exclusion"
                 return filter_passed, filter_comment
 
-    if (repeat != "NA") and (repeat != "") and (repeat != "nan"):
+    ## TODO: let variants with a high AIDIVA_SCORE (>=0.8) pass
+    if (repeat != "NA") and (repeat != "") and (repeat != "nan") and (float(variant["AIDIVA_SCORE"]) < 0.8):
         filter_passed = 0 # tandem repeat
         filter_comment = "tandem repeat"
         return filter_passed, filter_comment
