@@ -364,6 +364,10 @@ def check_filters(variant):
         filter_passed = 0 # tandem repeat
         filter_comment = "tandem repeat"
         return filter_passed, filter_comment
+    
+    ## TODO: add filter for low confidence regions
+    ## TODO: add filter for ABB_SCORE
+    ## TODO: add filter for segmental duplicatioon
 
     ## TODO: change frequency based on inheritance mode (hom/het)
     if float(maf) <= 0.01:
