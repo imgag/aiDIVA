@@ -38,6 +38,19 @@ median_dict = {"MutationAssessor": 1.87,
                "PolyPhen": 0.547,
                "oe_lof": 0.48225}
 
+supported_coding_variants = ["stop_gained",
+                             "stop_lost",
+                             "start_lost",
+                             "frameshift_variant",
+                             "inframe_insertion",
+                             "inframe_deletion",
+                             "missense_variant",
+                             "protein_altering_variant",
+                             "incomplete_terminal_codon_variant",
+                             "start_retained_variant",
+                             "stop_retained_variant",
+                             "coding_sequence_variant"]
+
 random_seed = 14038
 
 coding_region = None
@@ -155,10 +168,10 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     predicted_data = predict_pathogenicity(rf_model, prepared_input_data, input_features)
 
     # frameshift variants are not covered in the used model, set them to 1.0 if the MAX_AF is less or equal than 0.02
-    predicted_data.loc[((abs(predicted_data["REF"].str.len() - predicted_data["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = np.nan # could also be set to 1.0
+    predicted_data.loc[((abs(predicted_data["REF"].str.len() - predicted_data["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = 1.0 # could also be set to 1.0
 
-    # set splicing donor/acceptor variants to NaN or 1.0
-    predicted_data.loc[(predicted_data["Consequence"].str.contains("splice_acceptor_variant") | predicted_data["Consequence"].str.contains("splice_donor_variant")), "AIDIVA_SCORE"] = np.nan
+    # set splicing donor/acceptor variants to NaN if not additionally a supported consequence is reported for the variant 
+    predicted_data.loc[((predicted_data["Consequence"].str.contains("splice_acceptor_variant") | predicted_data["Consequence"].str.contains("splice_donor_variant")) & ~(predicted_data["Consequence"].str.contains("|".join(supported_coding_variants)))), "AIDIVA_SCORE"] = np.nan
 
     # set synonymous variants to NaN (could also be set to 0.0)
     predicted_data.loc[(predicted_data["Consequence"].str.contains("synonymous")), "AIDIVA_SCORE"] = 0.0

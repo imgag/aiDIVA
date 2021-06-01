@@ -36,6 +36,7 @@ coding_variants = ["splice_acceptor_variant",
 supported_coding_variants = ["stop_gained",
                              "stop_lost",
                              "start_lost",
+                             "frameshift_variant",
                              "inframe_insertion",
                              "inframe_deletion",
                              "missense_variant",
@@ -48,6 +49,7 @@ supported_coding_variants = ["stop_gained",
 cadd_identifier = "CADD_PHRED"
 duplication_identifier = "segmentDuplication"
 repeat_identifier = "simpleRepeat"
+low_conf_region_identifier = "lowConfRegion"
 family = None
 family_type = "SINGLE"
 genes2exclude = None
@@ -81,7 +83,7 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
     global HPO_graph
     HPO_graph = nx.Graph()
     HPO_graph.add_nodes_from(hpo_nodes)
-    HPO_graph.add_edges_from(hpo_edges)
+    HPO_graph.add_edges_from(hpo_edges)                    
 
     global genes2exclude
     genes2exclude = set()
@@ -204,15 +206,14 @@ def compute_hpo_relatedness_and_final_score(variant):
                 g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
                 gene_distances.append(g_dist)
 
-                ## TODO: look at interacting genes only if HPO relation missing or zero???
                 for interacting_gene in interacting_genes:
                     ## TODO: decide if it is useful to check for gene exclusion
-                    if interacting_gene in genes2exclude:
+                    if (interacting_gene in genes2exclude): #and (float(variant["AIDIVA_SCORE"]) < 0.8):
                         continue
                     if interacting_gene in gene_2_HPO.keys():
                         gene_HPO_list = gene_2_HPO.get(interacting_gene, [])
                     else:
-                        print("WARNING: Given gene is not covered!")
+                        print("WARNING: Given interacting gene is not covered!")
                         gene_HPO_list = []
 
                     g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
@@ -224,7 +225,8 @@ def compute_hpo_relatedness_and_final_score(variant):
                     hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
                     ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS and HPO_RELATEDNESS_INTERACTING (eg 0.6 and 0.3 and 0.1)
                     # predicted pathogenicity has a higher weight than the HPO relatedness
-                    final_score = (float(variant["AIDIVA_SCORE"]) * 0.67 + float(max(hpo_relatedness, hpo_relatedness_interacting)) * 0.33) #+ float(hpo_relatedness_interacting) * 0.1)# / 3
+                    #final_score = (float(variant["AIDIVA_SCORE"]) * 0.67 + float(max(hpo_relatedness, hpo_relatedness_interacting)) * 0.33) #+ float(hpo_relatedness_interacting) * 0.1)# / 3
+                    final_score = (float(variant["AIDIVA_SCORE"]) * 0.6 + float(hpo_relatedness) * 0.3 + float(hpo_relatedness_interacting) * 0.1)
                     #final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness) + float(hpo_relatedness_interacting)) / 3
             else:
                 final_score = np.nan
@@ -345,10 +347,31 @@ def check_filters(variant):
     filter_comment = ""
 
     try:
+        low_conf_region = int(variant[low_conf_region_identifier])
+    except Exception as e:
+        low_conf_region = 0
+
+    try:
         maf = variant["MAX_AF"]
     except Exception as e:
         print("Allele frequency could not be identified, use 0.0 instead")
         maf = 0.0
+
+    ## TODO: add filter for low confidence regions
+    if low_conf_region == 1:
+        filter_passed = 0 # low confidence region
+        filter_comment = "low confidence region"
+        return filter_passed, filter_comment
+    
+    ## TODO: add filter for ABB_SCORE
+    # high confidence: 0 - 0.15
+    # mid confidence: 0.15 - 0.75
+    # see https://onlinelibrary.wiley.com/doi/full/10.1002/humu.23674 for more detailed information about the abb score
+    # if high confidence (> 0.15) filtering is to strict mid confidence (> 0.75) filtering could be applied
+    if float(variant["ABB_SCORE"]) > 0.15:
+        filter_passed = 0 # abb score to high -> crap region (low confidence variant)
+        filter_comment = "ABB_SCORE"
+        return filter_passed, filter_comment
 
     # exclude gene, if it is on the exclusion list
     if len(genes2exclude & genenames) > 0:
@@ -365,15 +388,18 @@ def check_filters(variant):
         filter_comment = "tandem repeat"
         return filter_passed, filter_comment
     
-    ## TODO: add filter for low confidence regions
-    ## TODO: add filter for ABB_SCORE
     ## TODO: add filter for segmental duplicatioon
-
+    if (seg_dup > 0) and (float(variant["AIDIVA_SCORE"]) < 0.8):
+        filter_passed = 0 # segmental duplication
+        filter_comment = "segmental duplication"
+        return filter_passed, filter_comment
+    
     ## TODO: change frequency based on inheritance mode (hom/het)
     if float(maf) <= 0.01:
         if any(term for term in coding_variants if term in found_consequences):
             if "synonymous_variant" not in found_consequences:
-                if ("frameshift_variant" not in found_consequences) and (any(term for term in supported_coding_variants if term in found_consequences)):
+                ## TODO: include frameshift in the coding variants set
+                if any(term for term in supported_coding_variants if term in found_consequences):
                     if not np.isnan(variant["AIDIVA_SCORE"]):
                         if len(HPO_query) >= 1:
                             if float(variant["HPO_RELATEDNESS"]) > 0.0:
@@ -728,5 +754,5 @@ if __name__=="__main__":
 
     input_data = pd.read_csv(args.in_file, sep="\t", low_memory=False)
 
-    prioritized_variants = prioritize_variants(input_data, args.hpo_resources, args.family, args.family_type, args.hpo_list, args.gene_exclusion_list)
+    prioritized_variants = prioritize_variants(input_data, args.hpo_resources, args.family, args.family_type, args.hpo_list, args.gene_exclusion_list, args.low_conf_region)
     prioritized_variants.to_csv(args.out_filename, sep="\t", index=False)
