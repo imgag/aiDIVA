@@ -1,7 +1,6 @@
 import subprocess
 import argparse
 import tempfile
-import time
 import os
 
 
@@ -123,6 +122,12 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, num_
         subprocess.run(command, shell=True, check=True)
     finally:
         os.remove(tmp.name)
+
+
+def filter_regions(input_vcf_file, output_vcf_file, vep_annotation_dict):
+    low_confidence_filter = vep_annotation_dict["filter"]["low-confidence"]
+    command = vep_annotation_dict["ngs-bits"] + "/" + "VariantFilterRegions -in " + input_vcf_file + " -mark low_conf_region -inv -reg " + low_confidence_filter + " -out " + output_vcf_file
+    subprocess.run(command, shell=True, check=True)
 
 
 def sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict):

@@ -39,6 +39,7 @@ Analysis-Input:
         cadd-identifier: CADD_PHRED
         repeat-identifier: simpleRepeat
         duplication-identifier: segmentDuplication
+        low-conf-region-identifier: lowConfRegion
 
 
 Model-Features:

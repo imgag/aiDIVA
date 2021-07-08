@@ -7,8 +7,6 @@ import multiprocessing as mp
 import pickle
 import re
 from itertools import combinations
-from operator import itemgetter
-from scipy.stats import poisson
 
 if not __name__=="__main__":
     from . import get_HPO_similarity_score as gs
@@ -36,6 +34,7 @@ coding_variants = ["splice_acceptor_variant",
 supported_coding_variants = ["stop_gained",
                              "stop_lost",
                              "start_lost",
+                             "frameshift_variant",
                              "inframe_insertion",
                              "inframe_deletion",
                              "missense_variant",
@@ -48,6 +47,7 @@ supported_coding_variants = ["stop_gained",
 cadd_identifier = "CADD_PHRED"
 duplication_identifier = "segmentDuplication"
 repeat_identifier = "simpleRepeat"
+low_conf_region_identifier = "lowConfRegion"
 family = None
 family_type = "SINGLE"
 genes2exclude = None
@@ -81,7 +81,7 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
     global HPO_graph
     HPO_graph = nx.Graph()
     HPO_graph.add_nodes_from(hpo_nodes)
-    HPO_graph.add_edges_from(hpo_edges)
+    HPO_graph.add_edges_from(hpo_edges)                    
 
     global genes2exclude
     genes2exclude = set()
@@ -171,11 +171,31 @@ def parallelized_variant_processing(variant_data):
 
 def compute_hpo_relatedness_and_final_score(variant):
     if HPO_query:
-        if np.isnan(variant["AIDIVA_SCORE"]):
+        if (variant["CHROM"] == "chrX") and (variant["POS"] == 100601649):
+            print(variant)
+        if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["rf_score"]) == "nan") or (str(variant["rf_score"]) == "")) and ((str(variant["ada_score"]) == "nan") or (str(variant["ada_score"]) == "")):
             final_score = np.nan
             hpo_relatedness = np.nan
             hpo_relatedness_interacting = np.nan
+
         else:
+            if np.isnan(variant["AIDIVA_SCORE"]):
+                ## TODO: check if both ada_score and rf_score is >0.6 before using maximum (otherwise stick to rf_score)
+                if ((str(variant["rf_score"]) != "nan") and (str(variant["rf_score"]) != "")) and ((str(variant["ada_score"]) != "nan") and (str(variant["ada_score"]) != "")):
+                    pathogenictiy_prediction = max([float(variant["rf_score"]), float(variant["ada_score"])], default=np.nan)
+                elif ((str(variant["rf_score"]) != "") and (str(variant["rf_score"]) != "nan")) and ((str(variant["ada_score"]) == "") or (str(variant["ada_score"]) == "nan")):
+                    pathogenictiy_prediction = float(variant["rf_score"])
+                elif ((str(variant["ada_score"]) != "") and (str(variant["ada_score"]) != "nan")) and ((str(variant["rf_score"]) == "") or (str(variant["rf_score"]) == "nan")):
+                    pathogenictiy_prediction = float(variant["ada_score"])
+                else:
+                    pathogenictiy_prediction = np.nan
+                
+                print("INFO: Using dbscSNV prediction instead of AIDIVA prediction for splicing variant!")
+                print(variant[["CHROM", "POS", "rf_score", "ada_score", "AIDIVA_SCORE"]])
+                print(pathogenictiy_prediction)
+            else:
+                pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])
+
             ## TODO: make gene name uppercase to match future hpo resources
             variant_gene = str(variant["SYMBOL"])
             hgnc_id = str(variant["HGNC_ID"])
@@ -190,29 +210,28 @@ def compute_hpo_relatedness_and_final_score(variant):
 
             # we use the hgnc ID to prevent problems if a given gene symbol isn't used anymore   
             ## TODO: let variants with a high AIDIVA_SCORE (>=0.8) pass        
-            if (variant_gene not in genes2exclude) or (float(variant["AIDIVA_SCORE"]) >= 0.8):
+            if (variant_gene not in genes2exclude) or (pathogenictiy_prediction >= 0.8):
                 if variant_gene.upper() in gene_2_HPO.keys():
                     gene_HPO_list = gene_2_HPO.get(variant_gene.upper(), [])
                 else:
-                    if (hgnc_id != "nan") and (hgnc_id in hgnc_2_gene.keys()):
+                    if (str(hgnc_id) != "nan") and (hgnc_id in hgnc_2_gene.keys()):
                         gene_symbol = hgnc_2_gene[hgnc_id]
                         gene_HPO_list = gene_2_HPO.get(gene_symbol, [])
                     else:
-                        print("WARNING: Given gene is not covered!")
+                        #print("WARNING: Given gene is not covered!")
                         gene_HPO_list = []
 
                 g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
                 gene_distances.append(g_dist)
 
-                ## TODO: look at interacting genes only if HPO relation missing or zero???
                 for interacting_gene in interacting_genes:
                     ## TODO: decide if it is useful to check for gene exclusion
-                    if interacting_gene in genes2exclude:
+                    if (interacting_gene in genes2exclude) and (pathogenictiy_prediction < 0.8):
                         continue
                     if interacting_gene in gene_2_HPO.keys():
                         gene_HPO_list = gene_2_HPO.get(interacting_gene, [])
                     else:
-                        print("WARNING: Given gene is not covered!")
+                        #print("WARNING: Given interacting gene is not covered!")
                         gene_HPO_list = []
 
                     g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
@@ -224,14 +243,35 @@ def compute_hpo_relatedness_and_final_score(variant):
                     hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
                     ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS and HPO_RELATEDNESS_INTERACTING (eg 0.6 and 0.3 and 0.1)
                     # predicted pathogenicity has a higher weight than the HPO relatedness
-                    final_score = (float(variant["AIDIVA_SCORE"]) * 0.67 + float(max(hpo_relatedness, hpo_relatedness_interacting)) * 0.33) #+ float(hpo_relatedness_interacting) * 0.1)# / 3
+                    #final_score = (float(variant["AIDIVA_SCORE"]) * 0.67 + float(max(hpo_relatedness, hpo_relatedness_interacting)) * 0.33) #+ float(hpo_relatedness_interacting) * 0.1)# / 3
+                    final_score = (pathogenictiy_prediction * 0.6 + float(hpo_relatedness) * 0.3 + float(hpo_relatedness_interacting) * 0.1)
                     #final_score = (float(variant["AIDIVA_SCORE"]) + float(hpo_relatedness) + float(hpo_relatedness_interacting)) / 3
             else:
                 final_score = np.nan
                 hpo_relatedness = np.nan
                 hpo_relatedness_interacting = np.nan
     else:
-        final_score = variant["AIDIVA_SCORE"]
+        if np.isnan(variant["AIDIVA_SCORE"]):
+            if ((str(variant["rf_score"]) == "") or (str(variant["rf_score"]) == "nan")) and ((str(variant["ada_score"]) == "") or (str(variant["ada_score"]) == "nan")):
+                pathogenictiy_prediction = np.nan
+            else:
+                if (str(variant["rf_score"]) != "") and (str(variant["rf_score"]) != "nan"):                        
+                    rf_score = float(variant["rf_score"])
+                else:
+                    rf_score = np.nan
+                
+                if (str(variant["ada_score"]) != "") and (str(variant["ada_score"]) != "nan"):
+                    ada_score = float(variant["ada_score"])
+                else:
+                    ada_score = np.nan
+
+                ## TODO: check if both ada_score and rf_score is >0.6 before using maximum (otherwise stick to rf_score)
+                pathogenictiy_prediction = max([rf_score, ada_score], default=np.nan)
+                print("INFO: Using dbscSNV prediction instead of AIDIVA prediction for splicing variant!")
+        else:
+            pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])
+
+        final_score = pathogenictiy_prediction
         hpo_relatedness = np.nan
         hpo_relatedness_interacting = np.nan
 
@@ -345,10 +385,34 @@ def check_filters(variant):
     filter_comment = ""
 
     try:
-        maf = variant["MAX_AF"]
+        low_conf_region = int(variant[low_conf_region_identifier])
+    except Exception as e:
+        low_conf_region = 0
+
+    try:
+        maf = float(variant["MAX_AF"])
     except Exception as e:
         print("Allele frequency could not be identified, use 0.0 instead")
         maf = 0.0
+
+    ## TODO: add filter for low confidence regions
+    if "low_conf_region" in variant["FILTER"]:
+        filter_passed = 0 # low confidence region
+        filter_comment = "low confidence region"
+        return filter_passed, filter_comment
+    elif "off-target" in variant["FILTER"]:
+        filter_passed = 0 # off target
+        filter_comment = "off target"
+        return filter_passed, filter_comment
+
+    # high confidence: 0 - 0.15
+    # mid confidence: 0.15 - 0.75
+    # see https://onlinelibrary.wiley.com/doi/full/10.1002/humu.23674 for more detailed information about the abb score
+    # if high confidence (> 0.15) filtering is to strict mid confidence (> 0.75) filtering could be applied
+    if float(variant["ABB_SCORE"]) > 0.15:
+        filter_passed = 0 # abb score to high -> crap region (low confidence variant)
+        filter_comment = "ABB_SCORE"
+        return filter_passed, filter_comment
 
     # exclude gene, if it is on the exclusion list
     if len(genes2exclude & genenames) > 0:
@@ -359,44 +423,47 @@ def check_filters(variant):
                 filter_comment = "gene exclusion"
                 return filter_passed, filter_comment
 
-    ## TODO: let variants with a high AIDIVA_SCORE (>=0.8) pass
+    ## TODO: change second condition to FINAL_AIDIVA_SCORE and use 0.7 as a threshold
     if (repeat != "NA") and (repeat != "") and (repeat != "nan") and (float(variant["AIDIVA_SCORE"]) < 0.8):
         filter_passed = 0 # tandem repeat
         filter_comment = "tandem repeat"
         return filter_passed, filter_comment
     
-    ## TODO: add filter for low confidence regions
-    ## TODO: add filter for ABB_SCORE
-    ## TODO: add filter for segmental duplicatioon
-
+    ## TODO: change second condition to FINAL_AIDIVA_SCORE and use 0.7 as a threshold
+    if (seg_dup > 0) and (float(variant["AIDIVA_SCORE"]) < 0.8):
+        filter_passed = 0 # segmental duplication
+        filter_comment = "segmental duplication"
+        return filter_passed, filter_comment
+    
     ## TODO: change frequency based on inheritance mode (hom/het)
-    if float(maf) <= 0.01:
+    if maf <= 0.01:
         if any(term for term in coding_variants if term in found_consequences):
-            if "synonymous_variant" not in found_consequences:
-                if ("frameshift_variant" not in found_consequences) and (any(term for term in supported_coding_variants if term in found_consequences)):
-                    if not np.isnan(variant["AIDIVA_SCORE"]):
-                        if len(HPO_query) >= 1:
-                            if float(variant["HPO_RELATEDNESS"]) > 0.0:
-                                filter_passed = 1
-                                filter_comment = "passed all"
-                            elif float(variant["HPO_RELATEDNESS_INTERACTING"]) > 0.0:
-                                filter_passed = 1
-                                filter_comment = "HPO related to interacting genes"
-                            else:
-                                filter_passed = 0 # no relation to reported HPO terms
-                                filter_comment = "no HPO relation"
-                        else:
-                            filter_passed = 1 # skip hpo filter if no terms are present
-                            filter_comment = "no HPO terms given"
+            # let synonymous splice variants pass the filter
+            #if ("synonymous_variant" not in found_consequences) or (("synonymous" in found_consequences) and ("splice" in found_consequences)):
+            #if any(term for term in coding_variants if term in found_consequences):
+            if not np.isnan(variant["FINAL_AIDIVA_SCORE"]):
+                if len(HPO_query) >= 1:
+                    if float(variant["HPO_RELATEDNESS"]) > 0.0:
+                        filter_passed = 1
+                        filter_comment = "passed all"
+                    elif float(variant["HPO_RELATEDNESS_INTERACTING"]) > 0.0:
+                        filter_passed = 1
+                        filter_comment = "HPO related to interacting genes"
                     else:
-                        filter_passed = 0 # no prediction present (eg. variant type not covered by the used ML models)
-                        filter_comment = "missing AIDIVA_SCORE"
+                        filter_passed = 0 # no relation to reported HPO terms
+                        filter_comment = "no HPO relation"
                 else:
-                    filter_passed = 0 # splicing, intron and frameshift variants are not covered by the used ML models (the predictions cannot be trusted), skip variants that have no covered consequence
-                    filter_comment = "variant type not covered"
+                    filter_passed = 1 # skip hpo filter if no terms are present
+                    filter_comment = "no HPO terms given"
             else:
-                filter_passed = 0 # synonymous variant
-                filter_comment = "synonymous"
+                filter_passed = 0 # no prediction present (eg. variant type not covered by the used ML models)
+                filter_comment = "missing AIDIVA_SCORE"
+            #else:
+            #    filter_passed = 0 # splicing, intron and frameshift variants are not covered by the used ML models (the predictions cannot be trusted), skip variants that have no covered consequence
+            #    filter_comment = "variant type not covered"
+            #else:
+            #    filter_passed = 0 # synonymous variant
+            #    filter_comment = "synonymous"
         else:
             filter_passed = 0 # not coding
             filter_comment = "not coding"
@@ -728,5 +795,5 @@ if __name__=="__main__":
 
     input_data = pd.read_csv(args.in_file, sep="\t", low_memory=False)
 
-    prioritized_variants = prioritize_variants(input_data, args.hpo_resources, args.family, args.family_type, args.hpo_list, args.gene_exclusion_list)
+    prioritized_variants = prioritize_variants(input_data, args.hpo_resources, args.family, args.family_type, args.hpo_list, args.gene_exclusion_list, args.low_conf_region)
     prioritized_variants.to_csv(args.out_filename, sep="\t", index=False)

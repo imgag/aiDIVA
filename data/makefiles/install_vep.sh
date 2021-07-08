@@ -67,3 +67,7 @@ tar xjf samtools-1.10.tar.bz2
 rm samtools-1.10.tar.bz2
 cd samtools-1.10
 make
+
+# Download low_confidence_region file from megSAP (https://github.com/imgag/megSAP)
+cd $annotation_sources
+wget https://github.com/imgag/megSAP/blob/master/data/misc/low_conf_regions.bed

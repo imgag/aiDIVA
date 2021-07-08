@@ -1,7 +1,6 @@
 import argparse
 import gzip
 import tempfile
-from operator import itemgetter
 
 
 coding_variants = ["splice_acceptor_variant",

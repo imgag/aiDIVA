@@ -49,6 +49,7 @@ sample_ids = []
 
 
 
+## TODO: can be removed the method in the split_vcf_in_indel... script is used instead
 def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel):
     vcf_file_to_reformat = open(filepath, "r")
     outfile_snps = open(filepath_snps, "w")
@@ -300,6 +301,7 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
     global sample_ids
     sample_ids = []
     # FORMAT column has index 8 (counted from 0) and sample columns follow afterwards (sample names are unique)
+    ## TODO: add condition to check if FORMAT column exists
     for i in range(9, len(vcf_as_dataframe.columns)):
         sample_ids.append(vcf_as_dataframe.columns[i])
 

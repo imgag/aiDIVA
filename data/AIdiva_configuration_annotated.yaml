@@ -20,6 +20,7 @@ Analysis-Input:
         cadd-identifier: CADD_PHRED
         repeat-identifier: simpleRepeat
         duplication-identifier: segmentDuplication
+        low-conf-region-identifier: lowConfRegion
 
 
 Model-Features:
@@ -48,9 +49,9 @@ Model-Features:
         - PolyPhen
         - REVEL
         - CADD_PHRED
-        - ABB_SCORE
+        - ABB_SCORE # remove from feature list
         - MAX_AF
-        - segmentDuplication
+        - segmentDuplication # remove from feature list
         - EIGEN_PHRED
         - CONDEL
         - FATHMM_XF
