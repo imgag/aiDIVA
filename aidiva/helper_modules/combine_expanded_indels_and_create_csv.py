@@ -3,6 +3,7 @@ import numpy as np
 import multiprocessing as mp
 import tempfile
 import argparse
+from functools import partial
 from operator import itemgetter
 
 
@@ -42,9 +43,6 @@ variant_consequences = {"transcript_ablation": 1,
                         "regulatory_region_variant": 34,
                         "feature_truncation": 35,
                         "intergenic_variant": 36}
-
-grouped_expanded_vcf = None
-feature_list = None
 
 
 def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
@@ -185,9 +183,7 @@ def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, fe
         return grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).median()
 
 
-def combine_vcf_dataframes(vcf_as_dataframe):
-    global grouped_expanded_vcf
-
+def combine_vcf_dataframes(feature_list, grouped_expanded_vcf, vcf_as_dataframe):
     for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):
             continue
@@ -205,7 +201,6 @@ def combine_vcf_dataframes(vcf_as_dataframe):
 
 
 def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, features, num_cores):
-    global feature_list
     feature_list = features
 
     for feature in feature_list:
@@ -223,7 +218,6 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
     expanded_vcf_as_dataframe["ada_score"] = expanded_vcf_as_dataframe["ada_score"].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
     expanded_vcf_as_dataframe["rf_score"] = expanded_vcf_as_dataframe["rf_score"].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
-    global grouped_expanded_vcf
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("INDEL_ID")
 
     num_partitions = num_cores * 2
@@ -233,10 +227,13 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
     else:
         dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
 
-    pool = mp.Pool(num_cores)
-    vcf_as_dataframe = pd.concat(pool.map(combine_vcf_dataframes, dataframe_splitted))
-    pool.close()
-    pool.join()
+    try:
+        function_to_parallelize = partial(combine_vcf_dataframes, feature_list, grouped_expanded_vcf)
+        pool = mp.Pool(num_cores)
+        vcf_as_dataframe = pd.concat(pool.map(function_to_parallelize, dataframe_splitted))
+    finally:
+        pool.close()
+        pool.join()
 
     return vcf_as_dataframe
 

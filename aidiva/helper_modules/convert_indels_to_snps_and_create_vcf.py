@@ -44,7 +44,7 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                 outfile.write(str(row.CHROM).strip() + "\t" + str(window_start + i + 1).strip() + "\t" + "." + "\t" + str(extended_ref_seq[i]).strip() + "\t" + str(alt_variant).strip() + "\t" + "." + "\t" + "." + "\t" + str(row.INFO).strip() + "\n")
 
 
-def import_csv_data(in_data):
+def import_vcf_data(in_data):
     header_line = ""
     comment_lines = []
 
@@ -74,8 +74,9 @@ def import_csv_data(in_data):
     return data, comment_lines
 
 
+# TODO: change name of method to be clearer what it does
 def convert_csv_to_vcf(in_data, out_data, ref_folder):
-    input_data, header = import_csv_data(in_data)
+    input_data, header = import_vcf_data(in_data)
     outfile = open(out_data, "w", newline="")
     write_data_information_to_file(input_data, outfile, ref_folder, header)
     outfile.close()

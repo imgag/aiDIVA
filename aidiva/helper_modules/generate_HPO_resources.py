@@ -191,8 +191,6 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
                 hpo_graph.nodes[node]["IC"] = -math.log(1.0 / tot) #missing nodes, set as rare as possible
             else:
                 print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
-            #print(node)
-            #print(hpo_graph.node[node])
 
     # add edges weight
     for node_a, node_b in hpo_graph.edges():
@@ -207,7 +205,6 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
     # convert directed graph to an undirected graph
     hpo_graph = hpo_graph.to_undirected()
 
-    #pickle.dump(hpo_graph,open(output,"wb"))
     if str(nx.__version__).startswith("1."):
         pickle.dump([hpo_graph.nodes(data=True), hpo_graph.edges(data=True)], open(output, "wb"))
         print("NOTE: You pickled the graph with NetworkX v1 the pickled graph it is also upwards compatible with v2!")

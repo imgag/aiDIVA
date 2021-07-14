@@ -6,6 +6,7 @@ import pandas as pd
 import multiprocessing as mp
 import pickle
 import re
+from functools import partial
 from itertools import combinations
 
 if not __name__=="__main__":
@@ -48,19 +49,10 @@ cadd_identifier = "CADD_PHRED"
 duplication_identifier = "segmentDuplication"
 repeat_identifier = "simpleRepeat"
 low_conf_region_identifier = "lowConfRegion"
-family = None
-family_type = "SINGLE"
-genes2exclude = None
-gene_2_HPO = None
-hgnc_2_gene = None
-gene_2_interacting = None
-HPO_graph = None
-HPO_query = None
-HPO_query_distances = 0
 
 
 def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_file=None, fam_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
-    #load HPO resources
+    # load HPO resources
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo.pkl"
     hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.pkl"
     gene_2_interacting_f = hpo_resources_folder + "gene2interacting.pkl"
@@ -68,24 +60,17 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 
-    global hgnc_2_gene
     hgnc_2_gene = pickle.load(open(hgnc_2_gene_f, "rb"))
-
-    global gene_2_interacting
     gene_2_interacting = pickle.load(open(gene_2_interacting_f, "rb"))
-
-    global gene_2_HPO
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
     hpo_nodes, hpo_edges = pickle.load(open(HPO_graph_file, "rb"))
 
-    global HPO_graph
     HPO_graph = nx.Graph()
     HPO_graph.add_nodes_from(hpo_nodes)
     HPO_graph.add_edges_from(hpo_edges)                    
 
-    global genes2exclude
     genes2exclude = set()
-    if gene_exclusion_file:
+    if gene_exclusion_file is not None:
         if os.path.isfile(gene_exclusion_file):
             with open(gene_exclusion_file, "r") as exclusion_file:
                 for line in exclusion_file:
@@ -99,10 +84,9 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
             print("The specified gene exclusion list %s is not a valid file" % (gene_exclusion_file))
             print("No genes are excluded during filtering!")
 
-    global HPO_query
-    global HPO_query_distances
     HPO_query = set()
-    if hpo_list_file:
+    HPO_query_distances = 0
+    if hpo_list_file is not None:
         if os.path.isfile(hpo_list_file):
             with open(hpo_list_file, "r") as hpo_file:
                 for line in hpo_file:
@@ -116,9 +100,8 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
             print("Skip HPO score finalization!")
 
     # read family relationship (from PED file)
-    global family
     family = dict()
-    if family_file:
+    if family_file is not None:
         if os.path.isfile(family_file):
             with open(family_file, "r") as fam_file:
                 for line in fam_file:
@@ -135,10 +118,8 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
             print("The specified family file %s is not a valid file" % (family_file))
             print("Skip inheritance assessment!")
 
-    global family_type
     family_type = fam_type
-
-    variant_data = parallelize_dataframe_processing(variant_data, parallelized_variant_processing, num_cores)
+    variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances), num_cores)
     variant_data = variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False])
     variant_data = variant_data.reset_index(drop=True)
 
@@ -153,23 +134,25 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
     else:
         dataframe_splitted = np.array_split(variant_data, num_partitions)
 
-    pool = mp.Pool(num_cores)
-    variant_data = pd.concat(pool.map(function, dataframe_splitted))
-    pool.close()
-    pool.join()
+    try:
+        pool = mp.Pool(num_cores)
+        variant_data = pd.concat(pool.map(function, dataframe_splitted))
+    finally:
+        pool.close()
+        pool.join()
 
     return variant_data
 
 
-def parallelized_variant_processing(variant_data):
+def parallelized_variant_processing(family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances, variant_data):
     variant_data = check_inheritance(variant_data, family_type, family)
-    variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant)), axis=1)
-    variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant)), axis=1)
+    variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances)), axis=1)
+    variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query)), axis=1)
 
     return variant_data
 
 
-def compute_hpo_relatedness_and_final_score(variant):
+def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances):
     if HPO_query:
         if (variant["CHROM"] == "chrX") and (variant["POS"] == 100601649):
             print(variant)
@@ -373,7 +356,7 @@ def add_inheritance_mode(variant, variant_columns):
     return inheritance_mode
 
 
-def check_filters(variant):
+def check_filters(variant, genes2exclude, HPO_query):
     variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     genenames = set(variant_genes.split(";"))
 
