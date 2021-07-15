@@ -45,63 +45,6 @@ variant_consequences = {"transcript_ablation": 1,
                         "intergenic_variant": 36}
 
 
-
-## TODO: can be removed the method in the split_vcf_in_indel... script is used instead
-def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel):
-    vcf_file_to_reformat = open(filepath, "r")
-    outfile_snps = open(filepath_snps, "w")
-    outfile_indel = open(filepath_indel, "w")
-
-    # make sure that there are no unwanted linebreaks in the variant entries
-    tmp = tempfile.NamedTemporaryFile(mode="w+")
-    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
-    tmp.seek(0)
-
-    # extract header from vcf file
-    indel_ID = 0
-    for line in tmp:
-        splitted_line = line.split("\t")
-        if line.strip().startswith("##"):
-            outfile_snps.write(line)
-            outfile_indel.write(line)
-            continue
-        if line.strip().startswith("#CHROM"):
-            outfile_snps.write(line)
-            outfile_indel.write(line)
-            continue
-
-        # skip empty lines if the VCF file is not correctly formatted (eg. if there are multiple blank lines in the end of the file)
-        if line == "\n":
-            continue
-
-        # remove variants with multiple alternative alleles reported
-        # TODO decide how to handle them in general
-        if "," in splitted_line[4]:
-            print("Variant was removed!")
-            print("REASON: Too many alternative alleles reported!")
-            continue
-        else:
-            ref_length = len(splitted_line[3])
-            alt_length = max([len(alt) for alt in splitted_line[4].split(",")])
-
-            if (ref_length == 1) and (alt_length == 1):
-                outfile_snps.write(line)
-            elif (ref_length > 1) or (alt_length > 1):
-                indel_ID += 1
-                if splitted_line[7].endswith("\n"):
-                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID) + "\n"
-                else:
-                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID)
-                outfile_indel.write("\t".join(splitted_line))
-            else:
-                print("Something was not rigtht!")
-
-    vcf_file_to_reformat.close()
-    outfile_snps.close()
-    outfile_indel.close()
-    tmp.close()
-
-
 def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     header_line = ""
     comment_lines = []
@@ -190,7 +133,7 @@ def extract_columns(cell, process_indel):
     if (gnomAD_hom > 0.0) and (gnomAD_an > 0.0):
         gnomAD_homAF = gnomAD_hom / gnomAD_an
 
-    if indel_set:
+    if process_indel:
         extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice]
     else:
        extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice]
@@ -226,6 +169,7 @@ def extract_sample_information(row, sample):
         num_missing_entries = abs(len(sample_header) - len(sample_fields))
         for i in range(num_missing_entries):
             sample_fields.append(".")
+
     if "GT" in sample_header:
         sample_gt_information = sample_fields[sample_header.index("GT")]
     else:
@@ -254,6 +198,7 @@ def extract_sample_information(row, sample):
             sample_af_information = 0
         else:
             sample_af_information = (int(sample_alt_information) / divisor)
+            
     else:
         sample_af_information = "."
 

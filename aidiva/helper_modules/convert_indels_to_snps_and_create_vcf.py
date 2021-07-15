@@ -25,8 +25,8 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
 
         ref_seq = str(ref_seq_records[chrom_id].seq)
         for row in group.itertuples():
-            window_start = int(row.POS) - 3
-            window_end = int(row.POS) + len(row.REF) + 2
+            window_start = int(row["POS"]) - 3
+            window_end = int(row["POS"]) + len(row["REF"]) + 2
             extended_ref_seq = ref_seq[window_start:window_end]
 
             for i in range(abs(window_end-window_start)):
@@ -41,7 +41,7 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                 else:
                     print("ERROR: Something went wrong!")
 
-                outfile.write(str(row.CHROM).strip() + "\t" + str(window_start + i + 1).strip() + "\t" + "." + "\t" + str(extended_ref_seq[i]).strip() + "\t" + str(alt_variant).strip() + "\t" + "." + "\t" + "." + "\t" + str(row.INFO).strip() + "\n")
+                outfile.write(str(row["CHROM"]).strip() + "\t" + str(window_start + i + 1).strip() + "\t" + "." + "\t" + str(extended_ref_seq[i]).strip() + "\t" + str(alt_variant).strip() + "\t" + "." + "\t" + "." + "\t" + str(row["INFO"]).strip() + "\n")
 
 
 def import_vcf_data(in_data):
@@ -74,8 +74,7 @@ def import_vcf_data(in_data):
     return data, comment_lines
 
 
-# TODO: change name of method to be clearer what it does
-def convert_csv_to_vcf(in_data, out_data, ref_folder):
+def convert_indel_vcf_to_expanded_indel_vcf(in_data, out_data, ref_folder):
     input_data, header = import_vcf_data(in_data)
     outfile = open(out_data, "w", newline="")
     write_data_information_to_file(input_data, outfile, ref_folder, header)
@@ -84,10 +83,10 @@ def convert_csv_to_vcf(in_data, out_data, ref_folder):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.csv", required=True, help="CSV file to convert to VCF\n")
-    parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.vcf", required=True, help="output VCF file\n")
-    parser.add_argument("--ref_path", type=str, dest="ref_path", metavar="/path/to/hg19/Homo_sapiens.GRCh37.dna.chromosome.[ID].fa", required=True, help="Path were the reference hg19 is found.\n")
+    parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.csv", required=True, help="InDel VCF file to expand\n")
+    parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.vcf", required=True, help="Output VCF file\n")
+    parser.add_argument("--ref_path", type=str, dest="ref_path", metavar="/path/to/hg19/Homo_sapiens.GRCh37.dna.chromosome.[ID].fa", required=True, help="Path were the reference genome is found.\n")
     args = parser.parse_args()
 
     ref_folder = args.ref_path
-    convert_csv_to_vcf(args.in_data, args.out_data, args.ref_path)
+    convert_indel_vcf_to_expanded_indel_vcf(args.in_data, args.out_data, args.ref_path)

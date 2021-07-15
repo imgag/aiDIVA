@@ -73,9 +73,7 @@ if __name__=="__main__":
         family_file = None
         family_type = "SINGLE"
 
-    ## TODO: Choose whether to delete the allele frequency list
-    #allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
-    allele_frequency_list = []
+    allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
 
     # convert splitted input data to vcf and annotate
