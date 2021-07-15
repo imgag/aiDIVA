@@ -25,8 +25,8 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
 
         ref_seq = str(ref_seq_records[chrom_id].seq)
         for row in group.itertuples():
-            window_start = int(row["POS"]) - 3
-            window_end = int(row["POS"]) + len(row["REF"]) + 2
+            window_start = int(row.POS) - 3
+            window_end = int(row.POS) + len(row.REF) + 2
             extended_ref_seq = ref_seq[window_start:window_end]
 
             for i in range(abs(window_end-window_start)):
@@ -41,7 +41,7 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                 else:
                     print("ERROR: Something went wrong!")
 
-                outfile.write(str(row["CHROM"]).strip() + "\t" + str(window_start + i + 1).strip() + "\t" + "." + "\t" + str(extended_ref_seq[i]).strip() + "\t" + str(alt_variant).strip() + "\t" + "." + "\t" + "." + "\t" + str(row["INFO"]).strip() + "\n")
+                outfile.write(str(row.CHROM).strip() + "\t" + str(window_start + i + 1).strip() + "\t" + "." + "\t" + str(extended_ref_seq[i]).strip() + "\t" + str(alt_variant).strip() + "\t" + "." + "\t" + "." + "\t" + str(row.INFO).strip() + "\n")
 
 
 def import_vcf_data(in_data):
