@@ -7,6 +7,7 @@ import numpy as np
 import multiprocessing as mp
 import argparse
 import pickle
+from functools import partial
 
 
 mean_dict = {"phastCons46mammal": 0.09691308336428194,
@@ -52,12 +53,6 @@ supported_coding_variants = ["stop_gained",
 
 random_seed = 14038
 
-coding_region = None
-rf_model_snp = None
-rf_model_indel = None
-allele_frequencies = []
-features = []
-
 
 def import_model(model_file):
     model_to_import = open(model_file, "rb")
@@ -77,19 +72,20 @@ def read_input_data(input_file):
 # fill SegDup missing values with -> 0
 # fill ABB_SCORE missing values with -> 0
 # fill Allele Frequency missing values with -> 0
+# fill CAPICE missing values with -> 0.5
 # fill missing values from other features with -> median or mean
-def prepare_input_data(input_data):
-    # compute maximum Minor Allele Frequency (MAF) from population frequencies if not present
+def prepare_input_data(feature_list, allele_frequency_list, input_data):
+    # compute maximum Minor Allele Frequency (MAF) from population frequencies if MAX_AF not present
     if ("MaxAF" not in input_data.columns) and ("MAX_AF" not in input_data.columns):
-        if allele_frequencies:
-            for allele_frequency in allele_frequencies:
+        if allele_frequency_list:
+            for allele_frequency in allele_frequency_list:
                 input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
                 input_data[allele_frequency] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
             input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
         else:
             print("ERROR: Empty allele frequency list was given!")
 
-    for feature in features:
+    for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):
             input_data[feature] = input_data[feature].fillna(0)
         elif feature == "homAF":
@@ -146,34 +142,30 @@ def parallelize_dataframe_processing(dataframe, function, num_cores):
     else:
         dataframe_splitted = np.array_split(dataframe, num_partitions)
 
-    pool = mp.Pool(num_cores)
-    dataframe = pd.concat(pool.map(function, dataframe_splitted))
-    pool.close()
-    pool.join()
+    try:
+        pool = mp.Pool(num_cores)
+        dataframe = pd.concat(pool.map(function, dataframe_splitted))
+    finally:
+        pool.close()
+        pool.join()
 
     return dataframe
 
 
 def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequency_list, feature_list, num_cores):
-    global features
-    features = feature_list
-
-    global allele_frequencies
-    allele_frequencies = allele_frequency_list
-
     rf_model = import_model(rf_model)
-    prepared_input_data = parallelize_dataframe_processing(input_data, prepare_input_data, num_cores)
-    input_features = np.asarray(prepared_input_data[features], dtype=np.float64)
+    prepared_input_data = parallelize_dataframe_processing(input_data, partial(prepare_input_data, feature_list, allele_frequency_list), num_cores)
+    input_features = np.asarray(prepared_input_data[feature_list], dtype=np.float64)
     predicted_data = predict_pathogenicity(rf_model, prepared_input_data, input_features)
 
-    # frameshift variants are not covered in the used model, set them to 1.0 if the MAX_AF is less or equal than 0.02
-    #predicted_data.loc[((abs(predicted_data["REF"].str.len() - predicted_data["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = 1.0 # could also be set to 1.0
-    predicted_data.loc[(predicted_data["Consequence"].str.contains("frameshift")), "AIDIVA_SCORE"] = 0.9
+    # frameshift variants are not covered in the used model, set them to 0.9 (1.0 is too high)
+    predicted_data.loc[((abs(predicted_data["REF"].str.len() - predicted_data["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = 0.9
+    #predicted_data.loc[(predicted_data["Consequence"].str.contains("frameshift")), "AIDIVA_SCORE"] = 0.9
 
     # set splicing donor/acceptor variants to NaN if not additionally a supported consequence is reported for the variant 
     # add filter for splice_region variants
-    #predicted_data.loc[((predicted_data["Consequence"].str.contains("splice_acceptor_variant") | predicted_data["Consequence"].str.contains("splice_donor_variant")) & ~(predicted_data["Consequence"].str.contains("|".join(supported_coding_variants)))), "AIDIVA_SCORE"] = np.nan
-    predicted_data.loc[(~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna())) & ~(predicted_data["Consequence"].str.contains("|".join(supported_coding_variants))), "AIDIVA_SCORE"] = np.nan # use the score from dbscSNV for splicing variants
+    # later in the pipeline the score from dbscSNV for splicing variants will be used
+    predicted_data.loc[(~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna())) & ~(predicted_data["Consequence"].str.contains("|".join(supported_coding_variants))), "AIDIVA_SCORE"] = np.nan 
 
     # set synonymous variants to 0.0 if they are not at a splicing site
     # TODO: maybe add the same condition as with splice variants to let variants pass if they also affect a transcript with a supported consequence

@@ -83,6 +83,8 @@ if __name__=="__main__":
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
 
+    # TODO: make it work if only InDel or only SNP variants are given
+
     # convert splitted input data to vcf and annotate
     input_file = os.path.splitext(input_vcf)[0]
     input_filename = os.path.basename(input_file)
@@ -98,7 +100,7 @@ if __name__=="__main__":
 
     # convert input vcf to pandas dataframe
     split_vcf.split_vcf_file_in_indel_and_snps_set(str(working_directory + input_filename + "_filtered.vcf"), str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_indel.vcf"))
-    expand_indels_and_create_vcf.convert_csv_to_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_expanded.vcf"), ref_path)
+    expand_indels_and_create_vcf.convert_indel_vcf_to_expanded_indel_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_expanded.vcf"), ref_path)
 
     # Annotation with VEP
     print("Starting VEP annotation...")

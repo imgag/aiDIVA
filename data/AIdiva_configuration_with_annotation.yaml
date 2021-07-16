@@ -44,22 +44,22 @@ Analysis-Input:
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these) if not wanted use a empty list "[]" instead
-    allele-frequency-list:
-        - gnomAD_AFR_AF
-        - gnomAD_AMR_AF
-        - gnomAD_ASJ_AF
-        - gnomAD_EAS_AF
-        - gnomAD_FIN_AF
-        - gnomAD_NFE_AF
-        - gnomAD_OTH_AF
-        - gnomAD_SAS_AF
-        - AA_AF
-        - EA_AF
-        - AFR_AF
-        - AMR_AF
-        - EAS_AF
-        - EUR_AF
-        - SAS_AF
+    allele-frequency-list: []
+        #- gnomAD_AFR_AF
+        #- gnomAD_AMR_AF
+        #- gnomAD_ASJ_AF
+        #- gnomAD_EAS_AF
+        #- gnomAD_FIN_AF
+        #- gnomAD_NFE_AF
+        #- gnomAD_OTH_AF
+        #- gnomAD_SAS_AF
+        #- AA_AF
+        #- EA_AF
+        #- AFR_AF
+        #- AMR_AF
+        #- EAS_AF
+        #- EUR_AF
+        #- SAS_AF
 
     # List containing the names of the features used for the model training
     feature-list:
