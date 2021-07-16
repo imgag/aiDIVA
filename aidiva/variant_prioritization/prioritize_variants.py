@@ -389,7 +389,7 @@ def check_filters(variant, genes2exclude, HPO_query):
     # mid confidence: 0.15 - 0.75
     # see https://onlinelibrary.wiley.com/doi/full/10.1002/humu.23674 for more detailed information about the abb score
     # if high confidence (> 0.15) filtering is to strict mid confidence (> 0.75) filtering could be applied
-    if float(variant["ABB_SCORE"]) > 0.15:
+    if float(variant["ABB_SCORE"]) > 0.75:
         filter_passed = 0 # abb score to high -> crap region (low confidence variant)
         filter_comment = "ABB_SCORE"
 
