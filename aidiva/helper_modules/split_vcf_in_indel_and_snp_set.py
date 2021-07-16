@@ -50,9 +50,9 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
             elif (ref_length > 1) or (alt_length > 1):
                 indel_ID += 1
                 if splitted_line[7].endswith("\n"):
-                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
+                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID) + "\n"
                 else:
-                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID)
+                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID)
                 outfile_indel.write("\t".join(splitted_line))
             else:
                 print("Something was not rigtht!")

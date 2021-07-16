@@ -19,7 +19,7 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
             else:
                 ff = line.strip().split("\t")
                 # Format: HPO-id<tab>HPO label<tab>entrez-gene-id<tab>entrez-gene-symbol<tab>Additional Info from G-D source<tab>G-D source<tab>disease-ID for link
-                key = ff[3]
+                key = ff[3].upper()
                 HPO = ff[0]
                 to_add = gene_2_HPO.get(key,[])
                 to_add.append(HPO)
@@ -186,13 +186,11 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
                 print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
         else :
             if str(nx.__version__).startswith("1."):
-                hpo_graph.node[node]["IC"] = -math.log(1.0 / tot) #missing nodes, set as rare as possible
+                hpo_graph.node[node]["IC"] = -math.log(1.0 / tot) # missing nodes, set as rare as possible
             elif str(nx.__version__).startswith("2."):
-                hpo_graph.nodes[node]["IC"] = -math.log(1.0 / tot) #missing nodes, set as rare as possible
+                hpo_graph.nodes[node]["IC"] = -math.log(1.0 / tot) # missing nodes, set as rare as possible
             else:
                 print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
-            #print(node)
-            #print(hpo_graph.node[node])
 
     # add edges weight
     for node_a, node_b in hpo_graph.edges():
@@ -207,13 +205,12 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
     # convert directed graph to an undirected graph
     hpo_graph = hpo_graph.to_undirected()
 
-    #pickle.dump(hpo_graph,open(output,"wb"))
     if str(nx.__version__).startswith("1."):
         pickle.dump([hpo_graph.nodes(data=True), hpo_graph.edges(data=True)], open(output, "wb"))
-        print("NOTE: You pickled the graph with NetworkX v1 the pickled graph it is also upwards compatible with v2!")
+        print("NOTE: You pickled the graph using NetworkX v1 the pickled graph it is also upwards compatible with v2!")
     elif str(nx.__version__).startswith("2."):
         pickle.dump([hpo_graph.nodes(data=True), hpo_graph.edges(data=True)], open(output, "wb"))
-        print("NOTE: You pickled the graph with NetworkX v2 it is not backwards compatible!")
+        print("NOTE: You pickled the graph using NetworkX v2 it is not backwards compatible!")
     else:
         print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
@@ -221,7 +218,7 @@ def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
 
 
 #  wget ftp://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/hgnc_complete_set.txt
-def create_gene2hgnc_mapping_file(hgnc_symbol_file, hgnc_2_gene):
+def create_gene2hgnc_mapping(hgnc_symbol_file, hgnc_2_gene):
     file = open(hgnc_symbol_file, "r")
     gene_dict = dict()
 
@@ -231,15 +228,17 @@ def create_gene2hgnc_mapping_file(hgnc_symbol_file, hgnc_2_gene):
 
         splitted_line = line.split("\t")
         hgnc_id = splitted_line[0].replace("HGNC:", "")
-        gene_dict[hgnc_id] = splitted_line[1]
+        gene_dict[hgnc_id] = splitted_line[1].upper()
 
     file.close()
     pickle.dump(gene_dict, open(hgnc_2_gene, "wb"))
 
+    print("Gene symbol to HGNC mapping successfully generated and saved as %s" % (hgnc_2_gene))
+
 
 # wget https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.gz
 # wget https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
-def create_string_db_graph(string_mapping, string_db_links, string_interactions):
+def create_gene2interacting_mapping(string_mapping, string_db_links, string_interactions):
     string_mapping_file = gzip.open(string_mapping, "rt")
     string2name = dict()
 
@@ -247,7 +246,7 @@ def create_string_db_graph(string_mapping, string_db_links, string_interactions)
         if line.startswith("#") or (line == "\n"):
             continue
         splitted_line = line.replace("\n", "").split("\t")
-        string2name[splitted_line[2]] = splitted_line[1]
+        string2name[splitted_line[2]] = splitted_line[1].upper()
 
     string_mapping_file.close()
 
@@ -274,6 +273,8 @@ def create_string_db_graph(string_mapping, string_db_links, string_interactions)
     string_links_file.close()
     pickle.dump(string_interaction_mapping, open(string_interactions, "wb"))
 
+    print("Gene to interacting gene mapping successfully generated and saved as %s" % (string_interactions))
+
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser("Script to generate the HPO resources needed in the prioritization step of AIdiva")
@@ -285,9 +286,13 @@ if __name__=="__main__":
     parser.add_argument("--hpo_graph", type=str, dest="hpo_graph", metavar="hpo_graph.pkl", required=True, help="File to save the generated hpo graph\n")
     parser.add_argument("--hgnc_symbols", type=str, dest="hgnc_symbols", metavar="hgnc_approved_symbols.txt", required=True, help="File containing the approved hgnc genes and their previous gene symbols if there are any\n")
     parser.add_argument("--hgnc_gene", type=str, dest="hgnc_gene", metavar="hgnc2gene.pkl", required=True, help="File to save the generated hgnc to gene mapping\n")
+    parser.add_argument("--string_links", type=str, dest="string_links", metavar="9606.protein.links.detailed.v11.0.txt.gz", required=True, help="File with the protein relations found in the STRING database\n")
+    parser.add_argument("--string_mapping", type=str, dest="string_mapping", metavar="human.name_2_string.tsv.gz", required=True, help="File with mapping of string ids to gene symbols\n")
+    parser.add_argument("--gene_interacting", type=str, dest="gene_interacting", metavar="gene2interacting.pkl", required=True, help="File to save the generated gene to interacting genes mapping\n")
     args = parser.parse_args()
 
     generate_gene2hpo_dict(args.gene_phenotype, args.gene_hpo)
     extract_hpo_graph_edges(args.hpo_ontology, args.hpo_edges)
     generate_hpo_graph(args.hpo_counts, args.hpo_edges, args.hpo_graph)
-    create_gene2hgnc_mapping_file(args.hgnc_symbols, args.hgnc_gene)
+    create_gene2hgnc_mapping(args.hgnc_symbols, args.hgnc_gene)
+    create_gene2interacting_mapping(args.string_mapping, args.string_links, args.gene_interacting)

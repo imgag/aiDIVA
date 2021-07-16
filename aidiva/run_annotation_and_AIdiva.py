@@ -83,6 +83,8 @@ if __name__=="__main__":
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
 
+    # TODO: make it work if only InDel or only SNP variants are given
+
     # convert splitted input data to vcf and annotate
     input_file = os.path.splitext(input_vcf)[0]
     input_filename = os.path.basename(input_file)
@@ -98,7 +100,7 @@ if __name__=="__main__":
 
     # convert input vcf to pandas dataframe
     split_vcf.split_vcf_file_in_indel_and_snps_set(str(working_directory + input_filename + "_filtered.vcf"), str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_indel.vcf"))
-    expand_indels_and_create_vcf.convert_csv_to_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_expanded.vcf"), ref_path)
+    expand_indels_and_create_vcf.convert_indel_vcf_to_expanded_indel_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_expanded.vcf"), ref_path)
 
     # Annotation with VEP
     print("Starting VEP annotation...")
@@ -112,9 +114,13 @@ if __name__=="__main__":
     annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), vep_annotation_dict, num_cores)
     annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), vep_annotation_dict, num_cores)
 
+    # Filter low confidence regions
+    annotate.filter_regions(str(working_directory + input_filename + "_snp_vep_annotated.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_filtered.vcf"), vep_annotation_dict)
+    annotate.filter_regions(str(working_directory + input_filename + "_indel_vep.vcf"), str(working_directory + input_filename + "_indel_vep_filtered.vcf"), vep_annotation_dict)
+
     # convert annotated vcfs back to pandas dataframes
-    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snp_vep_annotated.vcf"), False, num_cores)
-    input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_vep.vcf"), True, num_cores)
+    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snp_vep_annotated_filtered.vcf"), False, num_cores)
+    input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_vep_filtered.vcf"), True, num_cores)
     input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), True, num_cores)
 
     # combine the two indel sets

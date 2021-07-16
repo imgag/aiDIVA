@@ -9,14 +9,14 @@ import pickle
 import numpy as np
 
 
-#idea is :
+# idea is :
 # for each query HPO calculate all distances
 # store them in a dict with HPOs as keys
 # value is the minimum value of distance on the query HPOs
 # So than for the list of genes it"s enough to
 # collect the values at columns names
 # and if missing set "1"
-#cover cases where no HPO from Query
+# cover cases where no HPO from Query
 # or no HPO provided, or no HPO
 # associated with the gene
 def list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances):

@@ -39,26 +39,27 @@ Analysis-Input:
         cadd-identifier: CADD_PHRED
         repeat-identifier: simpleRepeat
         duplication-identifier: segmentDuplication
+        low-conf-region-identifier: lowConfRegion
 
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these) if not wanted use a empty list "[]" instead
-    allele-frequency-list:
-        - gnomAD_AFR_AF
-        - gnomAD_AMR_AF
-        - gnomAD_ASJ_AF
-        - gnomAD_EAS_AF
-        - gnomAD_FIN_AF
-        - gnomAD_NFE_AF
-        - gnomAD_OTH_AF
-        - gnomAD_SAS_AF
-        - AA_AF
-        - EA_AF
-        - AFR_AF
-        - AMR_AF
-        - EAS_AF
-        - EUR_AF
-        - SAS_AF
+    allele-frequency-list: []
+        #- gnomAD_AFR_AF
+        #- gnomAD_AMR_AF
+        #- gnomAD_ASJ_AF
+        #- gnomAD_EAS_AF
+        #- gnomAD_FIN_AF
+        #- gnomAD_NFE_AF
+        #- gnomAD_OTH_AF
+        #- gnomAD_SAS_AF
+        #- AA_AF
+        #- EA_AF
+        #- AFR_AF
+        #- AMR_AF
+        #- EAS_AF
+        #- EUR_AF
+        #- SAS_AF
 
     # List containing the names of the features used for the model training
     feature-list:
@@ -81,6 +82,7 @@ Model-Features:
         - phyloP46vertebrate
         - homAF
         - oe_lof
+        - CAPICE
 
 VEP-Annotation:
     # Flag indicating whether to annotate the input data with VEP or not, if False then AIdiva assumes that the data is already annotated
@@ -137,7 +139,7 @@ VEP-Annotation:
             CONDEL:
                 file: Condel/hg19_precomputed_Condel.vcf.gz
                 method: exact
-                prefix: fannsdb
+                prefix: custom
             FATHMM_XF:
                 file: fathmm-XF/hg19_fathmm_xf_coding.vcf.gz
                 method: exact
@@ -148,6 +150,10 @@ VEP-Annotation:
                 prefix: custom
             gnomAD:
                 file: gnomAD/gnomAD_genome_r2.1.1.vcf.gz
+                method: exact
+                prefix: custom
+            CAPICE:
+                file: CAPICE/capice_v1_grch37_snvs.vcf.gz
                 method: exact
                 prefix: custom
 

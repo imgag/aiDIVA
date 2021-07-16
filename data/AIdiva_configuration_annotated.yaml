@@ -8,8 +8,8 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: prediction_models/rf_snp_model.pkl
-    scoring-model-indel: prediction_models/rf_inframeIndel_model.pkl
+    scoring-model-snp: prediction_models/clinvar_20201020_snp_rf_model_full_scikit19.pkl
+    scoring-model-indel: prediction_models/clinvar_20201020_inframeIndel_rf_model_full_scikit19.pkl
 
     prioritization-information:
         # List of genes that should be excluded in the analysis, because they are normally false positives
@@ -20,6 +20,7 @@ Analysis-Input:
         cadd-identifier: CADD_PHRED
         repeat-identifier: simpleRepeat
         duplication-identifier: segmentDuplication
+        low-conf-region-identifier: lowConfRegion
 
 
 Model-Features:
@@ -48,9 +49,9 @@ Model-Features:
         - PolyPhen
         - REVEL
         - CADD_PHRED
-        - ABB_SCORE
+        - ABB_SCORE # remove from feature list
         - MAX_AF
-        - segmentDuplication
+        - segmentDuplication # remove from feature list
         - EIGEN_PHRED
         - CONDEL
         - FATHMM_XF
@@ -63,6 +64,7 @@ Model-Features:
         - phyloP46vertebrate
         - oe_lof
         - homAF
+        - CAPICE
 
 
 Analysis-Output:

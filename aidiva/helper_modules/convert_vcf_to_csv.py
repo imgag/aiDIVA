@@ -3,6 +3,7 @@ import numpy as np
 import multiprocessing as mp
 import tempfile
 import argparse
+from functools import partial
 from operator import itemgetter
 
 
@@ -42,66 +43,6 @@ variant_consequences = {"transcript_ablation": 1,
                         "regulatory_region_variant": 34,
                         "feature_truncation": 35,
                         "intergenic_variant": 36}
-
-annotation_header = None
-indel_set = False
-sample_ids = []
-
-
-
-def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snps, filepath_indel):
-    vcf_file_to_reformat = open(filepath, "r")
-    outfile_snps = open(filepath_snps, "w")
-    outfile_indel = open(filepath_indel, "w")
-
-    # make sure that there are no unwanted linebreaks in the variant entries
-    tmp = tempfile.NamedTemporaryFile(mode="w+")
-    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
-    tmp.seek(0)
-
-    # extract header from vcf file
-    indel_ID = 0
-    for line in tmp:
-        splitted_line = line.split("\t")
-        if line.strip().startswith("##"):
-            outfile_snps.write(line)
-            outfile_indel.write(line)
-            continue
-        if line.strip().startswith("#CHROM"):
-            outfile_snps.write(line)
-            outfile_indel.write(line)
-            continue
-
-        # skip empty lines if the VCF file is not correctly formatted (eg. if there are multiple blank lines in the end of the file)
-        if line == "\n":
-            continue
-
-        # remove variants with multiple alternative alleles reported (to make tests for the master thesis easier)
-        # TODO decide how to handle them in general
-        if "," in splitted_line[4]:
-            print("Variant was removed!")
-            print("REASON: Too many alternative alleles reported!")
-            continue
-        else:
-            ref_length = len(splitted_line[3])
-            alt_length = max([len(alt) for alt in splitted_line[4].split(",")])
-
-            if (ref_length == 1) and (alt_length == 1):
-                outfile_snps.write(line)
-            elif (ref_length > 1) or (alt_length > 1):
-                indel_ID += 1
-                if splitted_line[7].endswith("\n"):
-                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID) + "\n"
-                else:
-                    splitted_line[7] = splitted_line[7].replace("\n", "") + ";indel_ID=indel_" + str(indel_ID)
-                outfile_indel.write("\t".join(splitted_line))
-            else:
-                print("Something was not rigtht!")
-
-    vcf_file_to_reformat.close()
-    outfile_snps.close()
-    outfile_indel.close()
-    tmp.close()
 
 
 def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
@@ -147,7 +88,7 @@ def extract_annotation_header(header):
     return annotation_header
 
 
-def extract_columns(cell):
+def extract_columns(cell, process_indel):
     info_fields = str(cell).split(";")
 
     indel_ID = np.nan
@@ -158,12 +99,13 @@ def extract_columns(cell):
     gnomAD_hom = np.nan
     gnomAD_an = np.nan
     gnomAD_homAF = np.nan
+    capice = np.nan
     annotation = ""
 
     for field in info_fields:
-        if indel_set:
-            if field.startswith("indel_ID"):
-                indel_ID = field.split("indel_ID=")[1]
+        if process_indel:
+            if field.startswith("INDEL_ID"):
+                indel_ID = field.split("INDEL_ID=")[1]
         if field.startswith("CSQ="):
             annotation = field.split("CSQ=")[1]
         if field.startswith("FATHMM_XF="):
@@ -184,14 +126,17 @@ def extract_columns(cell):
         if field.startswith("gnomAD_AN"):
             if field.split("gnomAD_AN=")[1] != "nan":
                 gnomAD_an = float(field.split("gnomAD_AN=")[1])
+        if field.startswith("CAPICE"):
+            if field.split("CAPICE=")[1] != "nan":
+                capice = float(field.split("CAPICE=")[1])
 
     if (gnomAD_hom > 0.0) and (gnomAD_an > 0.0):
         gnomAD_homAF = gnomAD_hom / gnomAD_an
 
-    if indel_set:
-        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
+    if process_indel:
+        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice]
     else:
-       extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF]
+       extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice]
 
     return extracted_columns
 
@@ -224,6 +169,7 @@ def extract_sample_information(row, sample):
         num_missing_entries = abs(len(sample_header) - len(sample_fields))
         for i in range(num_missing_entries):
             sample_fields.append(".")
+
     if "GT" in sample_header:
         sample_gt_information = sample_fields[sample_header.index("GT")]
     else:
@@ -252,6 +198,7 @@ def extract_sample_information(row, sample):
             sample_af_information = 0
         else:
             sample_af_information = (int(sample_alt_information) / divisor)
+
     else:
         sample_af_information = "."
 
@@ -260,25 +207,25 @@ def extract_sample_information(row, sample):
     return sample_information
 
 
-def add_INFO_fields_to_dataframe(vcf_as_dataframe,):
-    if indel_set:
-        vcf_as_dataframe[["indel_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+def add_INFO_fields_to_dataframe(process_indel, vcf_as_dataframe):
+    if process_indel:
+        vcf_as_dataframe[["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
     else:
-        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF"]] = vcf_as_dataframe.INFO.apply(lambda x: pd.Series(extract_columns(x)))
+        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
     return vcf_as_dataframe
 
 
-def add_VEP_annotation_to_dataframe(vcf_as_dataframe):
+def add_VEP_annotation_to_dataframe(annotation_header, vcf_as_dataframe):
     vcf_as_dataframe[annotation_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)), axis=1)
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
 
     return vcf_as_dataframe
 
 
-def add_sample_information_to_dataframe(vcf_as_dataframe):
+def add_sample_information_to_dataframe(sample_ids, vcf_as_dataframe):
     for sample in sample_ids:
         vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
         sample_header = ["GT." + sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
@@ -293,25 +240,21 @@ def add_sample_information_to_dataframe(vcf_as_dataframe):
 def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 
-    global sample_ids
     sample_ids = []
     # FORMAT column has index 8 (counted from 0) and sample columns follow afterwards (sample names are unique)
+    ## TODO: add condition to check if FORMAT column exists
     for i in range(9, len(vcf_as_dataframe.columns)):
         sample_ids.append(vcf_as_dataframe.columns[i])
 
-    global annotation_header
     annotation_header = extract_annotation_header(header)
 
-    global indel_set
-    indel_set = process_indel
-
     if not vcf_as_dataframe.empty:
-        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_INFO_fields_to_dataframe, num_cores)
-        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_VEP_annotation_to_dataframe, num_cores)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_INFO_fields_to_dataframe, process_indel), num_cores)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_VEP_annotation_to_dataframe, annotation_header), num_cores)
 
         if len(vcf_as_dataframe.columns) > 8:
             if "FORMAT" in vcf_as_dataframe.columns:
-                vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, add_sample_information_to_dataframe, num_cores)
+                vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_sample_information_to_dataframe, sample_ids), num_cores)
             else:
                 # This warning is always triggered when the expanded indel vcf file is processed. If it is only triggered once in this case it can be ignored.
                 print("WARNING: It seems that your VCF file does contain sample information but not FORMAT description!")
@@ -334,10 +277,12 @@ def parallelize_dataframe_processing(vcf_as_dataframe, function, num_cores):
     else:
         dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
 
-    pool = mp.Pool(num_cores)
-    vcf_as_dataframe = pd.concat(pool.map(function, dataframe_splitted))
-    pool.close()
-    pool.join()
+    try:
+        pool = mp.Pool(num_cores)
+        vcf_as_dataframe = pd.concat(pool.map(function, dataframe_splitted))
+    finally:
+        pool.close()
+        pool.join()
 
     return vcf_as_dataframe
 
@@ -351,8 +296,13 @@ if __name__ == "__main__":
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="VCF file to convert file\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the converted VCF file\n")
     parser.add_argument("--indel", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of indel variants or not.\n")
-    parser.add_argument("--threads", type=int, dest="threads", metavar="1", nargs="?", const=1, required=True, help="Number of threads to use.")
+    parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use.")
     args = parser.parse_args()
 
-    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.threads)
+    if args.threads is not None:
+        num_cores = int(args.threads)
+    else:
+        num_cores = 1
+
+    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, num_cores)
     write_vcf_to_csv(vcf_as_dataframe, args.out_data)
