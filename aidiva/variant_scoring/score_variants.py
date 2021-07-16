@@ -159,8 +159,8 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     predicted_data = predict_pathogenicity(rf_model, prepared_input_data, input_features)
 
     # frameshift variants are not covered in the used model, set them to 0.9 (1.0 is too high)
-    #predicted_data.loc[((abs(predicted_data["REF"].str.len() - predicted_data["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = 0.9
-    predicted_data.loc[(predicted_data["Consequence"].str.contains("frameshift")), "AIDIVA_SCORE"] = 0.9
+    predicted_data.loc[((abs(predicted_data["REF"].str.len() - predicted_data["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = 0.9
+    #predicted_data.loc[(predicted_data["Consequence"].str.contains("frameshift")), "AIDIVA_SCORE"] = 0.9
 
     # set splicing donor/acceptor variants to NaN if not additionally a supported consequence is reported for the variant 
     # add filter for splice_region variants

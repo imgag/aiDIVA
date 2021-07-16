@@ -38,7 +38,7 @@ repeat_identifier = "simpleRepeat"
 low_conf_region_identifier = "lowConfRegion"
 
 
-def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_file=None, fam_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
+def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     # load HPO resources
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo.pkl"
     hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.pkl"
@@ -105,7 +105,6 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
             print("The specified family file %s is not a valid file" % (family_file))
             print("Skip inheritance assessment!")
 
-    family_type = fam_type
     variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances), num_cores)
     variant_data = variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False])
     variant_data = variant_data.reset_index(drop=True)
@@ -395,24 +394,24 @@ def check_filters(variant, genes2exclude, HPO_query):
 
         return filter_passed, filter_comment
 
-    # exclude gene, if it is on the exclusion list
+    # exclude gene, if it is in the exclusion list
     if len(genes2exclude & genenames) > 0:
         for gene in genenames:
-            # let variants with a high AIDIVA_SCORE (>=0.8) pass
+            # let variants with a high AIDIVA_SCORE (>=0.8) pass to be more sensitive
             if (gene.upper() in genes2exclude) and (float(variant["AIDIVA_SCORE"]) < 0.8):
                 filter_passed = 0 # gene in exclusion list
                 filter_comment = "gene exclusion"
 
                 return filter_passed, filter_comment
 
-    ## TODO: change second condition to FINAL_AIDIVA_SCORE and use 0.7 as a threshold
+    # let variants with a high AIDIVA_SCORE (>=0.8) pass to be more sensitive
     if (repeat != "NA") and (repeat != "") and (repeat != "nan") and (float(variant["AIDIVA_SCORE"]) < 0.8):
         filter_passed = 0 # tandem repeat
         filter_comment = "tandem repeat"
 
         return filter_passed, filter_comment
     
-    ## TODO: change second condition to FINAL_AIDIVA_SCORE and use 0.7 as a threshold
+    # let variants with a high AIDIVA_SCORE (>=0.8) pass to be more sensitive
     if (seg_dup > 0) and (float(variant["AIDIVA_SCORE"]) < 0.8):
         filter_passed = 0 # segmental duplication
         filter_comment = "segmental duplication"

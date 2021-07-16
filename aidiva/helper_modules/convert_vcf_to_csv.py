@@ -198,7 +198,7 @@ def extract_sample_information(row, sample):
             sample_af_information = 0
         else:
             sample_af_information = (int(sample_alt_information) / divisor)
-            
+
     else:
         sample_af_information = "."
 
@@ -296,8 +296,13 @@ if __name__ == "__main__":
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="VCF file to convert file\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the converted VCF file\n")
     parser.add_argument("--indel", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of indel variants or not.\n")
-    parser.add_argument("--threads", type=int, dest="threads", metavar="1", nargs="?", const=1, required=True, help="Number of threads to use.")
+    parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use.")
     args = parser.parse_args()
 
-    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.threads)
+    if args.threads is not None:
+        num_cores = int(args.threads)
+    else:
+        num_cores = 1
+
+    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, num_cores)
     write_vcf_to_csv(vcf_as_dataframe, args.out_data)

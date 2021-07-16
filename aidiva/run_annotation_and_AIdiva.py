@@ -83,6 +83,8 @@ if __name__=="__main__":
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
 
+    # TODO: make it work if only InDel or only SNP variants are given
+
     # convert splitted input data to vcf and annotate
     input_file = os.path.splitext(input_vcf)[0]
     input_filename = os.path.basename(input_file)

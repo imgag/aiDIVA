@@ -75,15 +75,21 @@ def write_vcf_to_csv(vcf_combined_as_dataframe, out_file):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="VCF file to convert\n")
-    parser.add_argument("--in_data_expanded", type=str, dest="in_data_expanded", metavar="input_expanded.vcf", required=True, help="Expanded VCF file to convert\n")
+    parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="InDel VCF file to convert\n")
+    parser.add_argument("--in_data_expanded", type=str, dest="in_data_expanded", metavar="input_expanded.vcf", required=True, help="Expanded InDel VCF file\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the combined converted VCF files\n")
-    parser.add_argument("--feature_list", type=str, dest="feature_list", metavar="feature1,feature2,feature3", required=True, help="Comma separated list with the names of the previously annotated features")
+    parser.add_argument("--feature_list", type=str, dest="feature_list", metavar="feature1,feature2,feature3", required=True, help="Comma separated list with the names of the previously annotated features\n")
+    parser.add_argument("--threads", type=str, dest="threads", metavar="1", required=False, help="Number of threads to use\n")
     args = parser.parse_args()
+
+    if args.threads is not None:
+        num_cores = int(args.threads)
+    else:
+        num_cores = 1
 
     vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data)
     expanded_vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data_expanded)
 
     feature_list = args.feature_list.split(",")
-    vcf_combined_as_dataframe = parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list, 1)
+    vcf_combined_as_dataframe = parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list, num_cores)
     write_vcf_to_csv(vcf_combined_as_dataframe, args.out_data)

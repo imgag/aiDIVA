@@ -81,15 +81,13 @@ if __name__=="__main__":
     input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True, num_cores)
     input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True, num_cores)
 
-    ## TODO: handle the situation if one or more (but not all) of the input dataframes are empty
-    ## TODO: make it work if only InDel or only SNP variants are given
+    # TODO: make it work if only InDel or only SNP variants are given
     if (not input_data_snp.empty) and (not input_data_indel.empty) and (not input_data_expanded_indel.empty):
         print("Combine InDel variants ...")
         input_data_combined_indel = combine_expanded_indels.parallelized_indel_combination(input_data_indel, input_data_expanded_indel, feature_list, num_cores)
 
         # predict pathogenicity score
         print("Score variants ...")
-        #predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp, input_data_combined_indel, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, num_cores)
         predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp, allele_frequency_list, feature_list, num_cores)
         predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_combined_indel, allele_frequency_list, feature_list, num_cores)
 
@@ -108,6 +106,6 @@ if __name__=="__main__":
         prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_filtered.tsv"), sep="\t", index=False)
         print("Pipeline successfully finsished!")
     else:
-        write_result.write_result_vcf(input_data_snp, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
-        write_result.write_result_vcf(input_data_snp, str(working_directory + output_filename + "_filtered.vcf"), bool(family_type == "SINGLE"))
+        write_result.write_result_vcf(pd.DataFrame(), str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
+        write_result.write_result_vcf(pd.DataFrame(), str(working_directory + output_filename + "_filtered.vcf"), bool(family_type == "SINGLE"))
         print("ERROR: The given input files were empty!")
