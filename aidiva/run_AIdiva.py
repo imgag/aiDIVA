@@ -87,9 +87,6 @@ if __name__=="__main__":
         family_file = None
         family_type = "SINGLE"
 
-    logger.debug("Analysis type: %s" % family_type)
-    logger.debug("Family file: %s" % family_file)
-
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
 
