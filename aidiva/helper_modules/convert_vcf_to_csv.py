@@ -5,6 +5,7 @@ import tempfile
 import argparse
 from functools import partial
 from operator import itemgetter
+import logging
 
 
 variant_consequences = {"transcript_ablation": 1,
@@ -44,6 +45,8 @@ variant_consequences = {"transcript_ablation": 1,
                         "feature_truncation": 35,
                         "intergenic_variant": 36}
 
+logger = logging.getLogger(__name__)
+
 
 def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     header_line = ""
@@ -68,7 +71,7 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
             continue
 
     if header_line == "":
-        print("ERROR: The VCF file seems to be corrupted")
+        logger.warn("The VCF file seems to be corrupted")
 
     vcf_header = header_line.strip().split("\t")
     vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment="#", low_memory=False)
@@ -86,6 +89,18 @@ def extract_annotation_header(header):
     annotation_header = [entry.strip().replace("\">", "").split(": ")[1].split("|") for entry in header if entry.startswith("##INFO=<ID=CSQ,")][0]
 
     return annotation_header
+
+
+def extract_sample_header(header):
+    sample_header = []
+
+    for line in header:
+        if line.startswith("##SAMPLE=<"):
+            sample_entry = line.strip().replace("##SAMPLE=<", "").replace(">", "")
+            sample_id = sample_entry.split(",")[0]
+            sample_header.append(sample_id.split("=")[1])
+
+    return sample_header
 
 
 def extract_columns(cell, process_indel):
@@ -156,53 +171,78 @@ def extract_vep_annotation(cell, annotation_header):
     return new_cols
 
 
-def extract_sample_information(row, sample):
-    sample_header = str(row["FORMAT"]).strip().split(":")
-    sample_fields = str(row[sample + ".full"]).strip().split(":")
+def extract_sample_information(row, sample, sample_header=None):
+    if str(row["FORMAT"]) == "MULTI":
+        if sample_header is not None:
+            sample_dict = {}
+            sample_information = []
+            for sample_entry in row[sample].split(","):
+                splitted_entry = sample_entry.split("=")
+                sample_dict[splitted_entry[0]] = splitted_entry[1]
+            
+            for sample_id in sample_header:
+                splitted_sample_information = sample_dict[sample_id].split("|")
+                if splitted_sample_information[0] == "wt":
+                    sample_information.append("0/0")
+                elif splitted_sample_information[0] == "hom":
+                    sample_information.append("1/1")
+                elif splitted_sample_information[0] == "het":
+                    sample_information.append("0/1")
+                else:
+                    logger.warning("Genotype not recognized! (%s)" % (splitted_sample_information[0]))
 
-    if len(sample_header) != len(sample_fields):
-        num_missing_entries = abs(len(sample_header) - len(sample_fields))
-        for i in range(num_missing_entries):
-            sample_fields.append(".")
-
-    if len(sample_header) != len(sample_fields):
-        num_missing_entries = abs(len(sample_header) - len(sample_fields))
-        for i in range(num_missing_entries):
-            sample_fields.append(".")
-
-    if "GT" in sample_header:
-        sample_gt_information = sample_fields[sample_header.index("GT")]
-    else:
-        sample_gt_information = "./."
-
-    if "DP" in sample_header:
-        sample_dp_information = sample_fields[sample_header.index("DP")]
-    else:
-        sample_dp_information = "."
-
-    if "AD" in sample_header:
-        sample_ref_information = sample_fields[sample_header.index("AD")].split(",")[0]
-        sample_alt_information = sample_fields[sample_header.index("AD")].split(",")[1]
-    else:
-        sample_ref_information = "."
-        sample_alt_information = "."
-
-    if "GQ" in sample_header:
-        sample_gq_information = sample_fields[sample_header.index("GQ")]
-    else:
-        sample_gq_information = "."
-
-    if (sample_ref_information != ".") and (sample_alt_information != "."):
-        divisor = (int(sample_ref_information) + int(sample_alt_information))
-        if divisor == 0:
-            sample_af_information = 0
+                sample_information.append(splitted_sample_information[1])
+                sample_information.append(splitted_sample_information[2])
+                sample_information.append(sample_id + "=" + sample_dict[sample_id])
         else:
-            sample_af_information = (int(sample_alt_information) / divisor)
-
+            logger.error("Format is MULTI but no sample_header is given!")
     else:
-        sample_af_information = "."
+        format_entries = str(row["FORMAT"]).strip().split(":")
+        sample_fields = str(row[sample + ".full"]).strip().split(":")
 
-    sample_information = [sample_gt_information, sample_dp_information, sample_ref_information, sample_alt_information, sample_af_information, sample_gq_information]
+        if len(format_entries) != len(sample_fields):
+            num_missing_entries = abs(len(format_entries) - len(sample_fields))
+            for i in range(num_missing_entries):
+                sample_fields.append(".")
+
+        if len(format_entries) != len(sample_fields):
+            num_missing_entries = abs(len(format_entries) - len(sample_fields))
+            for i in range(num_missing_entries):
+                sample_fields.append(".")
+
+        if "GT" in format_entries:
+            sample_gt_information = sample_fields[format_entries.index("GT")]
+        else:
+            sample_gt_information = "./."
+
+        if "DP" in format_entries:
+            sample_dp_information = sample_fields[format_entries.index("DP")]
+        else:
+            sample_dp_information = "."
+
+        if "AD" in format_entries:
+            sample_ref_information = sample_fields[format_entries.index("AD")].split(",")[0]
+            sample_alt_information = sample_fields[format_entries.index("AD")].split(",")[1]
+        else:
+            sample_ref_information = "."
+            sample_alt_information = "."
+
+        if "GQ" in format_entries:
+            sample_gq_information = sample_fields[format_entries.index("GQ")]
+        else:
+            sample_gq_information = "."
+
+        if (sample_ref_information != ".") and (sample_alt_information != "."):
+            divisor = (int(sample_ref_information) + int(sample_alt_information))
+            if divisor == 0:
+                sample_af_information = 0
+            else:
+                sample_af_information = (int(sample_alt_information) / divisor)
+
+        else:
+            sample_af_information = "."
+
+        sample_information = [sample_gt_information, sample_dp_information, sample_ref_information, sample_alt_information, sample_af_information, sample_gq_information]
 
     return sample_information
 
@@ -225,12 +265,21 @@ def add_VEP_annotation_to_dataframe(annotation_header, vcf_as_dataframe):
     return vcf_as_dataframe
 
 
-def add_sample_information_to_dataframe(sample_ids, vcf_as_dataframe):
+def add_sample_information_to_dataframe(sample_ids, sample_header, vcf_as_dataframe):
     for sample in sample_ids:
-        vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
-        sample_header = ["GT." + sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
-        vcf_as_dataframe[sample_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample)), axis=1)
-        vcf_as_dataframe = vcf_as_dataframe.drop(columns=[sample + ".full"])
+        if (sample == "trio") or (sample == "multi"):
+            sample_header_multi = []
+            for sample_id in sample_header:
+                sample_header_multi.append("GT." + sample_id)
+                sample_header_multi.append("DP." + sample_id)
+                sample_header_multi.append("ALT." + sample_id)
+                sample_header_multi.append(sample_id + ".full")
+            vcf_as_dataframe[sample_header_multi] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample, sample_header)), axis=1)
+        else:
+            vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
+            sample_header_default = ["GT." + sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
+            vcf_as_dataframe[sample_header_default] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample)), axis=1)
+            vcf_as_dataframe = vcf_as_dataframe.drop(columns=[sample + ".full"])
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["FORMAT"])
 
@@ -240,6 +289,8 @@ def add_sample_information_to_dataframe(sample_ids, vcf_as_dataframe):
 def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 
+    logger.info("Convert")
+
     sample_ids = []
     # FORMAT column has index 8 (counted from 0) and sample columns follow afterwards (sample names are unique)
     ## TODO: add condition to check if FORMAT column exists
@@ -247,6 +298,7 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
         sample_ids.append(vcf_as_dataframe.columns[i])
 
     annotation_header = extract_annotation_header(header)
+    sample_header = extract_sample_header(header)
 
     if not vcf_as_dataframe.empty:
         vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_INFO_fields_to_dataframe, process_indel), num_cores)
@@ -254,17 +306,17 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
 
         if len(vcf_as_dataframe.columns) > 8:
             if "FORMAT" in vcf_as_dataframe.columns:
-                vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_sample_information_to_dataframe, sample_ids), num_cores)
+                vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_sample_information_to_dataframe, sample_ids, sample_header), num_cores)
             else:
                 # This warning is always triggered when the expanded indel vcf file is processed. If it is only triggered once in this case it can be ignored.
-                print("WARNING: It seems that your VCF file does contain sample information but not FORMAT description!")
+                logger.warn("It seems that your VCF file does contain sample information but no FORMAT description!")
         else:
-            print("MISSING SAMPLE INFORMATION!")
+            logger.error("MISSING SAMPLE INFORMATION!")
 
         # replace empty strings or only spaces with NaN
         vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True)
     else:
-        print("WARNING: The given VCF file is empty!")
+        logger.error("The given VCF file is empty!")
 
     return vcf_as_dataframe
 

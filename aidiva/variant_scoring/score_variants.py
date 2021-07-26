@@ -8,6 +8,7 @@ import multiprocessing as mp
 import argparse
 import pickle
 from functools import partial
+import logging
 
 
 mean_dict = {"phastCons46mammal": 0.09691308336428194,
@@ -53,6 +54,8 @@ supported_coding_variants = ["stop_gained",
 
 random_seed = 14038
 
+logger = logging.getLogger(__name__)
+
 
 def import_model(model_file):
     model_to_import = open(model_file, "rb")
@@ -83,7 +86,7 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
                 input_data[allele_frequency] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
             input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
         else:
-            print("ERROR: Empty allele frequency list was given!")
+            logger.error("Empty allele frequency list was given!")
 
     for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):

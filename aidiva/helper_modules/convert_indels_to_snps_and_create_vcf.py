@@ -3,6 +3,10 @@ import numpy as np
 import argparse
 import random
 from Bio import SeqIO
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def write_data_information_to_file(input_data, outfile, ref_sequence, header):
@@ -36,10 +40,10 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                 elif (extended_ref_seq[i] == "G") or (extended_ref_seq[i] == "C"):
                     alt_variant = random.choice(["A", "T"])
                 elif (extended_ref_seq[i] == "N"):
-                    print("WARNING: Reference base skipped since it was N!")
+                    logger.warn("Reference base was skipped because it was 'N'!")
                     continue
                 else:
-                    print("ERROR: Something went wrong!")
+                    logger.error("The given reference sequence seems to be corrupted!")
 
                 outfile.write(str(row.CHROM).strip() + "\t" + str(window_start + i + 1).strip() + "\t" + "." + "\t" + str(extended_ref_seq[i]).strip() + "\t" + str(alt_variant).strip() + "\t" + "." + "\t" + "." + "\t" + str(row.INFO).strip() + "\n")
 
@@ -62,7 +66,7 @@ def import_vcf_data(in_data):
             continue
 
     if header_line == "":
-        print("ERROR: The VCF file seems to be corrupted")
+        logger.error("The VCF seems to be corrupted, missing header line!")
 
     # reset file pointer to begin reading at the beginning
     input_vcf.close()

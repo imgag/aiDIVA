@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
 import argparse
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def write_header(out_file, single):

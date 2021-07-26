@@ -10,6 +10,7 @@ import helper_modules.convert_vcf_to_csv as convert_vcf
 import variant_scoring.score_variants as predict
 import variant_prioritization.prioritize_variants as prio
 import yaml
+import logging
 
 
 if __name__=="__main__":
@@ -21,10 +22,23 @@ if __name__=="__main__":
     parser.add_argument("--workdir", type=str, dest="workdir", metavar="workdir/", required=True, help="Path to the working directory (here all results are saved) [required]")
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient")
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion", metavar="gene_exclusion.txt", required=False, help="Tab separated file containing the genes to exclude in the analysis. Genes are assumed to be in the first column.")
-    parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient")
+    parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the sample relations of the current data")
+    parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="In case of multisample data the kind of sample relation [SINGLE, TRIO, MULTI]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use (default: 1)")
     args = parser.parse_args()
+    
+    # set up logger
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    logging.basicConfig(filename=str(args.workdir + "/" + args.out_prefix + "_aidiva_" + timestamp + ".log"),
+                            filemode='a',
+                            format='%(asctime)s -- %(name)s - %(levelname)s - %(message)s',
+                            datefmt='%H:%M:%S',
+                            level=logging.DEBUG)
+    logger = logging.getLogger()
+    logger.info("Running AIdiva on annotated data")
+    logger.info("Start program")
+
 
     if args.threads is not None:
         num_cores = int(args.threads)
@@ -73,6 +87,9 @@ if __name__=="__main__":
         family_file = None
         family_type = "SINGLE"
 
+    logger.debug("Analysis type: %s" % family_type)
+    logger.debug("Family file: %s" % family_file)
+
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
 
@@ -83,11 +100,11 @@ if __name__=="__main__":
 
     # TODO: make it work if only InDel or only SNP variants are given
     if (not input_data_snp.empty) and (not input_data_indel.empty) and (not input_data_expanded_indel.empty):
-        print("Combine InDel variants ...")
+        logger.info("Combine InDel variants ...")
         input_data_combined_indel = combine_expanded_indels.parallelized_indel_combination(input_data_indel, input_data_expanded_indel, feature_list, num_cores)
 
         # predict pathogenicity score
-        print("Score variants ...")
+        logger.info("Score variants ...")
         predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp, allele_frequency_list, feature_list, num_cores)
         predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_combined_indel, allele_frequency_list, feature_list, num_cores)
 
@@ -97,15 +114,15 @@ if __name__=="__main__":
         predicted_data = predicted_data[predicted_data_snp.columns]
 
         # prioritize and filter variants
-        print("Prioritize variants and finalize score ...")
+        logger.info("Prioritize variants and finalize score ...")
         prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, num_cores, family_file, family_type, hpo_file, gene_exclusion_file)
 
         write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
         write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + output_filename + "_filtered.vcf"), bool(family_type == "SINGLE"))
         prioritized_data.to_csv(str(working_directory + output_filename + ".tsv"), sep="\t", index=False)
         prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_filtered.tsv"), sep="\t", index=False)
-        print("Pipeline successfully finsished!")
+        logger.info("Pipeline successfully finsished!")
     else:
         write_result.write_result_vcf(pd.DataFrame(), str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
         write_result.write_result_vcf(pd.DataFrame(), str(working_directory + output_filename + "_filtered.vcf"), bool(family_type == "SINGLE"))
-        print("ERROR: The given input files were empty!")
+        logger.warn("The given input files were empty!")

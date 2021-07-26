@@ -91,7 +91,7 @@ def extract_hpo_graph_edges(hpo_ontology, hpo_edges_file):
 # awk -F '\t'  '{print $5}' < phenotype_annotation.tab | sort  | uniq -c | awk '{print $2 "\t" $1}' > HPO_counts.txt
 def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
     print("Generate HPO graph...")
-    offset =1000 # penalization for the distance
+    offset = 1000 # penalization for the distance
     # idea is a graph with attribute the IC value per node calculated
     output = hpo_graph_file # contains the nodes and edges to import in a DiGraph
 

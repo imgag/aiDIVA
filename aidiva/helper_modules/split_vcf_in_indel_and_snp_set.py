@@ -3,6 +3,10 @@ import numpy as np
 import tempfile
 import argparse
 import gzip
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel):
@@ -38,8 +42,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
         # remove variants with multiple alternative alleles reported
         # TODO decide how to handle them in general
         if "," in splitted_line[4]:
-            print("Variant was removed!")
-            print("REASON: Too many alternative alleles reported!")
+            logger.warn("Processed variant was removed, too many alternative alleles reported!")
             continue
         else:
             ref_length = len(splitted_line[3])
@@ -55,7 +58,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
                     splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID)
                 outfile_indel.write("\t".join(splitted_line))
             else:
-                print("Something was not rigtht!")
+                logger.critical("Something bad happened!")
 
     vcf_file_to_reformat.close()
     outfile_snps.close()

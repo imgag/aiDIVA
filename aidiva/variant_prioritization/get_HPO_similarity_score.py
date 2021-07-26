@@ -7,6 +7,10 @@
 import networkx as nx
 import pickle
 import numpy as np
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 # idea is :
@@ -43,7 +47,7 @@ def precompute_query_distances(HPO_graph, HPO_query):
     for hpo_term in HPO_query:
         if hpo_term not in list(HPO_graph.nodes()):
             # missing node (obsolete not updated or just wrong value)
-            print("INFO: %s not in HPO graph!" % hpo_term)
+            logger.warn("%s not in HPO graph!" % hpo_term)
             continue
 
         if str(nx.__version__).startswith("1."):
@@ -51,14 +55,14 @@ def precompute_query_distances(HPO_graph, HPO_query):
         elif str(nx.__version__).startswith("2."):
             hpo_term = HPO_graph.nodes[hpo_term].get("replaced_by", hpo_term)
         else:
-            print("ERROR: There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
+            logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
         ## TODO: compute shortest path lengths for all nodes not only for hpo_term
         computed_distances =  nx.shortest_path_length(HPO_graph, hpo_term, weight="dist")
         
         if not HPO_query_distances:
                 HPO_query_distances = {hpo_id: float(hpo_dist) % offset for (hpo_id, hpo_dist) in computed_distances.items()}
-                print("calc whole dist")
+                logger.info("Calculate distances for HPO query")
         else:
             for hpo_id in computed_distances.keys():
                 if hpo_id in HPO_query_distances.keys():
