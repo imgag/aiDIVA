@@ -5,6 +5,10 @@ import tempfile
 import argparse
 from functools import partial
 from operator import itemgetter
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature):

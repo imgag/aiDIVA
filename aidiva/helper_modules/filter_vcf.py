@@ -1,6 +1,7 @@
 import argparse
 import gzip
 import tempfile
+import logging
 
 
 coding_variants = ["splice_acceptor_variant",
@@ -21,6 +22,8 @@ coding_variants = ["splice_acceptor_variant",
                    "coding_sequence_variant",
                    "5_prime_UTR_variant",
                    "3_prime_UTR_variant"]
+
+logger = logging.getLogger(__name__)
 
 
 def filter_coding_variants(filepath, filepath_out, annotation_field_name):
@@ -60,6 +63,9 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name):
                 outfile.write(line)
                 continue
             elif line.strip().startswith("##FILTER="):
+                outfile.write(line)
+                continue
+            elif line.strip().startswith("##ANALYSISTYPE="):
                 outfile.write(line)
                 continue
             elif line.strip().startswith("##SAMPLE="):
@@ -102,7 +108,8 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name):
                 splitted_line[7] = "."
                 outfile.write("\t".join(splitted_line))
         else:
-            print("WARNING: Annotation field missing!")
+            logger.error("Annotation field missing!")
+            logger.warn("Variant filtering will be skipped!")
 
     vcf_file_to_reformat.close()
     outfile.close()

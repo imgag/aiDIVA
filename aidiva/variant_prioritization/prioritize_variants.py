@@ -8,6 +8,7 @@ import pickle
 import re
 from functools import partial
 from itertools import combinations
+import logging
 
 if not __name__=="__main__":
     from . import get_HPO_similarity_score as gs
@@ -31,6 +32,8 @@ coding_variants = ["splice_acceptor_variant",
                    "coding_sequence_variant",
                    "5_prime_UTR_variant",
                    "3_prime_UTR_variant"]
+
+logger = logging.getLogger(__name__)
 
 cadd_identifier = "CADD_PHRED"
 duplication_identifier = "segmentDuplication"
@@ -68,8 +71,8 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
                     gene = line.rstrip().split("\t")[0].upper()
                     genes2exclude.add(gene)
         else:
-            print("The specified gene exclusion list %s is not a valid file" % (gene_exclusion_file))
-            print("No genes are excluded during filtering!")
+            logger.error("The specified gene exclusion list %s is not a valid file" % (gene_exclusion_file))
+            logger.warn("No genes will be excluded during filtering!")
 
     HPO_query = set()
     HPO_query_distances = 0
@@ -83,8 +86,8 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
             HPO_query.sort() # makes sure that the gene symbols are ordered (could lead to problems otherwise)
             HPO_query_distances = gs.precompute_query_distances(HPO_graph, HPO_query)
         else:
-            print("The specified HPO list %s is not a valid file" % (hpo_list_file))
-            print("Skip HPO score finalization!")
+            logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
+            logger.warn("HPO score finalization will be skipped!")
 
     # read family relationship (from PED file)
     family = dict()
@@ -96,14 +99,14 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
                     splitline = line.split("\t")
 
                     if splitline[5] == "2":
-                       family[splitline[1]] = 1
+                        family[splitline[1]] = 1
                     elif splitline[5] == "1":
-                       family[splitline[1]] = 0
+                        family[splitline[1]] = 0
                     else:
-                       print("ERROR: There is a problem with the given PED file describing the family.")
+                        logger.error("There was a problem with the given PED file describing the family relations.")
         else:
-            print("The specified family file %s is not a valid file" % (family_file))
-            print("Skip inheritance assessment!")
+            logger.error("The specified family file %s is not a valid file" % (family_file))
+            logger.warn("Inheritance assessment will be skipped!")
 
     variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances), num_cores)
     variant_data = variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False])
@@ -157,7 +160,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                 else:
                     pathogenictiy_prediction = np.nan
                 
-                print("INFO: Using dbscSNV prediction instead of AIDIVA prediction for splicing variant!")
+                logger.info("Using dbscSNV prediction instead of AIdiva prediction for splicing variant!")
 
             else:
                 pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])
@@ -185,12 +188,13 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                         gene_HPO_list = gene_2_HPO.get(gene_symbol, [])
 
                     else:
-                        print("INFO: Given gene is not covered!")
+                        logger.warn("The processed gene %s (HGNC:%s) is not found in the current HPO resources" % (variant_gene, hgnc_id))
                         gene_HPO_list = []
 
                 g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
                 gene_distances.append(g_dist)
 
+                # TODO: check with HGNC ID to prevent use of previous gene symbols
                 for interacting_gene in interacting_genes:
                     if (interacting_gene in genes2exclude) and (pathogenictiy_prediction < 0.8):
                         continue
@@ -199,7 +203,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                         gene_HPO_list = gene_2_HPO.get(interacting_gene, [])
 
                     else:
-                        print("INFO: Given interacting gene is not covered!")
+                        logger.warn("The processed interacting gene %s is not found in the current HPO resources" % (interacting_gene))
                         gene_HPO_list = []
 
                     g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
@@ -237,7 +241,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                     ada_score = np.nan
 
                 pathogenictiy_prediction = max([rf_score, ada_score], default=np.nan)
-                print("INFO: Using dbscSNV prediction instead of AIDIVA prediction for splicing variant!")
+                logger.info("Using dbscSNV prediction instead of AIdiva prediction for splicing variant!")
 
         else:
             pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])
@@ -262,12 +266,11 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
         variant_data = pd.concat(variant_data_grouped)
 
     elif family_type == "TRIO":
-        pass # TODO: Fix implementation of trio case and activate functionality
         if not family is None:
             variant_data["COMPOUND"] = 0
             variant_data["DOMINANT_DENOVO"] = variant_data.apply(lambda variant: check_denovo(variant, family), axis=1)
 
-            ## TODO: do we need a check for affected family members?
+            # TODO: do we need a check for affected family members?
             variant_data["DOMINANT"] = variant_data.apply(lambda variant: check_dominant(variant, family), axis=1)
             variant_data["XLINKED"] = variant_data.apply(lambda variant: check_xlinked(variant, family), axis=1)
             variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive(variant, family, family_type), axis=1)
@@ -278,8 +281,8 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
             parent_1 = ""
             parent_2 = ""
 
-            ## TODO: handle the case if affected status is given as unknown
-            ## TODO: change to be less strict and to not rely on unaffected family members
+            # TODO: handle the case if affected status is given as unknown
+            # TODO: change to be less strict and to not rely on unaffected family members
             for name in family.keys():
                 if family[name] == 1:
                     affected_child = name
@@ -291,7 +294,7 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
                         parent_2 = name
                         continue
                     else:
-                        print("Something went wrong!")
+                        logger.error("There was a problem processing the loaded PED file")
 
             if  affected_child and parent_1 and parent_2:
                 for group in variant_data_grouped:
@@ -300,20 +303,22 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
             variant_data = pd.concat(variant_data_grouped)
 
         else:
-            print("ERROR: If family type (TRIO) is used a proper PED file defining the family relations is required")
+            logger.error("If family type (TRIO) is used a proper PED file defining the family relations is required!")
+            logger.warn("Inheritance assessment will be skipped!")
         
-    elif (family_type == "FAMILY") and (family is not None):
-        pass # TODO: Fix implementation of family case and activate functionality
+    elif (family_type == "MULTI") and (family is not None):
         if family is not None:
             variant_data["DOMINANT"] = variant_data.apply(lambda variant: check_dominant(variant, family), axis=1)
             variant_data["XLINKED"] = variant_data.apply(lambda variant: check_xlinked(variant, family), axis=1)
             variant_data["RECESSIVE"] = variant_data.apply(lambda variant: check_recessive(variant, family, family_type), axis=1)
 
         else:
-            print("ERROR: If family type (FAMILY) is used a proper PED file defining the family relations is required")
+            logger.error("If family type (MULTI) is used a proper PED file defining the family relations (if known) is required!")
+            logger.warn("Inheritance assessment will be skipped!")
         
     else:
-        print("ERROR: Unsupported family type (%s) was given!" % family_type)
+        logger.error("Unsupported family type (%s) was given!" % family_type)
+        logger.warn("Inheritance assessment will be skipped!")
 
     variant_columns = variant_data.columns
     variant_data["INHERITANCE"] = variant_data.apply(lambda variant: add_inheritance_mode(variant, variant_columns), axis=1)
@@ -368,7 +373,7 @@ def check_filters(variant, genes2exclude, HPO_query):
     try:
         maf = float(variant["MAX_AF"])
     except Exception as e:
-        print("Allele frequency could not be identified, use 0.0 instead")
+        logger.warn("Allele frequency entry could not be identified, use 0.0 instead")
         maf = 0.0
 
     # filter for low confidence regions (these are regions where often false positives were observed)
@@ -479,8 +484,7 @@ def check_compound(gene_variants, affected_child, parent_1, parent_2):
                     gene_variants.loc[index_pair[1], "COMPOUND"] = 1
 
             if ("." in affected_child_zygosity_a) or ("." in affected_child_zygosity_b):
-                print("WARNING: Skip variant pair, uncalled genotype in affected sample!")
-
+                logger.warn("Skip variant pair, uncalled genotype in affected sample!")
 
 
 def check_compound_single(gene_variants, variant_columns):
@@ -646,7 +650,7 @@ def check_recessive(variant, family, family_type):
             continue
 
         # non-affected individuals might be hom ref, if a family is interrogated
-        elif zygosity == "0/0" and family[name] == 0 and family_type == "FAMILY":
+        elif zygosity == "0/0" and family[name] == 0 and family_type == "MULTI":
             judgement = 1
             continue
 

@@ -2,6 +2,10 @@ import subprocess
 import argparse
 import tempfile
 import os
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, basic=False, expanded=False, num_cores=1):
@@ -70,7 +74,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = vep_command + "--force_overwrite"
 
     subprocess.run(vep_command, shell=True, check=True)
-    print("The annotated VCF is saved as %s" % (output_vcf_file))
+    logger.info("The annotated VCF is saved as %s" % (output_vcf_file))
 
 
 def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annotation_dict, num_cores=1):
@@ -101,7 +105,7 @@ def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annota
     vep_command = vep_command + "--force_overwrite"
 
     subprocess.run(vep_command, shell=True, check=True)
-    print("The annotated VCF is saved as %s" % (output_vcf_file))
+    logger.info("The annotated VCF is saved as %s" % (output_vcf_file))
 
 
 def annotate_from_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, num_cores):

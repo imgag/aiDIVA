@@ -31,6 +31,19 @@ if __name__=="__main__":
     #parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     args = parser.parse_args()
 
+
+    # set up logger
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    logging.basicConfig(filename=str(args.workdir + "/" + args.out_prefix + "_aidiva_" + timestamp + ".log"),
+                            filemode='a',
+                            format='%(asctime)s -- %(name)s - %(levelname)s - %(message)s',
+                            datefmt='%H:%M:%S',
+                            level=logging.DEBUG)
+    logger = logging.getLogger()
+    logger.info("Running AIdiva and annotation with VEP")
+    logger.info("Start program")
+
+
     # parse configuration file
     config_file = open(args.config, "r")
     configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
@@ -92,7 +105,7 @@ if __name__=="__main__":
 
     hpo_resources_folder = os.path.dirname(os.path.abspath(__file__)) + "/../data/hpo_resources/"
 
-    print("Starting VCF preparation...")
+    logger.info("Starting VCF preparation...")
     # sorting and filtering step to remove unsupported variants
     annotate.sort_vcf(input_vcf, str(working_directory + input_filename + "_sorted.vcf"), vep_annotation_dict)
     annotate.annotate_consequence_information(str(working_directory + input_filename + "_sorted.vcf"), str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, num_cores)
@@ -103,14 +116,14 @@ if __name__=="__main__":
     expand_indels_and_create_vcf.convert_indel_vcf_to_expanded_indel_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_expanded.vcf"), ref_path)
 
     # Annotation with VEP
-    print("Starting VEP annotation...")
+    logger.info("Starting VEP annotation...")
     annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_snp_vep.vcf"), vep_annotation_dict, False, False, num_cores)
     annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_vep.vcf"), vep_annotation_dict, True, False, num_cores)
     annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_vep.vcf"), vep_annotation_dict, False, True, num_cores)
 
     # Additional annotation with AnnotateFromVCF (a ngs-bits tool)
     # If VCF is used as output format VEP won't annotate from custom VCF files
-    print("Starting AnnotateFromVCF annotation...")
+    logger.info("Starting AnnotateFromVCF annotation...")
     annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), vep_annotation_dict, num_cores)
     annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), vep_annotation_dict, num_cores)
 
@@ -127,8 +140,7 @@ if __name__=="__main__":
     input_data_indel_combined_annotated = combine_expanded_indels.parallelized_indel_combination(input_data_indel_annotated, input_data_indel_expanded_annotated, feature_list, num_cores)
 
     # predict pathogenicity score
-    print("Score variants...")
-    #predicted_data = predict.perform_pathogenicity_score_prediction(input_data_snp_annotated, input_data_indel_combined_annotated, scoring_model_snp, scoring_model_indel, allele_frequency_list, feature_list, num_cores)
+    logger.info("Score variants...")
     predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp_annotated, allele_frequency_list, feature_list, num_cores)
     predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_indel_combined_annotated, allele_frequency_list, feature_list, num_cores)
 
@@ -138,7 +150,7 @@ if __name__=="__main__":
     predicted_data = predicted_data[predicted_data_snp.columns]
 
     # prioritize and filter variants
-    print("Filter variants and finalize score...")
+    logger.info("Filter variants and finalize score...")
     prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, num_cores, family_file, family_type, hpo_file, gene_exclusion_file)
 
     ## TODO: create additional output files according to the inheritance information (only filtered data)
@@ -146,4 +158,4 @@ if __name__=="__main__":
     write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + input_filename + "_aidiva_result_filtered.vcf"), bool(family_type == "SINGLE"))
     prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.tsv"), sep="\t", index=False)
     prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
-    print("Pipeline successfully finsished!")
+    logger.info("Pipeline successfully finsished!")
