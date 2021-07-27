@@ -266,6 +266,7 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
         variant_data = pd.concat(variant_data_grouped)
 
     elif family_type == "TRIO":
+        # TODO: Fix implementation of trio case and activate functionality
         if not family is None:
             variant_data["COMPOUND"] = 0
             variant_data["DOMINANT_DENOVO"] = variant_data.apply(lambda variant: check_denovo(variant, family), axis=1)
