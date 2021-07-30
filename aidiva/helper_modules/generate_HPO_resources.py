@@ -7,7 +7,7 @@ import pickle
 
 # get mapping gene -> HPOs
 # download from HPO charite phenotype to gene
-# wget http://compbio.charite.de/jenkins/job/hpo.annotations/lastStableBuild/artifact/util/annotation/phenotype_to_genes.txt
+# wget http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt
 def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
     print("Generate gene to HPO mapping...")
     gene_2_HPO = dict()
@@ -31,7 +31,7 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
 
 
 # download data
-# wget https://raw.githubusercontent.com/obophenotype/human-phenotype-ontology/master/hp.obo
+# wget http://purl.obolibrary.org/obo/hp.obo
 def extract_hpo_graph_edges(hpo_ontology, hpo_edges_file):
     print("Extract HPO edges...")
     out_HPO = dict()
@@ -87,7 +87,7 @@ def extract_hpo_graph_edges(hpo_ontology, hpo_edges_file):
     print("HPO edges successfully extracted and saved as %s" % (hpo_edges_file))
 
 
-# counts as wget http://compbio.charite.de/jenkins/job/hpo.annotations/lastStableBuild/artifact/misc/phenotype_annotation.tab
+# counts as wget http://purl.obolibrary.org/obo/hp/hpoa/phenotype_annotation.tab
 # awk -F '\t'  '{print $5}' < phenotype_annotation.tab | sort  | uniq -c | awk '{print $2 "\t" $1}' > HPO_counts.txt
 def generate_hpo_graph(hpo_counts, hpo_edges_file, hpo_graph_file):
     print("Generate HPO graph...")
