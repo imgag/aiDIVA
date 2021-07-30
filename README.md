@@ -30,6 +30,8 @@ If the annotation is not made beforehand make sure that the necessary database r
 The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location.
 In the data folder there is also a standalone python script to generate these files (inside the script in the comments you can find the download links to the files that are used to generate the resources). For compatibility reasons the HPO graph resources were generated using networkx v1. Version 2 can still import these resources, but the graph generated with version 2 is not compatible with version 1.
 
+Last update of HPO resources: 30th July, 2021
+
 
 ## Pathogenicity prediction
 There are two random forest models that are used in AIdiva to predict the pathogenicity of a given variant. One for SNP variants and the other for inframe InDel variants. The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
