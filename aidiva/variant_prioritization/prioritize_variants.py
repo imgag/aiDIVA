@@ -29,9 +29,9 @@ coding_variants = ["splice_acceptor_variant",
                    "start_retained_variant",
                    "stop_retained_variant",
                    "synonymous_variant",
-                   "coding_sequence_variant",
-                   "5_prime_UTR_variant",
-                   "3_prime_UTR_variant"]
+                   "coding_sequence_variant"]
+                   #"5_prime_UTR_variant",
+                   #"3_prime_UTR_variant"]
 
 logger = logging.getLogger(__name__)
 
@@ -449,8 +449,8 @@ def check_filters(variant, genes2exclude, HPO_query):
                 filter_comment = "missing AIDIVA_SCORE"
 
         else:
-            filter_passed = 0 # not coding
-            filter_comment = "not coding"
+            filter_passed = 0 # non coding
+            filter_comment = "non coding"
             
     else:
         filter_passed = 0 # allele frequency to high

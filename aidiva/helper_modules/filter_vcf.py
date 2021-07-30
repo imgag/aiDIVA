@@ -19,9 +19,9 @@ coding_variants = ["splice_acceptor_variant",
                    "start_retained_variant",
                    "stop_retained_variant",
                    "synonymous_variant",
-                   "coding_sequence_variant",
-                   "5_prime_UTR_variant",
-                   "3_prime_UTR_variant"]
+                   "coding_sequence_variant"]
+                   #"5_prime_UTR_variant",
+                   #"3_prime_UTR_variant"]
 
 logger = logging.getLogger(__name__)
 
