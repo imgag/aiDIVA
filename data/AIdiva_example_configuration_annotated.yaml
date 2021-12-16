@@ -2,6 +2,9 @@
 # Configuration file specifiying all the parameters that are needed to run AIdiva in the different modes
 # if you modify the key names make sure to also update them in the run_AIdiva.py script
 ---
+Assembly-build: GRCh37
+
+
 Analysis-Input:
     # if inheritance should be considered and family information is provided, make sure that the vcf file contains sample informations for all family members,
     # else sample will be treated as single patient with unknown inheritance

@@ -8,7 +8,7 @@ from operator import itemgetter
 import logging
 
 
-variant_consequences = {"transcript_ablation": 1,
+VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
                         "splice_acceptor_variant": 2,
                         "splice_donor_variant": 3,
                         "stop_gained": 4,
@@ -45,6 +45,28 @@ variant_consequences = {"transcript_ablation": 1,
                         "feature_truncation": 35,
                         "intergenic_variant": 36}
 
+USED_INFO_FIELDS = ["INDEL_ID", 
+                    "CSQ", 
+                    "FATHMM_XF", 
+                    "CONDEL", 
+                    "EIGEN_PHRED", 
+                    "MutationAssessor", 
+                    "gnomAD_Hom", 
+                    "gnomAD_AN", 
+                    "CAPICE", 
+                    "CADD", 
+                    "ADA", 
+                    "RF", 
+                    "oe_lof", 
+                    "SegDup", 
+                    "SimpleRepeats", 
+                    "CLINVAR_DETAILS", 
+                    "HGMD_CLASS", 
+                    "HGMD_RANKSCORE", 
+                    "OMIM", 
+                    "REPEATMASKER"]
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,35 +74,29 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     header_line = ""
     comment_lines = []
 
-    vcf_file_to_reformat = open(filepath, "r")
+    with open(filepath, "r") as vcf_file_to_reformat, tempfile.NamedTemporaryFile(mode="w+") as tmp:
+        # make sure that there are no unwanted linebreaks in the variant entries
+        tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
+        tmp.seek(0)
 
-    # make sure that there are no unwanted linebreaks in the variant entries
-    tmp = tempfile.NamedTemporaryFile(mode="w+")
-    tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
-    tmp.seek(0)
+        # extract header from vcf file
+        for line in tmp:
+            if line.strip().startswith("##"):
+                comment_lines.append(line.strip())
+            if line.strip().startswith("#CHROM"):
+                header_line = line.strip()
+                comment_lines.append(header_line)
+                break # now the variant entries are coming
+            else:
+                continue
 
-    # extract header from vcf file
-    for line in tmp:
-        if line.strip().startswith("##"):
-            comment_lines.append(line.strip())
-        if line.strip().startswith("#CHROM"):
-            header_line = line.strip()
-            comment_lines.append(header_line)
-            break # now the variant entries are coming
-        else:
-            continue
+        if header_line == "":
+            logger.warn("The VCF file seems to be corrupted")
 
-    if header_line == "":
-        logger.warn("The VCF file seems to be corrupted")
-
-    vcf_header = header_line.strip().split("\t")
-    vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment="#", low_memory=False)
-
-    vcf_file_to_reformat.close()
-    tmp.close()
+        vcf_header = header_line.strip().split("\t")
+        vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment="#", low_memory=False)
 
     vcf_as_dataframe = vcf_as_dataframe.rename(columns={"#CHROM": "CHROM"})
-    #vcf_as_dataframe = vcf_as_dataframe.drop(columns=["ID", "QUAL", "FILTER"])
 
     return comment_lines, vcf_as_dataframe
 
@@ -115,43 +131,142 @@ def extract_columns(cell, process_indel):
     gnomAD_an = np.nan
     gnomAD_homAF = np.nan
     capice = np.nan
+    cadd = np.nan
+    segDup = np.nan
+    ada = np.nan
+    rf = np.nan
+    oe_lof = np.nan
+    simpleRepeat = ""
+    clinvar_details = ""
+    hgmd_class = ""
+    hgmd_rankscore = np.nan
+    omim_details = ""
     annotation = ""
+    repeat_masker = ""
+
+    # TODO: remove feature
+    abb_score = np.nan
 
     for field in info_fields:
-        if process_indel:
-            if field.startswith("INDEL_ID"):
-                indel_ID = field.split("INDEL_ID=")[1]
-        if field.startswith("CSQ="):
-            annotation = field.split("CSQ=")[1]
-        if field.startswith("FATHMM_XF="):
-            if field.split("FATHMM_XF=")[1] != "nan":
-                fathmm_xf = field.split("FATHMM_XF=")[1]
-        if field.startswith("CONDEL="):
-            if field.split("CONDEL=")[1] != "nan":
-                condel = field.split("CONDEL=")[1]
-        if field.startswith("EIGEN_PHRED="):
-            if field.split("EIGEN_PHRED=")[1] != "nan":
-                eigen_phred = field.split("EIGEN_PHRED=")[1]
-        if field.startswith("MutationAssessor="):
-            if field.split("MutationAssessor=")[1] != "nan":
-                mutation_assessor = field.split("MutationAssessor=")[1]
-        if field.startswith("gnomAD_Hom"):
-            if field.split("gnomAD_Hom=")[1] != "nan":
-                gnomAD_hom = float(field.split("gnomAD_Hom=")[1])
-        if field.startswith("gnomAD_AN"):
-            if field.split("gnomAD_AN=")[1] != "nan":
-                gnomAD_an = float(field.split("gnomAD_AN=")[1])
-        if field.startswith("CAPICE"):
-            if field.split("CAPICE=")[1] != "nan":
-                capice = float(field.split("CAPICE=")[1])
+        field_splitted = field.split("=")
+
+        # skip empty INFO field annotations to prevent problems
+        if field_splitted[1] != "nan" and field_splitted[1] != "."  and field_splitted[1] != "":
+
+            # skip unsupported INFO fields
+            if field_splitted[0] in USED_INFO_FIELDS:
+
+                if field_splitted[0] == "INDEL_ID":
+                    indel_ID = field_splitted[1]
+                
+                elif field_splitted[0] == "CSQ":
+                    annotation = field_splitted[1]
+                
+                # TODO: add SIFT and PolyPhen also here
+
+                elif field_splitted[0] == "FATHMM_XF":
+                    if "&" in field_splitted[1]:
+                        fathmm_xf = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+                    else:
+                        fathmm_xf = float(field_splitted[1])
+                
+                elif field_splitted[0] == "CONDEL":
+                    if "&" in field_splitted[1]:
+                        condel = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+                    else:
+                        condel = float(field_splitted[1])
+                
+                elif field_splitted[0] == "EIGEN_PHRED":
+                    if "&" in field_splitted[1]:
+                        eigen_phred = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+                    else:
+                        eigen_phred = float(field_splitted[1])
+                
+                elif field_splitted[0] == "MutationAssessor":
+                    if "&" in field_splitted[1]:
+                        mutation_assessor = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+                    else:
+                        mutation_assessor = float(field_splitted[1])
+                
+                elif field_splitted[0] == "gnomAD_Hom":
+                    # TODO: recheck if this is the correct choice
+                    if "&" in field_splitted[1]:
+                        gnomAD_hom = float(field_splitted[1].split("&")[0])
+                    else:
+                        gnomAD_hom = float(field_splitted[1])
+                
+                elif field_splitted[0] == "gnomAD_AN":
+                    # TODO: recheck if this is the correct choice
+                    if "&" in field_splitted[1]:
+                        gnomAD_an = float(field_splitted[1].split("&")[0])
+                    else:
+                        gnomAD_an = float(field_splitted[1])
+                
+                elif field_splitted[0] == "CAPICE":
+                    if "&" in field_splitted[1]:
+                        capice = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+                    else:
+                        capice = float(field_splitted[1])
+                
+                elif field_splitted[0] == "CADD":
+                    if "&" in field_splitted[1]:
+                        cadd = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+                    else:
+                        cadd = float(field_splitted[1])
+                
+                elif field_splitted[0] == "ADA":
+                    if "&" in field_splitted[1]:
+                        ada = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+                    else:
+                        ada = float(field_splitted[1])
+                
+                elif field_splitted[0] == "RF":
+                    if "&" in field_splitted[1]:
+                        rf = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+                    else:
+                        rf = float(field_splitted[1])
+                
+                elif field_splitted[0] == "oe_lof":
+                    oe_lof = min([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
+                
+                elif field_splitted[0] == "SegDup":
+                    segDup = max([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
+                
+                elif field_splitted[0] == "SimpleRepeats":
+                    simpleRepeat = field_splitted[1]
+                
+                elif field_splitted[0] == "CLINVAR_DETAILS":
+                    clinvar_details = field_splitted[1]
+                
+                elif field_splitted[0] == "HGMD_CLASS":
+                    hgmd_class = field_splitted[1]
+                
+                elif field_splitted[0] == "HGMD_RANKSCORE":
+                    if "&" in field_splitted[1]:
+                        hgmd_rankscore = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+                    else:
+                        hgmd_rankscore = float(field_splitted[1])
+                
+                elif field_splitted[0] == "OMIM":
+                    omim_details = field_splitted[1]
+
+                elif field_splitted[0] == "REPEATMASKER":
+                    repeat_masker = field_splitted[1]
+
+                else:
+                    logger.error(f"Could not recognize INFO field {field}")
+            else:
+                logger.warn(f"Skip empty INFO field value {field}!")
+        else:
+            logger.info(f"Skip unrecognized INFO field {field}")
 
     if (gnomAD_hom > 0.0) and (gnomAD_an > 0.0):
         gnomAD_homAF = gnomAD_hom / gnomAD_an
 
     if process_indel:
-        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice]
+        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details, abb_score]
     else:
-       extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice]
+       extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details, abb_score]
 
     return extracted_columns
 
@@ -162,8 +277,9 @@ def extract_vep_annotation(cell, annotation_header):
     consequences = []
 
     # take the most severe annotation variant
+    # TODO: use list comprehension instead of loop to optimize runtime
     for field in annotation_fields:
-        consequences.append(min([variant_consequences.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
+        consequences.append(min([VARIANT_CONSEQUENCES.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
 
     target_index = min(enumerate(consequences), key=itemgetter(1))[0]
     new_cols = annotation_fields[target_index].strip().split("|")
@@ -199,11 +315,6 @@ def extract_sample_information(row, sample, sample_header=None):
     else:
         format_entries = str(row["FORMAT"]).strip().split(":")
         sample_fields = str(row[sample + ".full"]).strip().split(":")
-
-        if len(format_entries) != len(sample_fields):
-            num_missing_entries = abs(len(format_entries) - len(sample_fields))
-            for i in range(num_missing_entries):
-                sample_fields.append(".")
 
         if len(format_entries) != len(sample_fields):
             num_missing_entries = abs(len(format_entries) - len(sample_fields))
@@ -249,9 +360,9 @@ def extract_sample_information(row, sample, sample_header=None):
 
 def add_INFO_fields_to_dataframe(process_indel, vcf_as_dataframe):
     if process_indel:
-        vcf_as_dataframe[["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        vcf_as_dataframe[["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM", "ABB_SCORE"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
     else:
-        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM", "ABB_SCORE"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
@@ -293,12 +404,13 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
 
     sample_ids = []
     # FORMAT column has index 8 (counted from 0) and sample columns follow afterwards (sample names are unique)
-    ## TODO: add condition to check if FORMAT column exists
-    for i in range(9, len(vcf_as_dataframe.columns)):
-        sample_ids.append(vcf_as_dataframe.columns[i])
+    # Check if FORMAT column exists
+    if len(vcf_as_dataframe.columns) > 8:
+        for i in range(9, len(vcf_as_dataframe.columns)):
+            sample_ids.append(vcf_as_dataframe.columns[i])
+        sample_header = extract_sample_header(header)
 
-    annotation_header = extract_annotation_header(header)
-    sample_header = extract_sample_header(header)
+    annotation_header = extract_annotation_header(header)        
 
     if not vcf_as_dataframe.empty:
         vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_INFO_fields_to_dataframe, process_indel), num_cores)

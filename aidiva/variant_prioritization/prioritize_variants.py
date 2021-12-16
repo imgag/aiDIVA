@@ -9,12 +9,13 @@ import re
 from functools import partial
 from itertools import combinations
 import logging
+import pysam
 
 if not __name__=="__main__":
     from . import get_HPO_similarity_score as gs
 
 
-coding_variants = ["splice_acceptor_variant",
+CODING_VARIANTS = ["splice_acceptor_variant",
                    "splice_donor_variant",
                    "stop_gained",
                    "frameshift_variant",
@@ -29,35 +30,35 @@ coding_variants = ["splice_acceptor_variant",
                    "start_retained_variant",
                    "stop_retained_variant",
                    "synonymous_variant",
-                   "coding_sequence_variant",
-                   "5_prime_UTR_variant",
-                   "3_prime_UTR_variant"]
+                   "coding_sequence_variant"]
+                   #"5_prime_UTR_variant",
+                   #"3_prime_UTR_variant"]
+
 
 logger = logging.getLogger(__name__)
+
 
 cadd_identifier = "CADD_PHRED"
 duplication_identifier = "segmentDuplication"
 repeat_identifier = "simpleRepeat"
-low_conf_region_identifier = "lowConfRegion"
 
 
-def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
+def prioritize_variants(variant_data, hpo_resources_folder, reference, num_cores, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     # load HPO resources
-    gene_2_HPO_f = hpo_resources_folder + "gene2hpo.pkl"
-    hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.pkl"
-    gene_2_interacting_f = hpo_resources_folder + "gene2interacting.pkl"
-    HPO_graph_file = hpo_resources_folder + "hpo_graph.pkl"
+    gene_2_HPO_f = hpo_resources_folder + "gene2hpo_test.pkl"
+    hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene_test.pkl"
+    gene_2_interacting_f = hpo_resources_folder + "gene2interacting_test.pkl"
+    HPO_graph_file = hpo_resources_folder + "hpo_graph.gpkl"
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 
     hgnc_2_gene = pickle.load(open(hgnc_2_gene_f, "rb"))
     gene_2_interacting = pickle.load(open(gene_2_interacting_f, "rb"))
     gene_2_HPO = pickle.load(open(gene_2_HPO_f, "rb"))
-    hpo_nodes, hpo_edges = pickle.load(open(HPO_graph_file, "rb"))
 
-    HPO_graph = nx.Graph()
-    HPO_graph.add_nodes_from(hpo_nodes)
-    HPO_graph.add_edges_from(hpo_edges)                    
+    HPO_graph = nx.read_gpickle(HPO_graph_file)
+    information_content_per_node = nx.get_node_attributes(HPO_graph, "IC")
+    node_ancestor_mapping = {hpo_term: nx.ancestors(HPO_graph, hpo_term) for hpo_term in HPO_graph}
 
     genes2exclude = set()
     if gene_exclusion_file is not None:
@@ -82,9 +83,8 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
                 for line in hpo_file:
                     HPO_term = line.rstrip()
                     HPO_query.add(HPO_term)
-            HPO_query = list(HPO_query) # removes duplicate entries in the list
+            HPO_query = list(HPO_query)
             HPO_query.sort() # makes sure that the gene symbols are ordered (could lead to problems otherwise)
-            HPO_query_distances = gs.precompute_query_distances(HPO_graph, HPO_query)
         else:
             logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
             logger.warn("HPO score finalization will be skipped!")
@@ -108,7 +108,8 @@ def prioritize_variants(variant_data, hpo_resources_folder, num_cores, family_fi
             logger.error("The specified family file %s is not a valid file" % (family_file))
             logger.warn("Inheritance assessment will be skipped!")
 
-    variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances), num_cores)
+    variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances, information_content_per_node, node_ancestor_mapping, reference), num_cores)
+    # TODO: Add flag to choose the final score for sorting (if DB annotation from ClinVar/HGMD should be used)
     variant_data = variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False])
     variant_data = variant_data.reset_index(drop=True)
 
@@ -133,15 +134,87 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
     return variant_data
 
 
-def parallelized_variant_processing(family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances, variant_data):
+def parallelized_variant_processing(family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances, ic_per_nodes, node_ancestor_mapping, reference, variant_data):
     variant_data = check_inheritance(variant_data, family_type, family)
-    variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances)), axis=1)
-    variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query)), axis=1)
+    # TODO: implement handling of annotations from pathogenicity (and disease) databases -> ClinVar, HGMD, (OMIM)
+    variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances, ic_per_nodes, node_ancestor_mapping)), axis=1)
+    variant_data[["FINAL_AIDIVA_SCORE_DB"]] = variant_data.apply(lambda variant: pd.Series(check_databases_for_pathogenicity_classification(variant)), axis=1)
+    variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query, reference)), axis=1)
 
     return variant_data
 
 
-def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances):
+def check_databases_for_pathogenicity_classification(variant):
+    improved_score = np.nan
+
+    clinvar_classification = str(variant["CLINVAR_DETAILS"]).split("%")[0]
+    if "(replaced" in clinvar_classification:
+        clinvar_classification = clinvar_classification.split("(replaced")[0]
+    elif "/" in clinvar_classification:
+        if clinvar_classification == "benign/likely_benign" or clinvar_classification == "likely_benign/benign":
+            clinvar_classification  = "likely_benign"
+        elif clinvar_classification == "pathogenic/likely_pathogenic" or clinvar_classification == "likely_pathogenic/pathogenic":
+            clinvar_classification = "likely_pathogenic"
+        else:
+            logger.warn(f"Found unknown ClinVar classification {clinvar_classification}")
+
+    hgmd_classification = str(variant["HGMD_CLASS"])
+
+    if clinvar_classification == "benign":
+        clinvar_score = 0.0
+    elif clinvar_classification == "likely_benign":
+        clinvar_score = 0.25
+    elif clinvar_classification == "uncertain_significance":
+        clinvar_score = 0.5
+    elif clinvar_classification == "likely_pathogenic":
+        clinvar_score = 0.75
+    elif clinvar_classification == "pathogenic":
+        clinvar_score = 1.0
+    else:
+        # handle missing database scores as if they have uncertain significance
+        clinvar_score = 0.5
+    
+    if hgmd_classification == "DM":
+        hgmd_score = 1.0
+        #if float(variant["HGMD_RANKSCORE"]) > 0.5:
+        #    hgmd_score = 1.0
+    elif hgmd_classification == "DM?":
+        hgmd_score = 0.75
+    #elif hgmd_classification == "DP":
+    #    hgmd_score = 0.5
+    #elif hgmd_classification == "FP":
+    #    hgmd_score = 0.5
+    #elif hgmd_classification == "DFP":
+    #    hgmd_score = 0.5
+    #elif hgmd_classification == "R":
+    #    hgmd_score = np.nan
+    else:
+        hgmd_score = np.nan
+
+
+    # TODO: what happens if ClinVar and HGMD have contradicting classifications???
+
+
+
+    if np.isnan(clinvar_score) and not np.isnan(hgmd_score):
+        database_score = hgmd_score
+    elif np.isnan(hgmd_score) and not np.isnan(clinvar_score):
+        database_score = clinvar_score
+    elif not np.isnan(hgmd_score) and not np.isnan(clinvar_score):
+        database_score = (hgmd_score + clinvar_score) / 2
+    else:
+        database_score = np.nan
+    
+    if not np.isnan(float(variant["FINAL_AIDIVA_SCORE"])):
+        if not np.isnan(database_score):
+            improved_score = 0.8 * float(variant["FINAL_AIDIVA_SCORE"]) + 0.2 * database_score
+        else:
+            improved_score = float(variant["FINAL_AIDIVA_SCORE"])
+
+    return improved_score
+
+
+def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, HPO_query_distances, ic_per_nodes, node_ancestor_mapping):
     if HPO_query:
         if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["rf_score"]) == "nan") or (str(variant["rf_score"]) == "")) and ((str(variant["ada_score"]) == "nan") or (str(variant["ada_score"]) == "")):
             final_score = np.nan
@@ -167,9 +240,11 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
 
             variant_gene = str(variant["SYMBOL"]).upper()
             hgnc_id = str(variant["HGNC_ID"])
+
+            ## TODO: check here if the gene symbol is the approved one (use hgnc id)
+
             gene_distances = []
             gene_distances_interacting = []
-            processed_HPO_genes = dict()
 
             if variant_gene in gene_2_interacting.keys():
                 interacting_genes = [gene_interaction["interacting_gene"] for gene_interaction in gene_2_interacting[variant_gene]]
@@ -191,8 +266,9 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                         logger.warn("The processed gene %s (HGNC:%s) is not found in the current HPO resources" % (variant_gene, hgnc_id))
                         gene_HPO_list = []
 
-                g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
-                gene_distances.append(g_dist)
+                if gene_HPO_list:
+                    g_dist = gs.calculate_hpo_set_similarity(HPO_graph, HPO_query, gene_HPO_list, ic_per_nodes, node_ancestor_mapping)
+                    gene_distances.append(g_dist)
 
                 # TODO: check with HGNC ID to prevent use of previous gene symbols
                 for interacting_gene in interacting_genes:
@@ -206,16 +282,18 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                         logger.warn("The processed interacting gene %s is not found in the current HPO resources" % (interacting_gene))
                         gene_HPO_list = []
 
-                    g_dist = gs.list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances)
-                    gene_distances_interacting.append(g_dist)
+                    if gene_HPO_list:
+                        g_dist = gs.calculate_hpo_set_similarity(HPO_graph, HPO_query, gene_HPO_list, ic_per_nodes, node_ancestor_mapping)
+                        gene_distances_interacting.append(g_dist)
+                    
 
-                if gene_distances or gene_distances_interacting:
-                    hpo_relatedness = max(gene_distances, default=0.0)
-                    hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
+                #if gene_distances or gene_distances_interacting:
+                hpo_relatedness = max(gene_distances, default=0.0)
+                hpo_relatedness_interacting = max(gene_distances_interacting, default=0.0)
 
-                    ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS and HPO_RELATEDNESS_INTERACTING (eg 0.6 and 0.3 and 0.1)
-                    # predicted pathogenicity has a higher weight than the HPO relatedness
-                    final_score = (pathogenictiy_prediction * 0.6 + float(hpo_relatedness) * 0.3 + float(hpo_relatedness_interacting) * 0.1)
+                ## TODO: try different weighting of AIDIVA_SCORE and HPO_RELATEDNESS and HPO_RELATEDNESS_INTERACTING (eg 0.6 and 0.3 and 0.1)
+                # predicted pathogenicity has a higher weight than the HPO relatedness
+                final_score = (pathogenictiy_prediction * 0.6 + float(hpo_relatedness) * 0.3 + float(hpo_relatedness_interacting) * 0.1)
 
             else:
                 final_score = np.nan
@@ -354,21 +432,73 @@ def add_inheritance_mode(variant, variant_columns):
     return inheritance_mode
 
 
-def check_filters(variant, genes2exclude, HPO_query):
+# Returns longest homopolymer
+def longest_homopolymer(sequence):
+    if len(sequence) == 0:
+        return 0
+
+    runs = ''.join('*' if x == y else ' ' for x, y in zip(sequence, sequence[1:]))
+    star_strings = runs.split()
+    if len(star_strings) == 0:
+        return 1
+
+    return 1 + max(len(stars) for stars in star_strings)
+
+
+# Returns most frequent base in a string
+def frequent_base(sequence):
+    # Get the most common base and its percentage of length of the sequence
+    nucleotide_list = list(sequence)
+    most_common_base = max([nucleotide_list.count(base) for base in set(nucleotide_list)])
+    most_common_base_percentage = round(float(most_common_base) / len(sequence), 2)
+
+    return most_common_base_percentage
+
+
+# Homopolymer filter
+def homopolymer_filter(sequence):
+    base_type_zero_count = 0  # number of base types (A, C, G, T) not represented in the sequence
+    low_complexity_flag = 0  # low complexity = (less than 3 base types represented or homopolymers of length >= 4)
+    homopolymer_flag = 0  # homopolymer of length >= 5
+
+    if sequence != '.':
+
+        # Get the longest k-mer
+        max_homopolymer_length = longest_homopolymer(sequence)
+
+        # Get the frequency of the homopolymer base
+        max_base_freq = frequent_base(sequence)
+
+        # Count base types
+        nucleotide_list = list(sequence)
+        for base in ['A', 'C', 'G', 'T']:
+            if nucleotide_list.count(base) == 0:
+                base_type_zero_count += 1
+
+        # Set homopolymer flag
+        if max_homopolymer_length >= 5 or max_base_freq >= 0.8:
+            homopolymer_flag = 1
+
+        # Set low complexity flag
+        if base_type_zero_count > 1 or max_homopolymer_length >= 4:
+            low_complexity_flag = 1
+
+    return homopolymer_flag, low_complexity_flag
+
+
+def check_filters(variant, genes2exclude, HPO_query, reference):
     variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     genenames = set(variant_genes.split(";"))
+
+    # TODO: change to use biopython instead of pysam to prevent the need for both libraries
+    in_fasta = pysam.FastaFile(reference)
+    #reference_sequence = SeqIO.index(reference, "fasta")
 
     consequences = str(variant["Consequence"])
     found_consequences = consequences.split("&")
     seg_dup = float(variant[duplication_identifier])
     repeat = str(variant[repeat_identifier])
-    cadd = float(variant[cadd_identifier])
     filter_comment = ""
-
-    try:
-        low_conf_region = int(variant[low_conf_region_identifier])
-    except Exception as e:
-        low_conf_region = 0
 
     try:
         maf = float(variant["MAX_AF"])
@@ -393,11 +523,11 @@ def check_filters(variant, genes2exclude, HPO_query):
     # mid confidence: 0.15 - 0.75
     # see https://onlinelibrary.wiley.com/doi/full/10.1002/humu.23674 for more detailed information about the abb score
     # if high confidence (> 0.15) filtering is to strict mid confidence (> 0.75) filtering could be applied
-    if float(variant["ABB_SCORE"]) > 0.75:
-        filter_passed = 0 # abb score to high -> crap region (low confidence variant)
-        filter_comment = "ABB_SCORE"
-
-        return filter_passed, filter_comment
+    #if float(variant["ABB_SCORE"]) > 0.75:
+    #    filter_passed = 0 # abb score to high -> crap region (low confidence variant)
+    #    filter_comment = "ABB_SCORE"
+    #
+    #    return filter_passed, filter_comment
 
     # exclude gene, if it is in the exclusion list
     if len(genes2exclude & genenames) > 0:
@@ -423,9 +553,54 @@ def check_filters(variant, genes2exclude, HPO_query):
 
         return filter_passed, filter_comment
     
+    # TODO: is this filter too strict? should we also filter inframe indels?
+    if (len(variant["REF"]) > 1 or len(variant["ALT"]) > 1):
+        # Get sequence context (vicinity) of a variant for homopolymer check (5 bases up- and down-stream)
+        # Get fewer bases when variant is at the start or end of the sequence
+        num_bases = 5
+        pos_start = max(int(variant["POS"]) - (num_bases + 1), 1)
+        pos_end = min(int(variant["POS"]) + num_bases, in_fasta.get_reference_length(variant["CHROM"]))
+
+        try:
+            sequence_context = in_fasta.fetch(variant["CHROM"], pos_start, pos_end)
+            sequence_context = sequence_context.upper()
+        except FileNotFoundError:
+            sequence_context = '.'
+        
+        homopolymer_flag, low_complexity_flag = homopolymer_filter(sequence_context)
+
+        if low_complexity_flag and homopolymer_flag:
+            filter_passed = 0
+            filter_comment = "homopolymer and low complexity region"
+
+            return filter_passed, filter_comment
+
+        if homopolymer_flag:
+            filter_passed = 0
+            filter_comment = "homopolymer"
+
+            return filter_passed, filter_comment
+
+        if low_complexity_flag:
+            filter_passed = 0
+            filter_comment = "low complexity region"
+
+            return filter_passed, filter_comment
+    
+    # TODO: check position of frameshift in CDS region
+    #
+    #
+    #
+
+    if not str(variant["REPEATMASKER"]).strip():
+        filter_passed = 0 # masked repeat region
+        filter_comment = "masked repeat region"
+
+        return filter_passed, filter_comment
+
     ## TODO: change frequency based on inheritance mode (hom/het)
     if maf <= 0.01:
-        if any(term for term in coding_variants if term in found_consequences):
+        if any(term for term in CODING_VARIANTS if term in found_consequences):
             if not np.isnan(variant["FINAL_AIDIVA_SCORE"]):
                 if len(HPO_query) >= 1:
                     if float(variant["HPO_RELATEDNESS"]) > 0.0:
@@ -449,8 +624,8 @@ def check_filters(variant, genes2exclude, HPO_query):
                 filter_comment = "missing AIDIVA_SCORE"
 
         else:
-            filter_passed = 0 # not coding
-            filter_comment = "not coding"
+            filter_passed = 0 # non coding
+            filter_comment = "non coding"
             
     else:
         filter_passed = 0 # allele frequency to high

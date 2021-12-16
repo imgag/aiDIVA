@@ -4,7 +4,7 @@ import tempfile
 import logging
 
 
-coding_variants = ["splice_acceptor_variant",
+CODING_VARIANTS = ["splice_acceptor_variant",
                    "splice_donor_variant",
                    "stop_gained",
                    "frameshift_variant",
@@ -19,9 +19,10 @@ coding_variants = ["splice_acceptor_variant",
                    "start_retained_variant",
                    "stop_retained_variant",
                    "synonymous_variant",
-                   "coding_sequence_variant",
-                   "5_prime_UTR_variant",
-                   "3_prime_UTR_variant"]
+                   "coding_sequence_variant"]
+                   #"5_prime_UTR_variant",
+                   #"3_prime_UTR_variant"]
+
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +105,8 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name):
             for consequence in consequence_list:
                 consequences += consequence.split("&")
 
-            if any(term for term in coding_variants if term in consequences):
-                splitted_line[7] = "."
+            if any(term for term in CODING_VARIANTS if term in consequences):
+                splitted_line[7] = "CODING_FILTERED=TRUE"
                 outfile.write("\t".join(splitted_line))
         else:
             logger.error("Annotation field missing!")

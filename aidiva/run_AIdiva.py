@@ -1,11 +1,9 @@
 import argparse
 import os
 import pandas as pd
-import tempfile
 import time
 import helper_modules.combine_expanded_indels_and_create_csv as combine_expanded_indels
 import helper_modules.create_result_vcf as write_result
-import helper_modules.convert_indels_to_snps_and_create_vcf as expand_indels_and_create_vcf
 import helper_modules.convert_vcf_to_csv as convert_vcf
 import variant_scoring.score_variants as predict
 import variant_prioritization.prioritize_variants as prio
@@ -25,6 +23,7 @@ if __name__=="__main__":
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the sample relations of the current data")
     parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="In case of multisample data the kind of sample relation [SINGLE, TRIO, MULTI]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
+    parser.add_argument("--reference", type=str, dest="reference", metavar="GRCh37.fa", required=True, help="Reference sequence to use as FASTA [required]")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use (default: 1)")
     args = parser.parse_args()
     
@@ -46,10 +45,9 @@ if __name__=="__main__":
         num_cores = 1
 
     # parse configuration file
-    config_file = open(args.config, "r")
-    configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
-    config_file.close()
-
+    with open(args.config, "r") as config_file:
+        configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
+    
     working_directory = args.workdir
 
     if not working_directory.endswith("/"):
@@ -86,6 +84,8 @@ if __name__=="__main__":
     else:
         family_file = None
         family_type = "SINGLE"
+    
+    ref_path = args.reference
 
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
@@ -112,10 +112,11 @@ if __name__=="__main__":
 
         # prioritize and filter variants
         logger.info("Prioritize variants and finalize score ...")
-        prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, num_cores, family_file, family_type, hpo_file, gene_exclusion_file)
+        prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, ref_path, num_cores, family_file, family_type, hpo_file, gene_exclusion_file)
 
         write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), bool(family_type == "SINGLE"))
         write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + output_filename + "_filtered.vcf"), bool(family_type == "SINGLE"))
+        prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"})
         prioritized_data.to_csv(str(working_directory + output_filename + ".tsv"), sep="\t", index=False)
         prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_filtered.tsv"), sep="\t", index=False)
         logger.info("Pipeline successfully finsished!")

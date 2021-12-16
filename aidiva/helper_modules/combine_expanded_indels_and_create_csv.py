@@ -1,10 +1,8 @@
 import pandas as pd
 import numpy as np
 import multiprocessing as mp
-import tempfile
 import argparse
 from functools import partial
-from operator import itemgetter
 import logging
 
 
@@ -15,6 +13,7 @@ def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, fe
     if grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).empty:
         return np.nan
     else:
+        logger.error("Could not combine expanded InDels, INDEL_ID missing in data!")
         return grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).median()
 
 
@@ -91,9 +90,9 @@ if __name__=="__main__":
     else:
         num_cores = 1
 
-    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data)
-    expanded_vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data_expanded)
+    #vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data)
+    #expanded_vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data_expanded)
 
-    feature_list = args.feature_list.split(",")
-    vcf_combined_as_dataframe = parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list, num_cores)
-    write_vcf_to_csv(vcf_combined_as_dataframe, args.out_data)
+    #feature_list = args.feature_list.split(",")
+    #vcf_combined_as_dataframe = parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list, num_cores)
+    #write_vcf_to_csv(vcf_combined_as_dataframe, args.out_data)
