@@ -2,7 +2,7 @@
 # Configuration file specifiying all the parameters that are needed to run AIdiva in the different modes
 # if you modify the key names make sure to also update them in the run_AIdiva.py script
 ---
-Assembly-build: GRCh37
+Assembly-Build: GRCh37
 
 
 Analysis-Input:

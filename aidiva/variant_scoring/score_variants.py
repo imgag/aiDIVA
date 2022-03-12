@@ -1,10 +1,13 @@
-import pandas as pd
-import numpy as np
-import multiprocessing as mp
 import argparse
-import pickle
-from functools import partial
+import gzip
 import logging
+import multiprocessing as mp
+import numpy as np
+import pandas as pd
+import pickle
+
+from functools import partial
+
 
 
 MEAN_DICT = {"phastCons46mammal": 0.09691308336428194,
@@ -53,7 +56,10 @@ logger = logging.getLogger(__name__)
 
 
 def import_model(model_file):
-    rf_model = pickle.load(open(model_file, "rb"))
+    if model_file.endswith(".gz"):
+        rf_model = pickle.load(gzip.open(model_file, "rb"))
+    else:
+        rf_model = pickle.load(open(model_file, "rb"))
 
     return rf_model
 
@@ -86,15 +92,6 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
             input_data[feature] = input_data[feature].fillna(0)
         
         elif feature == "homAF":
-            input_data[feature] = input_data[feature].fillna(0)
-        
-        # TODO: remove feature
-        elif feature == "segmentDuplication":
-            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
-            input_data[feature] = input_data[feature].fillna(0)
-        
-        # TODO: remove feature
-        elif feature == "ABB_SCORE":
             input_data[feature] = input_data[feature].fillna(0)
         
         elif feature == "CAPICE":
@@ -160,7 +157,7 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     rf_model = import_model(rf_model)
     prepared_input_data = parallelize_dataframe_processing(input_data, partial(prepare_input_data, feature_list, allele_frequency_list), num_cores)
     input_features = np.asarray(prepared_input_data[feature_list], dtype=np.float64)
-    predicted_data = predict_pathogenicity(rf_model, prepared_input_data, input_features)
+    predicted_data = predict_pathogenicity(rf_model, input_data, input_features)
 
     # frameshift variants are not covered in the used model, set them to 0.9 (1.0 is too high)
     predicted_data.loc[((abs(predicted_data["REF"].str.len() - predicted_data["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = 0.9
@@ -168,15 +165,10 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     # set splicing donor/acceptor variants to NaN if not additionally a supported consequence is reported for the variant 
     # add filter for splice_region variants
     # later in the pipeline the score from dbscSNV for splicing variants will be used
-    predicted_data.loc[(~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna())), "AIDIVA_SCORE"] = np.nan
+    predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna()))), "AIDIVA_SCORE"] = np.nan
 
     # set synonymous variants to 0.0 if they are not at a splicing site
-    # TODO: maybe add the same condition as with splice variants to let variants pass if they also affect a transcript with a supported consequence
     predicted_data.loc[(predicted_data["Consequence"].str.contains("synonymous") & ~(predicted_data["Consequence"].str.contains("splice"))), "AIDIVA_SCORE"] = 0.0
-
-    # exclude chromosomes MT
-    ## TODO: can be removed (mitochondrial variants should already be filtered out)
-    #predicted_data.loc[((predicted_data["CHROM"] == "MT") | (predicted_data["CHROM"] == "chrMT") | (predicted_data["CHROM"] == "M") | (predicted_data["CHROM"] == "chrM")), "AIDIVA_SCORE"] = np.nan
 
     return predicted_data
 

@@ -52,17 +52,14 @@ def compute_similarity_between_nodes(hpo_term_a, hpo_term_b, ic_per_nodes, node_
     return nodes_similarity
 
 
-def calculate_hpo_set_similarity(hpo_graph, hpo_term_set_a, hpo_term_set_b, ic_per_nodes, node_ancestor_mapping):
-    logger.info("Compute similarity")
-    
-    
+def calculate_hpo_set_similarity(hpo_graph, hpo_term_set_a, hpo_term_set_b, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information):
     checked_term_set_a = []
     checked_term_set_b = []
     
-    ## TODO: decide whether to use alternatives and/or considerations
-    alternatives = hpo_graph.graph["alternatives"]
-    considerations = hpo_graph.graph["considerations"]
-    replacements = hpo_graph.graph["replacements"]
+    # alternatives and/or considerations are ignored for now
+    alternatives = hpo_replacement_information["alternatives"]
+    considerations = hpo_replacement_information["considerations"]
+    replacements = hpo_replacement_information["replacements"]
     
     for term_a in hpo_term_set_a:
         if term_a not in hpo_graph:

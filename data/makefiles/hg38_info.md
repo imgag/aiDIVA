@@ -8,7 +8,7 @@ Some of them are already present and you only need to download the correct file.
 
 
 Unfortunately for the following features there are no new resources for hg38 available so these have to be lifted over from the hg19 resource files.
- 	- ABB-SCORE
+ 	- ABB-SCORE (score is not used any more)
 	- Condel
 	- Eigen
 	- MutationAssessor

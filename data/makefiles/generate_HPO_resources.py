@@ -1,12 +1,20 @@
 import argparse
 import gzip
+import json
 import logging
 import math
+import sys
 import networkx as nx
-import pickle
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("HPO resource generator")
+logger.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 # get mapping gene -> HPOs
@@ -30,7 +38,8 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
                 to_add = list(set(to_add))
                 gene_2_HPO[gene_symbol] = to_add
 
-    pickle.dump(gene_2_HPO, open(gene2hpo_dict,"wb"))
+    with open(gene2hpo_dict, "w") as gene2hpo_f:
+        json.dump(gene_2_HPO, gene2hpo_f)
     logger.info(f"Gene to HPO mapping successfully generated and saved as {gene2hpo_dict}")
 
 
@@ -39,7 +48,7 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
 # counts as:
 # wget http://purl.obolibrary.org/obo/hp/hpoa/phenotype_annotation.tab
 # awk -F '\t'  '{print $5}' < phenotype_annotation.tab | sort  | uniq -c | awk '{print $2 "\t" $1}' > HPO_counts.txt -> counts file
-def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file):
+def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_information_file):
     logger.info("Extract HPO edges...")
     hpo_edges = dict()
     replacements = dict()
@@ -50,7 +59,7 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file):
 
     with open(hpo_ontology, "r") as ontology:
         for line in ontology:
-            if line.startswith("id: HP:"):
+            if line.startswith("id: HP"):
                 if token and not obsolete:
                     hpo_edges[hpo_term] = parents
                     if replacement != "":
@@ -92,7 +101,7 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file):
             if replacement != "":
                 replacements[hpo_term] = replacement
         
-        hpo_edges['replacements'] = replacements
+        hpo_edges["replacements"] = replacements
 
     logger.info("Generate HPO graph...")
     # idea is a graph with attribute the IC value per node calculated
@@ -111,13 +120,15 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file):
             total_counts += count
 
     # get replacements of obsolete nodes
-    replacements = dict(hpo_edges.get('replacements', []))
+    replacements = dict(hpo_edges.get("replacements", []))
 
     # let"s build a graph
     hpo_graph = nx.DiGraph()
     hpo_graph.graph["alternatives"] = alternatives
     hpo_graph.graph["considerations"] = considerations
     hpo_graph.graph["replacements"] = replacements
+
+    hpo_replacement_information = {"alternatives": alternatives, "considerations": considerations, "replacements": replacements}
 
     for node in hpo_edges.keys():
         hpo_graph.add_node(node)
@@ -192,16 +203,11 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file):
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
-    if str(nx.__version__).startswith("1."):
-        nx.write_gpickle(hpo_graph, hpo_graph_file)
-        logger.warn("You pickled the graph using NetworkX v1 the pickled graph it is also upwards compatible with v2!")
-    elif str(nx.__version__).startswith("2."):
-        nx.write_gpickle(hpo_graph, hpo_graph_file)
-        logger.warn("You pickled the graph using NetworkX v2 it is not backwards compatible!")
-    else:
-        logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
+    nx.write_gexf(hpo_graph, hpo_graph_file)
+    with open(hpo_replacement_information_file, "w") as hpo_replacement_information_f:
+        json.dump(hpo_replacement_information, hpo_replacement_information_f)
 
-    logger.info(f"HPO graph successfully generated and saved as {hpo_graph_file}")
+    logger.info(f"HPO graph successfully generated and saved as {hpo_graph_file}, HPO replacement information saved to {hpo_replacement_information_file}")
 
 
 #  wget ftp://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/hgnc_complete_set.txt
@@ -217,8 +223,8 @@ def create_gene2hgnc_mapping(hgnc_symbol_file, hgnc_2_gene):
             hgnc_id = splitted_line[0].replace("HGNC:", "")
             gene_dict[hgnc_id] = splitted_line[1].upper()
 
-    pickle.dump(gene_dict, open(hgnc_2_gene, "wb"))
-
+    with open(hgnc_2_gene, "w") as hgnc_2_gene_f:
+        json.dump(gene_dict, hgnc_2_gene_f)
     logger.info(f"Gene symbol to HGNC mapping successfully generated and saved as {hgnc_2_gene}")
 
 
@@ -254,21 +260,24 @@ def create_gene2interacting_mapping(string_mapping, string_db_links, string_inte
                 else:
                     string_interaction_mapping[gene_name] = [{"interacting_gene": interacting_gene, "confidence_experimental": confidence_experimental, "confidence_database": confidence_database}]
     
-    pickle.dump(string_interaction_mapping, open(string_interactions, "wb"))
-
+    with open(string_interactions, "w") as string_interactions_f:
+        json.dump(string_interaction_mapping, string_interactions_f)
     logger.info(f"Gene to interacting gene mapping successfully generated and saved as {string_interactions}")
 
 # this file can be obtained through ensembl biomart
 # https://grch37.ensembl.org/biomart/martview
-# the important part that we want is the CDS_length
+# wget -O grch38_ensembl_transcript_length_and_strand.tsv 'https://www.ensembl.org/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE Query><Query  virtualSchemaName = "default" formatter = "TSV" header = "0" uniqueRows = "1" count = "" datasetConfigVersion = "0.6" ><Dataset name = "hsapiens_gene_ensembl" interface = "default" ><Attribute name = "ensembl_gene_id" /><Attribute name = "ensembl_transcript_id" /><Attribute name = "cds_length" /><Attribute name = "transcript_length" /><Attribute name = "strand" /></Dataset></Query>'
+# wget -O grch37_ensembl_transcript_length_and_strand.tsv 'https://grch37.ensembl.org/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE Query><Query  virtualSchemaName = "default" formatter = "TSV" header = "0" uniqueRows = "1" count = "" datasetConfigVersion = "0.6" ><Dataset name = "hsapiens_gene_ensembl" interface = "default" ><Attribute name = "ensembl_gene_id" /><Attribute name = "ensembl_transcript_id" /><Attribute name = "cds_length" /><Attribute name = "transcript_length" /><Attribute name = "strand" /></Dataset></Query>'	
 def create_transcript_length_mapping(transcript_lengths, transcript_information):
     transcript_mapping = {}
 
     with open(transcript_information, "r") as transc:
         for line in transc:
-            if line.startswith("Gene"):
+            if line.startswith("Gene") or line.startswith("#"):
                 continue
             else:
+                # header:
+                # #Gene stable ID [TAB] Gene stable ID version [TAB] Transcript stable ID [TAB] Transcript stable ID version [TAB] CDS Length [TAB] Transcript length (including UTRs and CDS) [TAB] Strand
                 splitted = line.split("\t")
                 transcript_id = splitted[2]
                 cds_length = splitted[4]
@@ -276,8 +285,8 @@ def create_transcript_length_mapping(transcript_lengths, transcript_information)
                 if cds_length != "":
                     transcript_mapping[transcript_id] = cds_length
     
-    pickle.dump(transcript_mapping, open(transcript_lengths, "wb"))
-
+    with open(transcript_lengths, "w") as transcript_lengths_f:
+        json.dump(transcript_mapping, transcript_lengths_f)
     logger.info(f"Transcript to CDS length mapping successfully generated and saved as {transcript_lengths}")
 
 
@@ -285,24 +294,30 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser("Script to generate the HPO resources needed in the prioritization step of AIdiva")
     parser.add_argument("--hpo_ontology", type=str, dest="hpo_ontology", metavar="hp.obo", required=False, help="File containing the HPO ontology\n")
     parser.add_argument("--gene_phenotype", type=str, dest="gene_phenotype", metavar="phenotype_to_genes.txt", required=False, help="File that contains information about the genes and the associated phenotypes\n")
-    parser.add_argument("--gene_hpo", type=str, dest="gene_hpo", metavar="gene2hpo.pkl", required=False, help="File to save the generated gene2hpo_dict\n")
+    parser.add_argument("--gene_hpo", type=str, dest="gene_hpo", metavar="gene2hpo.json", required=False, help="File to save the generated gene2hpo_dict\n")
     parser.add_argument("--hpo_counts", type=str, dest="hpo_counts", metavar="HPO_counts.txt", required=False, help="File containing the hpo counts needed for the hpo graph construction\n")
-    parser.add_argument("--hpo_graph", type=str, dest="hpo_graph", metavar="hpo_graph.gpkl", required=False, help="File to save the generated hpo graph\n")
+    parser.add_argument("--hpo_graph", type=str, dest="hpo_graph", metavar="hpo_graph.gexf", required=False, help="File to save the generated hpo graph\n")
+    parser.add_argument("--hpo_replacements", type=str, dest="hpo_replacements", metavar="hpo2replacement.json", required=False, help="File to save the hpo replacement information\n")
     parser.add_argument("--hgnc_symbols", type=str, dest="hgnc_symbols", metavar="hgnc_approved_symbols.txt", required=False, help="File containing the approved hgnc genes and their previous gene symbols if there are any\n")
-    parser.add_argument("--hgnc_gene", type=str, dest="hgnc_gene", metavar="hgnc2gene.pkl", required=False, help="File to save the generated hgnc to gene mapping\n")
+    parser.add_argument("--hgnc_gene", type=str, dest="hgnc_gene", metavar="hgnc2gene.json", required=False, help="File to save the generated hgnc to gene mapping\n")
     parser.add_argument("--string_links", type=str, dest="string_links", metavar="9606.protein.links.detailed.v11.0.txt.gz", required=False, help="File with the protein relations found in the STRING database\n")
     parser.add_argument("--string_mapping", type=str, dest="string_mapping", metavar="human.name_2_string.tsv.gz", required=False, help="File with mapping of string ids to gene symbols\n")
-    parser.add_argument("--gene_interacting", type=str, dest="gene_interacting", metavar="gene2interacting.pkl", required=False, help="File to save the generated gene to interacting genes mapping\n")
+    parser.add_argument("--gene_interacting", type=str, dest="gene_interacting", metavar="gene2interacting.json", required=False, help="File to save the generated gene to interacting genes mapping\n")
+    parser.add_argument("--transcript_length_mapping", type=str, dest="transcript_length_mapping", metavar="transcript2length.json", required=False, help="File to save the mapping of transcript ids to CDS length\n")
+    parser.add_argument("--transcript_information", type=str, dest="transcript_information", metavar="transcript_length_information.tsv", required=False, help="File containing the CDS length information per transcript\n")
     args = parser.parse_args()
 
     if args.gene_phenotype and args.gene_hpo:
         generate_gene2hpo_dict(args.gene_phenotype, args.gene_hpo)
 
-    if args.hpo_ontology and args.hpo_counts and args.hpo_graph:
-        create_hpo_graph(args.hpo_ontology, args.hpo_counts, args.hpo_graph)
+    if args.hpo_ontology and args.hpo_counts and args.hpo_graph and args.hpo_replacements:
+        create_hpo_graph(args.hpo_ontology, args.hpo_counts, args.hpo_graph, args.hpo_replacements)
     
     if args.hgnc_symbols and args.hgnc_gene:
         create_gene2hgnc_mapping(args.hgnc_symbols, args.hgnc_gene)
     
     if args.string_mapping and args.string_links and args.gene_interacting:
         create_gene2interacting_mapping(args.string_mapping, args.string_links, args.gene_interacting)
+    
+    if args.transcript_information and args.transcript_length_mapping:
+        create_transcript_length_mapping(args.transcript_length_mapping, args.transcript_information)
