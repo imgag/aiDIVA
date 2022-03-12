@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 # TODO: restrict AF annotation to gnomAD and get rid of VEP in the long run
 def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37", basic=False, expanded=False, num_cores=1):
     # the path to the executable
-    # TODO: simplify this
     vep_command = vep_annotation_dict["vep"] + "/" + "vep "
 
     # set the correct paths to the needed perl modules
@@ -85,6 +84,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = f"{vep_command} -i " + input_vcf_file + " "
     vep_command = f"{vep_command} -o " + output_vcf_file + " "
     vep_command = f"{vep_command} --fork " + str(num_cores) + " "
+    vep_command = f"{vep_command} --format vcf" + " " # we need this to prevent vep from not working if the VCF file has no variant entries
     vep_command = f"{vep_command} --vcf" + " "
     vep_command = f"{vep_command} --no_stats" + " "
     vep_command = f"{vep_command} --force_overwrite"

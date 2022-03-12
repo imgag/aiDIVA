@@ -1,11 +1,12 @@
-import pandas as pd
-import numpy as np
-import multiprocessing as mp
-import tempfile
 import argparse
+import logging
+import multiprocessing as mp
+import numpy as np
+import pandas as pd
+import tempfile
+
 from functools import partial
 from operator import itemgetter
-import logging
 
 
 VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
@@ -144,9 +145,6 @@ def extract_columns(cell, process_indel):
     annotation = ""
     repeat_masker = ""
 
-    # TODO: remove feature
-    abb_score = np.nan
-
     for field in info_fields:
         field_splitted = field.split("=")
 
@@ -162,7 +160,7 @@ def extract_columns(cell, process_indel):
                 elif field_splitted[0] == "CSQ":
                     annotation = field_splitted[1]
                 
-                # TODO: add SIFT and PolyPhen also here
+                # TODO: add SIFT and PolyPhen also here (when vep is not used anymore)
 
                 elif field_splitted[0] == "FATHMM_XF":
                     if "&" in field_splitted[1]:
@@ -189,14 +187,12 @@ def extract_columns(cell, process_indel):
                         mutation_assessor = float(field_splitted[1])
                 
                 elif field_splitted[0] == "gnomAD_Hom":
-                    # TODO: recheck if this is the correct choice
                     if "&" in field_splitted[1]:
                         gnomAD_hom = float(field_splitted[1].split("&")[0])
                     else:
                         gnomAD_hom = float(field_splitted[1])
                 
                 elif field_splitted[0] == "gnomAD_AN":
-                    # TODO: recheck if this is the correct choice
                     if "&" in field_splitted[1]:
                         gnomAD_an = float(field_splitted[1].split("&")[0])
                     else:
@@ -256,17 +252,17 @@ def extract_columns(cell, process_indel):
                 else:
                     logger.error(f"Could not recognize INFO field {field}")
             else:
-                logger.warn(f"Skip empty INFO field value {field}!")
+                logger.warn(f"Skip INFO field value {field}!")
         else:
-            logger.info(f"Skip unrecognized INFO field {field}")
+            logger.info(f"Skip empty (NaNs are handled as empty) INFO field {field}")
 
     if (gnomAD_hom > 0.0) and (gnomAD_an > 0.0):
         gnomAD_homAF = gnomAD_hom / gnomAD_an
 
     if process_indel:
-        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details, abb_score]
+        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, abb_score]
     else:
-       extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details, abb_score]
+       extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, gnomAD_homAF, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, abb_score]
 
     return extracted_columns
 
@@ -274,12 +270,9 @@ def extract_columns(cell, process_indel):
 def extract_vep_annotation(cell, annotation_header):
     annotation_fields = str(cell["CSQ"]).split(",")
     new_cols = []
-    consequences = []
 
-    # take the most severe annotation variant
-    # TODO: use list comprehension instead of loop to optimize runtime
-    for field in annotation_fields:
-        consequences.append(min([VARIANT_CONSEQUENCES.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]))
+    # choose the most severe annotation variant
+    consequences = [min([VARIANT_CONSEQUENCES.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]) for field in annotation_fields]
 
     target_index = min(enumerate(consequences), key=itemgetter(1))[0]
     new_cols = annotation_fields[target_index].strip().split("|")
@@ -360,9 +353,9 @@ def extract_sample_information(row, sample, sample_header=None):
 
 def add_INFO_fields_to_dataframe(process_indel, vcf_as_dataframe):
     if process_indel:
-        vcf_as_dataframe[["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM", "ABB_SCORE"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        vcf_as_dataframe[["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
     else:
-        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM", "ABB_SCORE"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 

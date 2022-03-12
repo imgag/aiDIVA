@@ -1,10 +1,8 @@
-import pandas as pd
 import argparse
+import logging
+import pandas as pd
 import pysam
 import random
-import logging
-
-
 
 
 logger = logging.getLogger(__name__)
@@ -12,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def write_data_information_to_file(input_data, outfile, ref_sequence, header):
     data_grouped = [group for key, group in input_data.groupby("CHROM")]
-
+    in_fasta = pysam.FastaFile(ref_sequence)
     random.seed(14038)
 
     for line in header:
@@ -20,8 +18,6 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
             outfile.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
         else:
             outfile.write(line)
-    #ref_seq_records = SeqIO.index(ref_sequence, "fasta")
-    in_fasta = pysam.FastaFile(ref_sequence)
 
     for group in data_grouped:
         if "chr" in str(group["CHROM"].iloc[0]):
@@ -29,13 +25,14 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
         else:
             chrom_id = "chr" + str(group["CHROM"].iloc[0])
 
-        #ref_seq = str(ref_seq_records[chrom_id].seq)
         for row in group.itertuples():
-            window_start = int(row.POS) - 3
-            window_end = int(row.POS) + len(row.REF) + 2
+            # make sure that the window starts at the beginning of the reference sequence
+            window_start = max(int(row.POS) - 3, 1)
+
+            # make sure that the window won't exceed the reference sequence length
+            window_end = min(int(row.POS) + len(row.REF) + 2, in_fasta.get_reference_length(row.CHROM))
             extended_ref_seq = in_fasta.fetch(chrom_id, window_start, window_end)
 
-            # TODO: take care if the variant occurs at the end of the sequence
             for i in range(abs(window_end-window_start)):
                 alt_variant = ""
                 if (extended_ref_seq[i] == "A") or (extended_ref_seq[i] == "T"):
@@ -69,12 +66,11 @@ def import_vcf_data(in_data):
 
         if header_line == "":
             logger.error("The VCF seems to be corrupted, missing header line!")
-
-        # reset file pointer to begin reading at the beginning
+        
+        # reset file pointer to begin reading at the beginning (is done by closing the file before reading again)
 
     data = pd.read_csv(in_data, names=header_line.split("\t"), sep="\t", comment="#", low_memory=False)
     data.fillna(".", inplace=True)
-    # TODO: change back to use "#CHROM" instead of "CHROM"
     data = data.rename(columns={"#CHROM": "CHROM"})
 
     return data, comment_lines
