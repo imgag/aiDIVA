@@ -265,9 +265,8 @@ def create_gene2interacting_mapping(string_mapping, string_db_links, string_inte
     logger.info(f"Gene to interacting gene mapping successfully generated and saved as {string_interactions}")
 
 # this file can be obtained through ensembl biomart
-# https://grch37.ensembl.org/biomart/martview
 # wget -O grch38_ensembl_transcript_length_and_strand.tsv 'https://www.ensembl.org/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE Query><Query  virtualSchemaName = "default" formatter = "TSV" header = "0" uniqueRows = "1" count = "" datasetConfigVersion = "0.6" ><Dataset name = "hsapiens_gene_ensembl" interface = "default" ><Attribute name = "ensembl_gene_id" /><Attribute name = "ensembl_transcript_id" /><Attribute name = "cds_length" /><Attribute name = "transcript_length" /><Attribute name = "strand" /></Dataset></Query>'
-# wget -O grch37_ensembl_transcript_length_and_strand.tsv 'https://grch37.ensembl.org/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE Query><Query  virtualSchemaName = "default" formatter = "TSV" header = "0" uniqueRows = "1" count = "" datasetConfigVersion = "0.6" ><Dataset name = "hsapiens_gene_ensembl" interface = "default" ><Attribute name = "ensembl_gene_id" /><Attribute name = "ensembl_transcript_id" /><Attribute name = "cds_length" /><Attribute name = "transcript_length" /><Attribute name = "strand" /></Dataset></Query>'	
+# wget -O grch37_ensembl_transcript_length_and_strand.tsv 'https://grch37.ensembl.org/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE Query><Query  virtualSchemaName = "default" formatter = "TSV" header = "0" uniqueRows = "1" count = "" datasetConfigVersion = "0.6" ><Dataset name = "hsapiens_gene_ensembl" interface = "default" ><Attribute name = "ensembl_gene_id" /><Attribute name = "ensembl_transcript_id" /><Attribute name = "cds_length" /><Attribute name = "transcript_length" /><Attribute name = "strand" /></Dataset></Query>'
 def create_transcript_length_mapping(transcript_lengths, transcript_information):
     transcript_mapping = {}
 
@@ -298,7 +297,7 @@ if __name__=="__main__":
     parser.add_argument("--hpo_counts", type=str, dest="hpo_counts", metavar="HPO_counts.txt", required=False, help="File containing the hpo counts needed for the hpo graph construction\n")
     parser.add_argument("--hpo_graph", type=str, dest="hpo_graph", metavar="hpo_graph.gexf", required=False, help="File to save the generated hpo graph\n")
     parser.add_argument("--hpo_replacements", type=str, dest="hpo_replacements", metavar="hpo2replacement.json", required=False, help="File to save the hpo replacement information\n")
-    parser.add_argument("--hgnc_symbols", type=str, dest="hgnc_symbols", metavar="hgnc_approved_symbols.txt", required=False, help="File containing the approved hgnc genes and their previous gene symbols if there are any\n")
+    parser.add_argument("--hgnc_symbols", type=str, dest="hgnc_symbols", metavar="hgnc_complete_set.txt", required=False, help="File containing the approved hgnc genes and their previous gene symbols if there are any\n")
     parser.add_argument("--hgnc_gene", type=str, dest="hgnc_gene", metavar="hgnc2gene.json", required=False, help="File to save the generated hgnc to gene mapping\n")
     parser.add_argument("--string_links", type=str, dest="string_links", metavar="9606.protein.links.detailed.v11.0.txt.gz", required=False, help="File with the protein relations found in the STRING database\n")
     parser.add_argument("--string_mapping", type=str, dest="string_mapping", metavar="human.name_2_string.tsv.gz", required=False, help="File with mapping of string ids to gene symbols\n")

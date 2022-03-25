@@ -5,7 +5,7 @@ AIdiva is an analysis pipeline that predicts the pathogenicity of given variants
 The pathogenicity prediction is based on two random forest (RF) models. One is covering SNP variants, whereas the other one covers inframe InDel variants (frameshift variants are not covered).
 
 
-## System Requirements
+## System requirements
 The program is written in Python 3 (>= v3.6.9)
 
 The following additional libraries need to be installed in order to use the program:
@@ -22,15 +22,25 @@ The following additional libraries need to be installed in order to use the prog
 If a newer scikit-learn version is used the models provided should still work (they were created using the version v0.19.1 and the import was tested with v0.21.3 and v0.22.2).
 
 
-## Annotation resources
-If the annotation is not made beforehand make sure that the necessary database resources are present. In the `annotation_resources` folder you can find Makefiles to create and prepare the different annotation resources that are used as custom annotation with VEP.
+## Annotation resources and tools
+If the annotation is not made beforehand make sure that the necessary database resources and tools are present on your system and the paths in the configuration file are set correctly.
+
+For detailed instructions on how to download and prepare the annotation resources please head over to the respective [file]() (prepare_annotation_resources.md) found in the _doc_ folder.
+
+For detailed instructions on how to download and install the annotation tools please head over to the respective [file]() (isntall_additional_tools.md) found in the _doc_ folder.
 
 
 ## HPO resources
-The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location.
-In the data folder there is also a standalone python script to generate these files (inside the script in the comments you can find the download links to the files that are used to generate the resources). For compatibility reasons the HPO graph resources were generated using networkx v1. Version 2 can still import these resources, but the graph generated with version 2 is not compatible with version 1.
+The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location.For compatibility reasons the HPO graph resources were generated using networkx v1. Version 2 can still import these resources, but the graph generated with version 2 is not compatible with version 1.
+
+To recreate the HPO resources please head over to the detailed [instructions]() found in the _doc_ folder.
+<br>
+<br>
+
+Protein interactions based on String-DB v11.0
 
 Last update of HPO resources: 30th July, 2021
+
 
 
 ## Pathogenicity prediction
@@ -49,7 +59,9 @@ Make sure to put the trained models in the data folder and make sure that the fi
 
 ### Running AIdiva on already annotated data:
 
-`python run_AIdiva.py --config AIdiva_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--family_file family.txt] [--threads 1]`
+```
+python run_AIdiva.py --config AIdiva_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--family_file family.txt] [--threads 1]
+```
 
 + _config_ -- YAML configuration file (in the `data` folder there are example configuration files for each of the two modes)
 + _snp_vcf_ -- Input VCF file containing all annotated SNP variants of the given patient
@@ -63,7 +75,9 @@ Make sure to put the trained models in the data folder and make sure that the fi
 
 ### Running AIdiva and perform the annotation:
 
-`python run_annotation_and_AIdiva.py --config AIdiva_configuration_with_annotation.yaml --vcf input.vcf --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--threads 1]`
+```
+python run_annotation_and_AIdiva.py --config AIdiva_configuration_with_annotation.yaml --vcf input.vcf --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--threads 1]
+```
 
 
 ## AIdiva results

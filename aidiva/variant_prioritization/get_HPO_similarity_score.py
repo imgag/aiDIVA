@@ -25,20 +25,17 @@ def compute_similarity_between_nodes(hpo_term_a, hpo_term_b, ic_per_nodes, node_
             nodes_similarity = (2.0 * mica_ic) / (node_a_ic + node_b_ic)
         
     elif similarity_measure == "Resnik":
-        #nodes_similarity = mica_ic
-        pass
+        nodes_similarity = mica_ic
         
     elif similarity_measure == "Jiang-Conrath":
-        #nodes_similarity = (1 - (node_a_ic + node_b_ic - 2.0 * mica_ic))
-        pass
+        nodes_similarity = (1 - (node_a_ic + node_b_ic - 2.0 * mica_ic))
         
     elif similarity_measure == "Relevance":
         #nodes_similarity = ((2.0 * mica_ic) / (node_a_ic + node_b_ic)) * (1 - p(mica))
         pass
-        
+
     elif similarity_measure == "Information-Coefficient":
-        #nodes_similarity = ((2.0 * mica_ic) / (node_a_ic + node_b_ic)) * (1 - (1 / (1 + mica_ic)))
-        pass
+        nodes_similarity = ((2.0 * mica_ic) / (node_a_ic + node_b_ic)) * (1 - (1 / (1 + mica_ic)))
 
     elif similarity_measure == "Graph-IC":
         pass
@@ -105,7 +102,9 @@ def calculate_hpo_set_similarity(hpo_graph, hpo_term_set_a, hpo_term_set_b, ic_p
         #else:
         #    hpo_set_similarity = 0.0
         
-        return set_a_to_b_similarity 
+        return set_a_to_b_similarity
+
     else:
         logger.warn(f"Sample HPO set ({hpo_term_set_a}) and/or Gene HPO set ({hpo_term_set_b}) was empty after checking if the terms are part of the used HPO graph! Maybe no supported term was in the set! Similarity set to 0.0!")
+        
         return 0.0

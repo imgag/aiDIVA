@@ -1,4 +1,5 @@
 import argparse
+from socketserver import ThreadingUDPServer
 import helper_modules.combine_expanded_indels_and_create_csv as combine_expanded_indels
 import helper_modules.create_result_vcf as write_result
 import helper_modules.convert_vcf_to_csv as convert_vcf
@@ -25,6 +26,7 @@ if __name__=="__main__":
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
     parser.add_argument("--reference", type=str, dest="reference", metavar="GRCh37.fa", required=True, help="Reference sequence to use as FASTA [required]")
     parser.add_argument("--skip_db_check", dest="skip_db_check", action="store_true", required=False, help="Flag to skip database (ClinVar, HGMD) lookup")
+    parser.add_argument("--only_top_results", dest="only_top_results", action="store_true", required=False, help="Report only the top 25 variants as result")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use (default: 1)")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO, WARN, ERROR, CRITICAL] (default: INFO)")
     args = parser.parse_args()
@@ -101,6 +103,8 @@ if __name__=="__main__":
     else:
         family_file = None
         family_type = "SINGLE"
+
+    only_top_results = args.only_top_results
     
     skip_db_check = args.skip_db_check
 
@@ -165,11 +169,15 @@ if __name__=="__main__":
         logger.info("Prioritize variants and finalize score ...")
         prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, ref_path, num_cores, assembly_build, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
 
-        write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), assembly_build, bool(family_type == "SINGLE"))
-        write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + output_filename + "_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
-        prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"})
-        prioritized_data.to_csv(str(working_directory + output_filename + ".tsv"), sep="\t", index=False)
-        prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_filtered.tsv"), sep="\t", index=False)
+        if only_top_results:
+            prioritized_data[prioritized_data["FILTER_PASSED"] == 1].head(n=25).to_csv(str(working_directory + output_filename + "_filtered.tsv"), sep="\t", index=False)
+            logger.info("Only 25 best variants are reported as result!")
+        else:
+            write_result.write_result_vcf(prioritized_data, str(working_directory + output_filename + ".vcf"), assembly_build, bool(family_type == "SINGLE"))
+            write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + output_filename + "_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+            prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"})
+            prioritized_data.to_csv(str(working_directory + output_filename + ".tsv"), sep="\t", index=False)
+            prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + output_filename + "_filtered.tsv"), sep="\t", index=False)
         logger.info("Pipeline successfully finsished!")
 
     else:

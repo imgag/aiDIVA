@@ -1,16 +1,32 @@
-#!/bin/bash
+# Installation Of Additional Tools
+This document provides links and instructions to download and install the necessary third party tools that are used in AIdiva.
 
-folder=`pwd`
-tools=$folder/tools/
-annotation_sources=$folder/annotation_resources/
-vep_install_dir=$tools/ensembl-vep-release-100.3/
+The folder of each respective tool can be moved to another place after the installation, they should be self contained.
+
+Just make sure to give the correct path to the tool in the configuration file.
+
+## ngs-bits
+Ngs-bits is used to annotate the VCF files.
+
+```
+git clone https://github.com/imgag/ngs-bits.git
+cd ngs-bits
+git checkout 2020_06 && git submodule update --recursive --init
+make build_3rdparty
+make build_tools_release
+```
+
+## Variant Effect Predictor (VEP)
+VEP is used for all annotations that cannot be done using ngs-bits
+
+Make sure to specify the correct paths for the VEP installation and the VEP cache data directory in the YAML configuration file
+
+```
+# specify the installation directory to match your own setup
+vep_install_dir=ensembl-vep-release-100.3/
 vep_cpan_dir=$vep_install_dir/cpan/
-vep_data_dir=$annotation_sources/ensembl-vep-100/
-mkdir -p $tools
-mkdir -p $annotation_sources
+vep_data_dir=ensembl-vep-100/
 
-# Download ensembl-vep
-cd $tools
 wget https://github.com/Ensembl/ensembl-vep/archive/release/100.3.tar.gz
 mkdir -p $vep_install_dir
 tar -C $vep_install_dir --strip-components=1 -xzf 100.3.tar.gz
@@ -42,32 +58,11 @@ mkdir -p ftp
 cd ftp
 wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_vep_100_GRCh37.tar.gz
 #wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_vep_100_GRCh38.tar.gz
-#wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_refseq_vep_100_GRCh37.tar.gz
-#wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_refseq_vep_100_GRCh38.tar.gz
 
 # install ensembl-vep
-# TODO change assembly to GRCh38
 PERL5LIB=$vep_install_dir/Bio/:$vep_cpan_dir/lib/perl5/:$PERL5LIB
 cd $vep_install_dir
-perl INSTALL.pl --SPECIES homo_sapiens --ASSEMBLY GRCh37 --AUTO acp --PLUGINS REVEL,CADD --NO_UPDATE --NO_BIOPERL --CACHEDIR $vep_data_dir/cache --CACHEURL $vep_data_dir/ftp --NO_TEST
+perl INSTALL.pl --SPECIES homo_sapiens --ASSEMBLY GRCh37 --AUTO acp --NO_UPDATE --NO_BIOPERL --CACHEDIR $vep_data_dir/cache --CACHEURL $vep_data_dir/ftp --NO_TEST
 cp $vep_data_dir/cache/Plugins/*.pm $vep_install_dir/modules/ #should not be necessary - probably a bug in the VEP installation script when using the CACHEDIR option (MS)
 
-# Download and install ngs-bits
-cd $tools
-git clone https://github.com/imgag/ngs-bits.git
-cd ngs-bits
-git checkout 2020_06 && git submodule update --recursive --init
-make build_3rdparty
-make build_tools_release
-
-# Download and build samtools
-cd $tools
-wget https://github.com/samtools/samtools/releases/download/1.10/samtools-1.10.tar.bz2
-tar xjf samtools-1.10.tar.bz2
-rm samtools-1.10.tar.bz2
-cd samtools-1.10
-make
-
-# Download low_confidence_region file from megSAP (https://github.com/imgag/megSAP)
-cd $annotation_sources
-wget https://github.com/imgag/megSAP/blob/master/data/misc/low_conf_regions.bed
+```

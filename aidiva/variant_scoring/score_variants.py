@@ -10,12 +10,12 @@ from functools import partial
 
 
 
-MEAN_DICT = {"phastCons46mammal": 0.09691308336428194,
-             "phastCons46primate": 0.12353343703613741,
-             "phastCons46vertebrate": 0.1366339183101041,
-             "phyloP46mammal": -0.0063575303590607925,
-             "phyloP46primate": -0.012076641890840553,
-             "phyloP46vertebrate": 0.06761867323083483,
+MEAN_DICT = {"phastCons_mammal": 0.09691308336428194,
+             "phastCons_primate": 0.12353343703613741,
+             "phastCons_vertebrate": 0.1366339183101041,
+             "phyloP_mammal": -0.0063575303590607925,
+             "phyloP_primate": -0.012076641890840553,
+             "phyloP_vertebrate": 0.06761867323083483,
              "phastCons100": 0.11273633387190414,
              "phyloP100": 0.052907788505469275,
              "MutationAssessor": 1.7961304794577417,
@@ -26,7 +26,8 @@ MEAN_DICT = {"phastCons46mammal": 0.09691308336428194,
              "SIFT": 0.35216996259535444,
              "REVEL": 0.28019263637740743,
              "PolyPhen": 0.5169017014355943,
-             "oe_lof": 0.53667483333333332}
+             "oe_lof": 0.53667483333333332,
+             "CAPICE": 0.5}
 
 MEDIAN_DICT = {"MutationAssessor": 1.87,
                "CONDEL": 0.4805749233199981,
@@ -36,7 +37,8 @@ MEDIAN_DICT = {"MutationAssessor": 1.87,
                "SIFT": 0.153,
                "REVEL": 0.193,
                "PolyPhen": 0.547,
-               "oe_lof": 0.48225}
+               "oe_lof": 0.48225,
+               "CAPICE": 0.5}
 
 SUPPORTED_CODING_VARIANTS = ["stop_gained",
                              "stop_lost",
@@ -95,6 +97,7 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
             input_data[feature] = input_data[feature].fillna(0)
         
         elif feature == "CAPICE":
+            # TODO: compute mean and median of CAPICE database
             input_data[feature] = input_data[feature].fillna(0.5)
         
         elif "SIFT" == feature:
@@ -110,7 +113,7 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
             if ("phastCons" in feature) or ("phyloP" in feature):
                 input_data[feature] = input_data[feature].fillna(MEAN_DICT[feature])
             else:
-                input_data[feature] = input_data[feature].fillna(MEAN_DICT[feature])
+                input_data[feature] = input_data[feature].fillna(MEDIAN_DICT[feature])
 
     return input_data
 

@@ -25,6 +25,7 @@ if __name__=="__main__":
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient")
     parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="String indicating the present family type [SINGLE, TRIO]")
     parser.add_argument("--skip_db_check", dest="skip_db_check", action="store_true", required=False, help="Flag to skip DB lookup of variants")
+    parser.add_argument("--only_top_results", dest="only_top_results", action="store_true", required=False, help="Report only the top 25 variants as result")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO, WARN, ERROR, CRITICAL] (default: INFO)")
     args = parser.parse_args()
@@ -104,6 +105,8 @@ if __name__=="__main__":
         family_type = "SINGLE"
     
     skip_db_check = args.skip_db_check
+
+    only_top_results = args.only_top_results
     
 
     vep_annotation_dict = configuration["VEP-Annotation"]
@@ -142,22 +145,26 @@ if __name__=="__main__":
     # Additional annotation with AnnotateFromVCF (a ngs-bits tool)
     # If VCF is used as output format VEP won't annotate from custom VCF files
     logger.info("Starting AnnotateFromVCF annotation...")
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), vep_annotation_dict, False, False, assembly_build, num_cores)
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_vep.vcf"), str(working_directory + input_filename + "_indel_vep_annotated.vcf"), vep_annotation_dict, False, True, assembly_build, num_cores)
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), vep_annotation_dict, True, False, assembly_build, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), vep_annotation_dict, False, False, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_vep.vcf"), str(working_directory + input_filename + "_indel_vep_annotated.vcf"), vep_annotation_dict, False, True, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), vep_annotation_dict, True, False, num_cores)
 
     # Additional annotation with AnnotateFromBed (a ngs-bits tool)
-    annotate.annotate_from_bed(str(working_directory + input_filename + "_snp_vep_annotated.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), vep_annotation_dict, assembly_build, num_cores)
-    annotate.annotate_from_bed(str(working_directory + input_filename + "_indel_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), vep_annotation_dict, assembly_build, num_cores)
+    annotate.annotate_from_bed(str(working_directory + input_filename + "_snp_vep_annotated.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), vep_annotation_dict, num_cores)
+    annotate.annotate_from_bed(str(working_directory + input_filename + "_indel_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), vep_annotation_dict, num_cores)
+
+    # Additional annotation with AnnotateFromBigWig (a ngs-bits tool)
+    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), vep_annotation_dict, False, False, num_cores)
+    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_indel_expanded_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated_bed_bw.vcf"), vep_annotation_dict, True, False, num_cores)
 
     # Filter low confidence regions with VariantFilterRegions (a ngs-bits tool)
-    annotate.filter_regions(str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_filtered.vcf"), vep_annotation_dict, assembly_build)
+    annotate.filter_regions(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), vep_annotation_dict, assembly_build)
     annotate.filter_regions(str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), vep_annotation_dict, assembly_build)
 
     # convert annotated vcfs back to pandas dataframes
-    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snp_vep_annotated_bed_filtered.vcf"), False, num_cores)
+    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), False, num_cores)
     input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), True, num_cores)
-    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), True, num_cores)
+    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_vep_annotated_bed_bw.vcf"), True, num_cores)
 
     if (not input_data_snp_annotated.dropna(how='all').empty) or ((not input_data_indel_annotated.dropna(how='all').empty) and (not input_data_indel_expanded_annotated.dropna(how='all').empty)):
         
@@ -204,11 +211,15 @@ if __name__=="__main__":
         prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, ref_path, num_cores, assembly_build, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
 
         ## TODO: create additional output files according to the inheritance information (only filtered data)
-        write_result.write_result_vcf(prioritized_data, str(working_directory + input_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
-        write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + input_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
-        prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"})
-        prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.tsv"), sep="\t", index=False)
-        prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+        if only_top_results:
+            prioritized_data[prioritized_data["FILTER_PASSED"] == 1].head(n=25).to_csv(str(working_directory + input_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+            logger.info("Only 25 best variants are reported as result!")
+        else:
+            write_result.write_result_vcf(prioritized_data, str(working_directory + input_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
+            write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + input_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+            prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"})
+            prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.tsv"), sep="\t", index=False)
+            prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
         logger.info("Pipeline successfully finsished!")
 
     else:

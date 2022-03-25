@@ -63,7 +63,8 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         vep_command = f"{vep_command} --polyphen s"
         #vep_command = f"{vep_command} --plugin Condel,{vep_annotation_dict['condel']},s"
         #vep_command = f"{vep_command} --plugin CADD,{vep_annotation_dict['db']}{vep_annotation_dict['cadd-snps']},{vep_annotation_dict['db']{vep_annotation_dict["cadd-indel"]}"
-        vep_command = f"{vep_command} --plugin REVEL,{vep_annotation_dict['db']}{vep_annotation_dict['revel']}"
+        # TODO: use ngs-bits for REVEL annotation
+        #vep_command = f"{vep_command} --plugin REVEL,{vep_annotation_dict['db']}{vep_annotation_dict['revel']}"
         #vep_command = f"{vep_command} --plugin dbscSNV,{vep_annotation_dict['db']}{vep_annotation_dict['dbscsnv']}"
         #vep_command = f"{vep_command} --plugin dbNSFP,{vep_annotation_dict['dbNSFP']},MutationAssessor_score,Eigen-raw,Eigen-phred"
 
@@ -77,9 +78,10 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         #    for key in vcf_annotation:
         #        vep_command = f"{vep_command} --custom {vep_annotation_dict['db']}{vcf_annotation[key]['file']},{vcf_annotation[key]['prefix']},vcf,{vcf_annotation[key]['method']},0,{key}"
 
-        if bigwig_annotation:
-            for key in bigwig_annotation:
-                vep_command = f"{vep_command} --custom {vep_annotation_dict['db']}{bigwig_annotation[key]['file']},{key},bigwig,{bigwig_annotation[key]['method']},0"
+        # TODO: change to use ngs-bits instead
+        #if bigwig_annotation:
+        #    for key in bigwig_annotation:
+        #        vep_command = f"{vep_command} --custom {vep_annotation_dict['db']}{bigwig_annotation[key]['file']},{key},bigwig,{bigwig_annotation[key]['method']},0"
 
     vep_command = f"{vep_command} -i " + input_vcf_file + " "
     vep_command = f"{vep_command} -o " + output_vcf_file + " "
@@ -125,7 +127,7 @@ def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annota
     logger.info(f"The annotated VCF is saved as {output_vcf_file}")
 
 
-def annotate_from_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, expanded=False, basic=False, build="GRCh37", num_cores=1):
+def annotate_from_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, expanded=False, basic=False, num_cores=1):
     tmp = tempfile.NamedTemporaryFile(mode="w+b", suffix=".config", delete=False)
 
     vcf_annotation = vep_annotation_dict['custom']['vcf-files']
@@ -139,8 +141,9 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, expa
             tmp.write(f"{vep_annotation_dict['db']}{vcf_annotation['MutationAssessor']['file']}\t\tMutationAssessor\t\ttrue\n".encode())
             tmp.write(f"{vep_annotation_dict['db']}{vcf_annotation['gnomAD']['file']}\tgnomAD\tAN,Hom\t\ttrue\n".encode())
             tmp.write(f"{vep_annotation_dict['db']}{vcf_annotation['CAPICE']['file']}\t\tCAPICE\t\ttrue\n".encode())
-            tmp.write(f"{vep_annotation_dict['db']}{vcf_annotation['dbscSNV']['file']}\t\tADA,RF\t\ttrue\n".encode())
+            tmp.write(f"{vep_annotation_dict['db']}{vcf_annotation['dbscSNV']['file']}\t\tADA_SCORE,RF_SCORE\t\ttrue\n".encode())
             tmp.write(f"{vep_annotation_dict['db']}{vcf_annotation['CADD']['file-snp']}\t\tCADD\t\ttrue\n".encode())
+            tmp.write(f"{vep_annotation_dict['db']}{vcf_annotation['REVEL']['file']}\t\tREVEL\t\ttrue\n".encode())
         
         if not expanded:
             tmp.write(f"{vep_annotation_dict['db']}{vcf_annotation['clinvar']['file']}\tCLINVAR\tDETAILS\t\ttrue\n".encode())
@@ -150,15 +153,18 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, expa
             else:
                 logger.warn("HGMD file is not found! Skip HGMD annotation!")
 
+        # close temporary file to make it accessible
         tmp.close()
 
         command = f"{command} -config_file {tmp.name} -in {input_vcf_file} -out {output_vcf_file} -threads {num_cores}"
         subprocess.run(command, shell=True, check=True)
+
     finally:
+        # clean up
         os.remove(tmp.name)
 
 
-def annotate_from_bed(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37", num_cores=1):
+def annotate_from_bed(input_vcf_file, output_vcf_file, vep_annotation_dict, num_cores=1):
     bed_annotation = vep_annotation_dict['custom']['bed-files']
     command = f"{vep_annotation_dict['ngs-bits']}/VcfAnnotateFromBed"
 
@@ -166,40 +172,80 @@ def annotate_from_bed(input_vcf_file, output_vcf_file, vep_annotation_dict, buil
         tmp_segDup = tempfile.NamedTemporaryFile(mode="w+b", suffix="_segDup.vcf", delete=False)
         tmp_simpleRepeat = tempfile.NamedTemporaryFile(mode="w+b", suffix="_simpleRepeat.vcf", delete=False)
         tmp_oe_lof = tempfile.NamedTemporaryFile(mode="w+b", suffix="_oe_lof.vcf", delete=False)
-        #tmp_repeatmasker = tempfile.NamedTemporaryFile(mode="w+b", suffix="_repeatmasker.vcf", delete=False)
+        tmp_repeatmasker = tempfile.NamedTemporaryFile(mode="w+b", suffix="_repeatmasker.vcf", delete=False)
 
         # close temporary files to make them accessible
         tmp_segDup.close()
         tmp_simpleRepeat.close()
         tmp_oe_lof.close()
+        tmp_repeatmasker.close()
 
         subprocess.run(f"{command} -bed {vep_annotation_dict['db']}{bed_annotation['segmentDuplication']['file']} -name SegDup -sep '&' -in {input_vcf_file} -out {tmp_segDup.name} -threads {num_cores}", shell=True, check=True)
         subprocess.run(f"{command} -bed {vep_annotation_dict['db']}{bed_annotation['simpleRepeat']['file']} -name SimpleRepeat -sep '&' -in {tmp_segDup.name} -out {tmp_simpleRepeat.name} -threads {num_cores}", shell=True, check=True)
         subprocess.run(f"{command} -bed {vep_annotation_dict['db']}{bed_annotation['oe_lof']['file']} -name oe_lof -sep '&' -in {tmp_simpleRepeat.name} -out {tmp_oe_lof.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bed {vep_annotation_dict['db']}{bed_annotation['repeatmasker']['file']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
 
-        #if os.path.isfile(vep_annotation_dict["db"] + bed_annotation["omim"]["file"]):
-        #    subprocess.run(f"{command} + -bed {vep_annotation_dict[build_db]}{bed_annotation['repeatmasker']['file']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof} -out {tmp_repeatmasker} -threads {num_cores}", shell=True, check=True)
-        #    subprocess.run(f"{command} + -bed {vep_annotation_dict[build_db]}{bed_annotation['omim']['file']} -name OMIM -sep '&' -in {tmp_repeatmasker} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
-        #else:
-        #    subprocess.run(f"{command} + -bed {vep_annotation_dict[build_db]}{bed_annotation['repeatmasker']['file']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
-        #    logger.warn("OMIM file is not found! Skip OMIM annotation!")
+        if os.path.isfile(vep_annotation_dict["db"] + bed_annotation["omim"]["file"]):
+            subprocess.run(f"{command} + -bed {vep_annotation_dict['db']}{bed_annotation['repeatmasker']['file']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof} -out {tmp_repeatmasker} -threads {num_cores}", shell=True, check=True)
+            subprocess.run(f"{command} + -bed {vep_annotation_dict['db']}{bed_annotation['omim']['file']} -name OMIM -sep '&' -in {tmp_repeatmasker} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
+        else:
+            subprocess.run(f"{command} + -bed {vep_annotation_dict['db']}{bed_annotation['repeatmasker']['file']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
+            logger.warn("OMIM file is not found! Skip OMIM annotation!")
+    
     finally:
+        # clean up
         os.remove(tmp_segDup.name)
         os.remove(tmp_simpleRepeat.name)
         os.remove(tmp_oe_lof.name)
-        #os.remove(tmp_repeatmasker.name)
+        os.remove(tmp_repeatmasker.name)
+
+
+def annotate_from_bigwig(input_vcf_file, output_vcf_file, vep_annotation_dict, num_cores=1):
+    bigwig_annotation = vep_annotation_dict['custom']['bigwig-files']
+    command = f"{vep_annotation_dict['ngs-bits']}/VcfAnnotateFromBigWig"
+
+    try:
+        tmp_phyloP46primate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP46primate.vcf", delete=False)
+        tmp_phyloP46mammal = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP46mammal.vcf", delete=False)
+        tmp_phyloP46vertebrate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP46vertebrate.vcf", delete=False)
+
+        tmp_phastCons46primate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons46primate.vcf", delete=False)
+        tmp_phastCons46mammal = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons46mammal.vcf", delete=False)
+        tmp_phastCons46vertebrate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons46vertebrate.vcf", delete=False)
+
+        # close temporary files to make them accessible
+        tmp_phyloP46primate.close()
+        tmp_phyloP46mammal.close()
+        tmp_phyloP46vertebrate.close()
+        tmp_phastCons46primate.close()
+        tmp_phastCons46mammal.close()
+        tmp_phastCons46vertebrate.close()
+
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phyloP-primate']['file']} -name phyloP_primate -desc 'phyloP primate dataset' -mode avg -in {input_vcf_file} -out {tmp_phyloP46primate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phyloP-mammal']['file']} -name phyloP_mammal -desc 'phyloP mammalian dataset' -mode avg -in {tmp_phyloP46primate.name} -out {tmp_phyloP46mammal.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phyloP-vertebrate']['file']} -name phyloP_vertebrate -desc 'phyloP vertebrate dataset' -mode avg -in {tmp_phyloP46mammal.name} -out {tmp_phyloP46vertebrate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phastCons-primate']['file']} -name phastCons_primate -desc 'phastCons primate dataset' -mode avg -in {tmp_phyloP46vertebrate.name} -out {tmp_phastCons46primate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phastCons-mammal']['file']} -name phastCons_mammal -desc 'phastCons mammalian dataset' -mode avg -in {tmp_phastCons46primate.name} -out {tmp_phastCons46mammal.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phastCons-vertebrate']['file']} -name phastCons_vertebrate -desc 'phastCons vertebrate dataset' -mode avg -in {tmp_phastCons46mammal.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
+
+    finally:
+        # clean up
+        os.remove(tmp_phyloP46primate.name)
+        os.remove(tmp_phyloP46mammal.name)
+        os.remove(tmp_phyloP46vertebrate.name)
+        os.remove(tmp_phastCons46primate.name)
+        os.remove(tmp_phastCons46mammal.name)
+        os.remove(tmp_phastCons46vertebrate.name)
 
 
 def filter_regions(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37"):
     command = f"{vep_annotation_dict['ngs-bits']}/VariantFilterRegions"
-    
+
     low_confidence_filter = vep_annotation_dict['db'] + vep_annotation_dict['filter']['low-confidence']
     command = f"{command} -in {input_vcf_file} -mark low_conf_region -inv -reg {low_confidence_filter} -out {output_vcf_file}"
     subprocess.run(command, shell=True, check=True)
 
 
-def sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37"):
+def sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict):
     command = f"{vep_annotation_dict['ngs-bits']}/VcfSort"
 
     command = f"{command} -in {input_vcf_file} -out {output_vcf_file}"

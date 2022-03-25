@@ -67,24 +67,27 @@ Model-Features:
         - SAS_AF
 
     # List containing the names of the features used for the model training
+    # the exact order of the features is crucial (make sure to have the exact same order as in the training step)
     feature_list:
         - SIFT
         - PolyPhen
         - CADD_PHRED
+        - CONDEL
         - REVEL
-        - ABB_SCORE
-        - MaxAF # MAX_AF if activated in the VEP annotation
-        - segmentDuplication
-        - custom_EIGEN_PHRED
-        - fannsdb_CONDEL
-        - custom_FATHMM_XF
-        - custom_MutationAssessor
-        - phastCons46mammal
-        - phastCons46primate
-        - phastCons46vertebrate
-        - phyloP46mammal
-        - phyloP46primate
-        - phyloP46vertebrate
+        - MAX_AF
+        - EIGEN_PHRED
+        - CONDEL
+        - FATHMM_XF
+        - MutationAssessor
+        - phastCons_mammal
+        - phastCons_primate
+        - phastCons_vertebrate
+        - phyloP_mammal
+        - phyloP_primate
+        - phyloP_vertebrate
+        - oe_lof
+        - homAF
+        - CAPICE
 
 
 Analysis-Output:
@@ -94,6 +97,7 @@ Analysis-Output:
 # make sure that the full path for the following files is present otherwise the prioritization step will fail
 Internal-Parameters:
     hpo-resources: /mnt/users/ahboced1/AIdiva_project/HPO_resources/
+    # TODO: update these resources and paths
     #gene2hpo-mapping: gene2hpo.pkl
     #hpo-graph: hpo_graph.pkl
     #hpo2gene-association: hpo2gene.pkl

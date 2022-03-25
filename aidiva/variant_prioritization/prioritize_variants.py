@@ -117,6 +117,7 @@ def parse_gene_list(gene_exclusion_file):
 
 def prioritize_variants(variant_data, hpo_resources_folder, reference, num_cores, build, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     # load HPO resources
+    # TODO: update to load the hpo resource paths from the yaml file directly (then there can be the compelte path speified if newer ones will be used)
     hpo_graph_f = hpo_resources_folder + "hpo_graph.gexf"
     hpo_replacement_f = hpo_resources_folder + "hpo2replacement.json"
     gene_2_HPO_f = hpo_resources_folder + "gene2hpo.json"
@@ -250,24 +251,24 @@ def check_databases_for_pathogenicity_classification(variant):
     if "(replaced" in clinvar_classification:
         clinvar_classification = clinvar_classification.split("(replaced")[0]
     elif "/" in clinvar_classification:
-        if clinvar_classification == "benign/likely_benign" or clinvar_classification == "likely_benign/benign":
+        if clinvar_classification.lower() == "benign/likely_benign" or clinvar_classification.lower() == "likely_benign/benign":
             clinvar_classification  = "likely_benign"
-        elif clinvar_classification == "pathogenic/likely_pathogenic" or clinvar_classification == "likely_pathogenic/pathogenic":
+        elif clinvar_classification.lower() == "pathogenic/likely_pathogenic" or clinvar_classification.lower() == "likely_pathogenic/pathogenic":
             clinvar_classification = "likely_pathogenic"
         else:
             logger.warn(f"Found unknown ClinVar classification {clinvar_classification}")
 
     hgmd_classification = str(variant["HGMD_CLASS"])
 
-    if clinvar_classification == "benign":
+    if clinvar_classification.lower() == "benign":
         clinvar_score = 0.0
-    elif clinvar_classification == "likely_benign":
+    elif clinvar_classification.lower() == "likely_benign":
         clinvar_score = 0.25
-    elif clinvar_classification == "uncertain_significance":
+    elif clinvar_classification.lower() == "uncertain_significance":
         clinvar_score = 0.5
-    elif clinvar_classification == "likely_pathogenic":
+    elif clinvar_classification.lower() == "likely_pathogenic":
         clinvar_score = 0.75
-    elif clinvar_classification == "pathogenic":
+    elif clinvar_classification.lower() == "pathogenic":
         clinvar_score = 1.0
     else:
         # ignore missing database scores (if both scores missing use unmodified AIDIVA_SCORE)
