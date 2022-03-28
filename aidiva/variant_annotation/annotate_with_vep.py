@@ -185,10 +185,10 @@ def annotate_from_bed(input_vcf_file, output_vcf_file, vep_annotation_dict, num_
         subprocess.run(f"{command} -bed {vep_annotation_dict['db']}{bed_annotation['oe_lof']['file']} -name oe_lof -sep '&' -in {tmp_simpleRepeat.name} -out {tmp_oe_lof.name} -threads {num_cores}", shell=True, check=True)
 
         if os.path.isfile(vep_annotation_dict["db"] + bed_annotation["omim"]["file"]):
-            subprocess.run(f"{command} + -bed {vep_annotation_dict['db']}{bed_annotation['repeatmasker']['file']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof} -out {tmp_repeatmasker} -threads {num_cores}", shell=True, check=True)
-            subprocess.run(f"{command} + -bed {vep_annotation_dict['db']}{bed_annotation['omim']['file']} -name OMIM -sep '&' -in {tmp_repeatmasker} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
+            subprocess.run(f"{command} -bed {vep_annotation_dict['db']}{bed_annotation['repeatmasker']['file']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {tmp_repeatmasker.name} -threads {num_cores}", shell=True, check=True)
+            subprocess.run(f"{command} -bed {vep_annotation_dict['db']}{bed_annotation['omim']['file']} -name OMIM -sep '&' -in {tmp_repeatmasker} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
         else:
-            subprocess.run(f"{command} + -bed {vep_annotation_dict['db']}{bed_annotation['repeatmasker']['file']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
+            subprocess.run(f"{command} -bed {vep_annotation_dict['db']}{bed_annotation['repeatmasker']['file']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
             logger.warn("OMIM file is not found! Skip OMIM annotation!")
     
     finally:
@@ -204,40 +204,40 @@ def annotate_from_bigwig(input_vcf_file, output_vcf_file, vep_annotation_dict, n
     command = f"{vep_annotation_dict['ngs-bits']}/VcfAnnotateFromBigWig"
 
     try:
-        tmp_phyloP46primate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP46primate.vcf", delete=False)
-        tmp_phyloP46mammal = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP46mammal.vcf", delete=False)
-        tmp_phyloP46vertebrate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP46vertebrate.vcf", delete=False)
+        tmp_phyloP_primate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP_primate.vcf", delete=False)
+        tmp_phyloP_mammal = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP_mammal.vcf", delete=False)
+        tmp_phyloP_vertebrate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP_vertebrate.vcf", delete=False)
 
-        tmp_phastCons46primate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons46primate.vcf", delete=False)
-        tmp_phastCons46mammal = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons46mammal.vcf", delete=False)
-        tmp_phastCons46vertebrate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons46vertebrate.vcf", delete=False)
+        tmp_phastCons_primate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons_primate.vcf", delete=False)
+        tmp_phastCons_mammal = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons_mammal.vcf", delete=False)
+        tmp_phastCons_vertebrate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons_vertebrate.vcf", delete=False)
 
         # close temporary files to make them accessible
-        tmp_phyloP46primate.close()
-        tmp_phyloP46mammal.close()
-        tmp_phyloP46vertebrate.close()
-        tmp_phastCons46primate.close()
-        tmp_phastCons46mammal.close()
-        tmp_phastCons46vertebrate.close()
+        tmp_phyloP_primate.close()
+        tmp_phyloP_mammal.close()
+        tmp_phyloP_vertebrate.close()
+        tmp_phastCons_primate.close()
+        tmp_phastCons_mammal.close()
+        tmp_phastCons_vertebrate.close()
 
-        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phyloP-primate']['file']} -name phyloP_primate -desc 'phyloP primate dataset' -mode avg -in {input_vcf_file} -out {tmp_phyloP46primate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phyloP-mammal']['file']} -name phyloP_mammal -desc 'phyloP mammalian dataset' -mode avg -in {tmp_phyloP46primate.name} -out {tmp_phyloP46mammal.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phyloP-vertebrate']['file']} -name phyloP_vertebrate -desc 'phyloP vertebrate dataset' -mode avg -in {tmp_phyloP46mammal.name} -out {tmp_phyloP46vertebrate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phastCons-primate']['file']} -name phastCons_primate -desc 'phastCons primate dataset' -mode avg -in {tmp_phyloP46vertebrate.name} -out {tmp_phastCons46primate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phastCons-mammal']['file']} -name phastCons_mammal -desc 'phastCons mammalian dataset' -mode avg -in {tmp_phastCons46primate.name} -out {tmp_phastCons46mammal.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phastCons-vertebrate']['file']} -name phastCons_vertebrate -desc 'phastCons vertebrate dataset' -mode avg -in {tmp_phastCons46mammal.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phyloP-primate']['file']} -name phyloP_primate -desc 'phyloP primate dataset' -mode avg -in {input_vcf_file} -out {tmp_phyloP_primate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phyloP-mammal']['file']} -name phyloP_mammal -desc 'phyloP mammalian dataset' -mode avg -in {tmp_phyloP_primate.name} -out {tmp_phyloP_mammal.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phyloP-vertebrate']['file']} -name phyloP_vertebrate -desc 'phyloP vertebrate dataset' -mode avg -in {tmp_phyloP_mammal.name} -out {tmp_phyloP_vertebrate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phastCons-primate']['file']} -name phastCons_primate -desc 'phastCons primate dataset' -mode avg -in {tmp_phyloP_vertebrate.name} -out {tmp_phastCons_primate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phastCons-mammal']['file']} -name phastCons_mammal -desc 'phastCons mammalian dataset' -mode avg -in {tmp_phastCons_primate.name} -out {tmp_phastCons_mammal.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {vep_annotation_dict['db']}{bigwig_annotation['phastCons-vertebrate']['file']} -name phastCons_vertebrate -desc 'phastCons vertebrate dataset' -mode avg -in {tmp_phastCons_mammal.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
 
     finally:
         # clean up
-        os.remove(tmp_phyloP46primate.name)
-        os.remove(tmp_phyloP46mammal.name)
-        os.remove(tmp_phyloP46vertebrate.name)
-        os.remove(tmp_phastCons46primate.name)
-        os.remove(tmp_phastCons46mammal.name)
-        os.remove(tmp_phastCons46vertebrate.name)
+        os.remove(tmp_phyloP_primate.name)
+        os.remove(tmp_phyloP_mammal.name)
+        os.remove(tmp_phyloP_vertebrate.name)
+        os.remove(tmp_phastCons_primate.name)
+        os.remove(tmp_phastCons_mammal.name)
+        os.remove(tmp_phastCons_vertebrate.name)
 
 
-def filter_regions(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37"):
+def filter_regions(input_vcf_file, output_vcf_file, vep_annotation_dict):
     command = f"{vep_annotation_dict['ngs-bits']}/VariantFilterRegions"
 
     low_confidence_filter = vep_annotation_dict['db'] + vep_annotation_dict['filter']['low-confidence']

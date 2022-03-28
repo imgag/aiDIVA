@@ -284,18 +284,18 @@ The possibility to use HGMD in AIdiva is optional due to the fact that you need 
 ### Low Confidence Regions
 GRCh37:
 <br>
-https://github.com/imgag/megSAP/blob/GRCh37/data/misc/low_conf_regions.bed
+https://github.com/imgag/megSAP/raw/GRCh37/data/misc/low_conf_regions.bed
 
 ```
-wget -c -O grch37_low_conf_region.bed https://github.com/imgag/megSAP/blob/GRCh37/data/misc/low_conf_regions.bed
+wget -c -O grch37_low_conf_region.bed https://github.com/imgag/megSAP/raw/GRCh37/data/misc/low_conf_regions.bed
 ```
 
 GRCh38:
 <br>
-https://github.com/imgag/megSAP/blob/master/data/misc/low_conf_regions.bed
+https://github.com/imgag/megSAP/raw/master/data/misc/low_conf_regions.bed
 
 ```
-wget -c -O grch38_low_conf_region.bed https://github.com/imgag/megSAP/blob/master/data/misc/low_conf_regions.bed
+wget -c -O grch38_low_conf_region.bed https://github.com/imgag/megSAP/raw/master/data/misc/low_conf_regions.bed
 ```
 
 

@@ -72,7 +72,6 @@ Model-Features:
         - SIFT
         - PolyPhen
         - CADD_PHRED
-        - CONDEL
         - REVEL
         - MAX_AF
         - EIGEN_PHRED
@@ -85,8 +84,8 @@ Model-Features:
         - phyloP_mammal
         - phyloP_primate
         - phyloP_vertebrate
-        - oe_lof
         - homAF
+        - oe_lof
         - CAPICE
 
 

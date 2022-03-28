@@ -24,7 +24,7 @@ with open(grch37_outfile, "w") as writer_grch37, open(grch38_outfile, "w") as wr
             # skip missing scores to keep the annotation file small
             if str(row["ada_score"]) != "" and str(row["rf_score"]) != "":
                 writer_grch37.write(f"{row['chr']}\t{row['pos']}\t.\t{row['ref']}\t{row['alt']}\t.\t.\tADA_SCORE={str(row['ada_score'])};RF_SCORE={str(row['rf_score'])}\n")
-                if row["grch38_pos"] != ".":
+                if row["hg38_pos"] != ".":
                     writer_grch38.write(f"{row['hg38_chr']}\t{row['hg38_pos']}\t.\t{row['ref']}\t{row['alt']}\t.\t.\tADA_SCORE={str(row['ada_score'])};RF_SCORE={str(row['rf_score'])}\n")
                 else:
                     print("WARNING: Skip GRCh38 missing REVEL score!")

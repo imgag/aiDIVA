@@ -82,8 +82,8 @@ Model-Features:
         - phyloP_mammal
         - phyloP_primate
         - phyloP_vertebrate
-        - oe_lof
         - homAF
+        - oe_lof
         - CAPICE
 
 VEP-Annotation:
@@ -94,7 +94,7 @@ VEP-Annotation:
     vep: vep_data/ensembl-vep-release-98.3/vep
 
     # threads to use during the annotation
-    num-threads: 4
+    #num-threads: 4
 
     # Cache directory and plugin directory
     cache-path: vep_data/cache

@@ -128,7 +128,7 @@ if __name__=="__main__":
 
     logger.info("Starting VCF preparation...")
     # sorting and filtering step to remove unsupported variants
-    annotate.sort_vcf(input_vcf, str(working_directory + input_filename + "_sorted.vcf"), vep_annotation_dict, assembly_build)
+    annotate.sort_vcf(input_vcf, str(working_directory + input_filename + "_sorted.vcf"), vep_annotation_dict)
     annotate.annotate_consequence_information(str(working_directory + input_filename + "_sorted.vcf"), str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, assembly_build, num_cores)
     filt_vcf.filter_coding_variants(str(working_directory + input_filename + "_consequence.vcf"), str(working_directory + input_filename + "_filtered.vcf"), "CONS")
 
@@ -154,17 +154,17 @@ if __name__=="__main__":
     annotate.annotate_from_bed(str(working_directory + input_filename + "_indel_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), vep_annotation_dict, num_cores)
 
     # Additional annotation with AnnotateFromBigWig (a ngs-bits tool)
-    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), vep_annotation_dict, False, False, num_cores)
-    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_indel_expanded_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated_bed_bw.vcf"), vep_annotation_dict, True, False, num_cores)
+    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), vep_annotation_dict, num_cores)
+    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), vep_annotation_dict, num_cores)
 
     # Filter low confidence regions with VariantFilterRegions (a ngs-bits tool)
-    annotate.filter_regions(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), vep_annotation_dict, assembly_build)
-    annotate.filter_regions(str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), vep_annotation_dict, assembly_build)
+    annotate.filter_regions(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), vep_annotation_dict)
+    annotate.filter_regions(str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), vep_annotation_dict)
 
     # convert annotated vcfs back to pandas dataframes
     input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), False, num_cores)
     input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), True, num_cores)
-    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_vep_annotated_bed_bw.vcf"), True, num_cores)
+    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), True, num_cores)
 
     if (not input_data_snp_annotated.dropna(how='all').empty) or ((not input_data_indel_annotated.dropna(how='all').empty) and (not input_data_indel_expanded_annotated.dropna(how='all').empty)):
         
