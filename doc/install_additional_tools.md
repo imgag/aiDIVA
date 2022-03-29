@@ -11,7 +11,7 @@ Ngs-bits is used to annotate the VCF files.
 ```
 git clone https://github.com/imgag/ngs-bits.git
 cd ngs-bits
-git checkout 2020_06 && git submodule update --recursive --init
+git checkout cba4aa891b5af683f74f0b0dabbe143719e0883a && git submodule update --recursive --init
 make build_3rdparty
 make build_tools_release
 ```
@@ -23,14 +23,14 @@ Make sure to specify the correct paths for the VEP installation and the VEP cach
 
 ```
 # specify the installation directory to match your own setup
-vep_install_dir=ensembl-vep-release-100.3/
+vep_install_dir=ensembl-vep-release-103.1/
 vep_cpan_dir=$vep_install_dir/cpan/
-vep_data_dir=ensembl-vep-100/
+vep_data_dir=ensembl-vep-103/
 
-wget https://github.com/Ensembl/ensembl-vep/archive/release/100.3.tar.gz
+wget https://github.com/Ensembl/ensembl-vep/archive/release/103.1.tar.gz
 mkdir -p $vep_install_dir
-tar -C $vep_install_dir --strip-components=1 -xzf 100.3.tar.gz
-rm 100.3.tar.gz
+tar -C $vep_install_dir --strip-components=1 -xzf 103.1.tar.gz
+rm 103.1.tar.gz
 
 # Install dependencies
 mkdir -p $vep_cpan_dir
@@ -56,8 +56,8 @@ mkdir -p $vep_data_dir
 cd $vep_data_dir
 mkdir -p ftp
 cd ftp
-wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_vep_100_GRCh37.tar.gz
-#wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_vep_100_GRCh38.tar.gz
+wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_vep_103_GRCh37.tar.gz
+#wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_vep_103_GRCh38.tar.gz
 
 # install ensembl-vep
 PERL5LIB=$vep_install_dir/Bio/:$vep_cpan_dir/lib/perl5/:$PERL5LIB
