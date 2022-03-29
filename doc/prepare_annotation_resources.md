@@ -344,20 +344,20 @@ For PhastCons is no further preparation necessary. Just make sure that it is cor
 
 GRCH37:
 \
-https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phastCons46way/primates.phastCons46way.bw
+phastCons_primate: https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phastCons46way/primates.phastCons46way.bw
 
-https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phastCons46way/placentalMammals.phastCons46way.bw
+phastCons_mammal: https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phastCons46way/placentalMammals.phastCons46way.bw
 
-https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phastCons46way/vertebrate.phastCons46way.bw
+phastCons_vertebrate: https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phastCons46way/vertebrate.phastCons46way.bw
 \
 \
 GRCH38:
 \
-https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons17way/hg38.phastCons17way.bw
+phastCons_primate: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons17way/hg38.phastCons17way.bw
 
-https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons30way/hg38.phastCons30way.bw
+phastCons_mammal: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons30way/hg38.phastCons30way.bw
 
-https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.phastCons100way.bw
+phastCons_vertebrate: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.phastCons100way.bw
 
 ### PhyloP
 For PhyloP is no further preparation necessary. Just make sure that it is correctly specified in the YAML configuration file.
@@ -365,19 +365,19 @@ For PhyloP is no further preparation necessary. Just make sure that it is correc
 \
 GRCh37:
 \
-https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phyloP46way/primates.phyloP46way.bw
+phyloP_primate: https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phyloP46way/primates.phyloP46way.bw
 
-https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phyloP46way/placentalMammals.phyloP46way.bw
+phyloP_mammal: https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phyloP46way/placentalMammals.phyloP46way.bw
 
-https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phyloP46way/vertebrate.phyloP46way.bw
+phyloP_vertebrate: https://hgdownload.soe.ucsc.edu/goldenPath/hg19/phyloP46way/vertebrate.phyloP46way.bw
 
 GRCh38:
 \
-https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP17way/hg38.phyloP17way.bw
+phyloP_primate: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP17way/hg38.phyloP17way.bw
 
-https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP30way/hg38.phyloP30way.bw
+phyloP_mammal: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP30way/hg38.phyloP30way.bw
 
-https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/hg38.phyloP100way.bw
+phyloP_vertebrate: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/hg38.phyloP100way.bw
 
 
 ### Segment Duplication
