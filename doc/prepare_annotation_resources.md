@@ -235,15 +235,15 @@ wget -c https://storage.googleapis.com/gnomad-public/release/2.1.1/constraint/gn
 ```
 
 
-The exome dataset is enough for AIdiva since it only supports coding variants.
+If disk storage is a problem it is also possible to use the exome dataset instead of the genome one.
 \
 \
 GRCh37:
 \
-https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/vcf/exomes/gnomad.exomes.r2.1.1.sites.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/vcf/genomes/gnomad.genomes.r2.1.1.sites.vcf.bgz
 \
 \
-(https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/vcf/genomes/gnomad.genomes.r2.1.1.sites.vcf.bgz)
+(https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/vcf/exomes/gnomad.exomes.r2.1.1.sites.vcf.bgz)
 \
 \
 From the complete gnomAD database we are only interested in a few entries from the VCF files, therefor we suggest to prepare the VCF and remove the unnecessary stuff from the gnomAD annotation VCF. The following code snippet uses the `prepare_gnomAD_vcf.py` script to reduce it to a minimal set of INFO entries that we need for the AIdiva annotations:
@@ -251,28 +251,28 @@ From the complete gnomAD database we are only interested in a few entries from t
 ```
 wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/vcf/exomes/gnomad.exomes.r2.1.1.sites.vcf.bgz
 
-python3 prepare_gnomAD_vcf.py gnomad.exomes.r2.1.1.sites.vcf.bgz grch37_gnomAD_exomes_r211.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.r2.1.1.sites.vcf.bgz grch37_gnomAD_genomes_r211.vcf
 
-bgzip grch37_gnomAD_exomes_r211.vcf
+bgzip grch37_gnomAD_genomes_r211.vcf
 
-tabix -p vcf grch37_gnomAD_exomes_r211.vcf.gz
+tabix -p vcf grch37_gnomAD_genomes_r211.vcf.gz
 ```
 
 GRCh38:
 \
-https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/exomes/gnomad.exomes.r2.1.1.sites.liftover_grch38.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz
 \
 \
-(https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz)
+(https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/exomes/gnomad.exomes.r2.1.1.sites.liftover_grch38.vcf.bgz)
 
 ```
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/exomes/gnomad.exomes.r2.1.1.sites.liftover_grch38.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz
 
-python3 prepare_gnomAD_vcf.py gnomad.exomes.r2.1.1.sites.liftover_grch38.vcf.bgz grch38_gnomAD_exomes_r211.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz grch38_gnomAD_genomes_r211.vcf
 
-bgzip grch38_gnomAD_exomes_r211.vcf
+bgzip grch38_gnomAD_genomes_r211.vcf
 
-tabix -p vcf grch38_gnomAD_exomes_r211.vcf.gz
+tabix -p vcf grch38_gnomAD_genomes_r211.vcf.gz
 ```
 
 
