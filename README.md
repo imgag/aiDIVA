@@ -10,11 +10,10 @@ The program is written in Python 3 (>= v3.6.9)
 
 The following additional libraries need to be installed in order to use the program:
 
-+ biopython (>= v1.70)
 + networkx (>= v1.11)
 + numpy (>= v1.13.3)
 + pandas (>= v0.22.0)
-+ pybigwig (>= v0.3.2)
++ pysam (>= v0.14)
 + pyyaml (>= v3.12)
 + scipy (>= v0.19.1)
 + scikit-learn (>= v0.19.1)
