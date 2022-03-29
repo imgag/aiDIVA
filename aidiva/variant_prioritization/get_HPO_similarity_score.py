@@ -1,11 +1,4 @@
-## how we measure the similarity between two lists w/ IC per each node
-## we have a DAG strucutre
-## goal is for each Gene !! output a "semantic distance"
-#  based on https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2756558/ [but different]
-#  with this two equal nodes will have distance "0"
-#  maximum distance is -2log(1/tot) ~~ 25
-import networkx as nx
-import pickle
+
 import numpy as np
 import logging
 
@@ -13,66 +6,105 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# idea is :
-# for each query HPO calculate all distances
-# store them in a dict with HPOs as keys
-# value is the minimum value of distance on the query HPOs
-# So than for the list of genes it"s enough to
-# collect the values at columns names
-# and if missing set "1"
-# cover cases where no HPO from Query
-# or no HPO provided, or no HPO
-# associated with the gene
-def list_distance(HPO_graph, HPO_query, gene_HPO_list, HPO_query_distances):
-    if ("NONE" in HPO_query) or ("NONE" in gene_HPO_list):
-        return 0
+def find_mica_IC(HPO_term_a, HPO_term_b, ic_per_nodes, node_ancestor_mapping):
+    hpo_nodes_shared_ancestors = node_ancestor_mapping[HPO_term_a].intersection(node_ancestor_mapping[HPO_term_b])
+    mica_ic = max([float(ic_per_nodes[node]) for node in hpo_nodes_shared_ancestors], default=0.0)
     
-    if (len(HPO_query) < 1) or (len(gene_HPO_list) < 1):
-        return 0
+    return mica_ic
+
+
+def compute_similarity_between_nodes(hpo_term_a, hpo_term_b, ic_per_nodes, node_ancestor_mapping, similarity_measure="Lin"):
+    node_a_ic = float(ic_per_nodes[hpo_term_a])
+    node_b_ic = float(ic_per_nodes[hpo_term_b])
+    mica_ic = find_mica_IC(hpo_term_a, hpo_term_b, ic_per_nodes, node_ancestor_mapping)
     
-    # map the genes HPO and extract values.
-    maxval = HPO_query_distances["maxval"]
-    results = [HPO_query_distances.get(gene_HPO, maxval) for gene_HPO in gene_HPO_list]
-    final_value = np.mean(results) / maxval
-
-    if final_value > 1:
-        final_value = 1 # borderline cases where go up an down to get to the other node
-
-    return 1 - final_value
-
-
-def precompute_query_distances(HPO_graph, HPO_query):
-    HPO_query_distances = dict()
-    offset = 1000
-    for hpo_term in HPO_query:
-        if hpo_term not in list(HPO_graph.nodes()):
-            # missing node (obsolete not updated or just wrong value)
-            logger.warn("%s not in HPO graph!" % hpo_term)
-            continue
-
-        if str(nx.__version__).startswith("1."):
-            hpo_term = HPO_graph.node[hpo_term].get("replaced_by", hpo_term)
-        elif str(nx.__version__).startswith("2."):
-            hpo_term = HPO_graph.nodes[hpo_term].get("replaced_by", hpo_term)
+    if similarity_measure == "Lin":
+        if mica_ic == 0.0 or (node_a_ic == 0.0 and node_b_ic == 0.0):
+            nodes_similarity = 0.0
         else:
-            logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
-
-        ## TODO: compute shortest path lengths for all nodes not only for hpo_term
-        computed_distances =  nx.shortest_path_length(HPO_graph, hpo_term, weight="dist")
+            nodes_similarity = (2.0 * mica_ic) / (node_a_ic + node_b_ic)
         
-        if not HPO_query_distances:
-                HPO_query_distances = {hpo_id: float(hpo_dist) % offset for (hpo_id, hpo_dist) in computed_distances.items()}
-                logger.info("Calculate distances for HPO query")
-        else:
-            for hpo_id in computed_distances.keys():
-                if hpo_id in HPO_query_distances.keys():
-                    HPO_query_distances[hpo_id] = min([HPO_query_distances[hpo_id] , float(computed_distances[hpo_id]) % offset])
-                else:
-                    HPO_query_distances[hpo_id] = float(computed_distances[hpo_id]) % offset
+    elif similarity_measure == "Resnik":
+        nodes_similarity = mica_ic
+        
+    elif similarity_measure == "Jiang-Conrath":
+        nodes_similarity = (1 - (node_a_ic + node_b_ic - 2.0 * mica_ic))
+        
+    elif similarity_measure == "Relevance":
+        #nodes_similarity = ((2.0 * mica_ic) / (node_a_ic + node_b_ic)) * (1 - p(mica))
+        pass
 
+    elif similarity_measure == "Information-Coefficient":
+        nodes_similarity = ((2.0 * mica_ic) / (node_a_ic + node_b_ic)) * (1 - (1 / (1 + mica_ic)))
+
+    elif similarity_measure == "Graph-IC":
+        pass
+
+    elif similarity_measure == "Wang":
+        pass
+        
+    else:
+        logger.error("An error occured while determining the similarity measure!")
+        
+    return nodes_similarity
+
+
+def calculate_hpo_set_similarity(hpo_graph, hpo_term_set_a, hpo_term_set_b, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information):
+    checked_term_set_a = []
+    checked_term_set_b = []
     
-    # IC stored as count
-    HPO_query_distances["maxval"] = 2 * (max([node_data["IC"] for node, node_data in HPO_graph.nodes(data=True)]))
+    # alternatives and/or considerations are ignored for now
+    alternatives = hpo_replacement_information["alternatives"]
+    considerations = hpo_replacement_information["considerations"]
+    replacements = hpo_replacement_information["replacements"]
+    
+    for term_a in hpo_term_set_a:
+        if term_a not in hpo_graph:
+            if term_a in replacements.keys():
+                checked_term_set_a.append(replacements[term_a])
+                logger.warn(f"{term_a} (sample) not in HPO graph! Replacement ({replacements[term_a]}) found will use this term instead!")
+            elif term_a in alternatives.keys():
+                #checked_term_set_a.extend(alternatives[term_a])
+                logger.warn(f"{term_a} (sample) not in HPO graph! Alternatives ({alternatives[term_a]}) found! HPO term will be skipped!")
+            elif term_a in considerations.keys():
+                #checked_term_set_a.extend(considerations[term_a])
+                logger.warn(f"{term_a} (sample) not in HPO graph! Considerations ({considerations[term_a]}) found! HPO term will be skipped!")
+            else:
+                logger.warn(f"{term_a} (sample) not in HPO graph! HPO term will be skipped!")
+        else:
+            checked_term_set_a.append(term_a)
+    
+    for term_b in hpo_term_set_b:
+        if term_b not in hpo_graph:
+            if term_b in replacements.keys():
+                checked_term_set_b.append(replacements[term_b])
+                logger.warn(f"{term_b} (gene) not in HPO graph! Replacement ({replacements[term_b]}) found will use this term instead!")
+            elif term_b in considerations.keys():
+                #checked_term_set_b.extend(considerations[term_b])
+                logger.warn(f"{term_b} (gene) not in HPO graph! Considerations ({considerations[term_b]}) found! HPO term will be skipped!")
+            elif term_b in alternatives.keys():
+                #checked_term_set_b.extend(alternatives[term_b])
+                logger.warn(f"{term_b} (gene) not in HPO graph! Alternatives ({alternatives[term_b]}) found! HPO term will be skipped!")
+            else:
+                logger.warn(f"{term_b} (gene) not in HPO graph! HPO term will be skipped!")
+        else:
+            checked_term_set_b.append(term_b)
+    
+    if checked_term_set_a and checked_term_set_b:
+        similarities_a_to_b = [max([compute_similarity_between_nodes(term_a, term_b, ic_per_nodes, node_ancestor_mapping) for term_b in checked_term_set_b], default=0.0) for term_a in checked_term_set_a]
+        #similarities_b_to_a = [max([compute_similarity_between_nodes(term_b, term_a, ic_per_nodes, node_ancestor_mapping) for term_a in checked_term_set_a], default=0.0) for term_b in checked_term_set_b]
+        
+        set_a_to_b_similarity = np.median(similarities_a_to_b)
+        #set_b_to_a_similarity = np.median(similarities_b_to_a)
 
-    # now I have the query distances value
-    return HPO_query_distances
+        #if set_a_to_b_similarity != 0.0 or set_b_to_a_similarity != 0.0:
+        #    hpo_set_similarity = (set_a_to_b_similarity + set_b_to_a_similarity) / 2
+        #else:
+        #    hpo_set_similarity = 0.0
+        
+        return set_a_to_b_similarity
+
+    else:
+        logger.warn(f"Sample HPO set ({hpo_term_set_a}) and/or Gene HPO set ({hpo_term_set_b}) was empty after checking if the terms are part of the used HPO graph! Maybe no supported term was in the set! Similarity set to 0.0!")
+        
+        return 0.0

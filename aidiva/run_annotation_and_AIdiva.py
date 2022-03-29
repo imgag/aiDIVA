@@ -1,62 +1,74 @@
 import argparse
-import os
-import pandas as pd
-import tempfile
 import helper_modules.combine_expanded_indels_and_create_csv as combine_expanded_indels
 import helper_modules.create_result_vcf as write_result
 import helper_modules.convert_indels_to_snps_and_create_vcf as expand_indels_and_create_vcf
 import helper_modules.convert_vcf_to_csv as convert_vcf
 import helper_modules.filter_vcf as filt_vcf
 import helper_modules.split_vcf_in_indel_and_snp_set as split_vcf
+import logging
+import os
+import pandas as pd
+import time
 import variant_scoring.score_variants as predict
 import variant_prioritization.prioritize_variants as prio
-#import variant_annotation.add_abb_score as add_abb
-#import variant_annotation.add_score_from_bigwig as add_score
-#import variant_annotation.add_segmentDuplication as add_segDup
-#import variant_annotation.add_simpleRepeats as add_repeats
 import variant_annotation.annotate_with_vep as annotate
 import yaml
 
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "AIdiva -- Augmented Intelligence Disease Variant Analysis")
-    parser.add_argument("--vcf", type=str, dest="vcf", metavar="input.vcf", required=True, help="VCF file with the variants to analyze [required]")
-    #parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="result", required=True, help="Prefix that is used to save the results [required]")
+    parser.add_argument("--vcf", type=str, dest="vcf", metavar="input.vcf(.gz)", required=True, help="VCF file with the variants to analyze [required]")
     parser.add_argument("--workdir", type=str, dest="workdir", metavar="workdir/", required=True, help="Path to the working directory (here all results are saved) [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient")
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion", metavar="gene_exclusion.txt", required=False, help="TXT file containing the genes to exclude in the analysis")
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the family relation of the current patient")
     parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="String indicating the present family type [SINGLE, TRIO]")
-    #parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
+    parser.add_argument("--skip_db_check", dest="skip_db_check", action="store_true", required=False, help="Flag to skip DB lookup of variants")
+    parser.add_argument("--only_top_results", dest="only_top_results", action="store_true", required=False, help="Report only the top 25 variants as result")
+    parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
+    parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO, WARN, ERROR, CRITICAL] (default: INFO)")
     args = parser.parse_args()
 
+    if args.log_level is not None:
+        if args.log_level == "DEBUG":
+            log_level = logging.DEBUG
+        elif args.log_level == "INFO":
+            log_level = logging.INFO
+        elif args.log_level == "WARN":
+            log_level = logging.WARN
+        elif args.log_level == "ERROR":
+            log_level = logging.ERROR
+        elif args.log_level == "CRITICAL":
+            log_level = logging.CRITICAL
+        else:
+            log_level = logging.INFO
+    else:
+        log_level = logging.INFO
 
     # set up logger
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    logging.basicConfig(filename=str(args.workdir + "/" + args.out_prefix + "_aidiva_" + timestamp + ".log"),
-                            filemode='a',
-                            format='%(asctime)s -- %(name)s - %(levelname)s - %(message)s',
-                            datefmt='%H:%M:%S',
-                            level=logging.DEBUG)
+    logging.basicConfig(filename=str(args.workdir + "/" + "aidiva_" + timestamp + ".log"),
+                            filemode="a",
+                            format="%(asctime)s -- %(name)s - %(levelname)s - %(message)s",
+                            datefmt="%H:%M:%S",
+                            level=log_level)
     logger = logging.getLogger()
     logger.info("Running AIdiva and annotation with VEP")
     logger.info("Start program")
 
 
     # parse configuration file
-    config_file = open(args.config, "r")
-    configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
-    config_file.close()
-
+    with open(args.config, "r") as config_file:
+        configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
+    
     working_directory = args.workdir
 
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
 
-    data_path = "/mnt/data/"
+    #data_path = "/mnt/data/"
     # data_path = os.path.dirname(os.path.abspath(__file__)) + "/../data/"
-    ref_path = configuration["Analysis-Input"]["ref-path"]
 
     # parse input files
     input_vcf = args.vcf
@@ -64,7 +76,10 @@ if __name__=="__main__":
     scoring_model_indel = os.path.dirname(os.path.abspath(__file__)) + "/../data/" + configuration["Analysis-Input"]["scoring-model-indel"]
     
     # obtain number of threads to use during computation
-    num_cores = int(configuration["VEP-Annotation"]["num-threads"])
+    if args.threads is not None:
+        num_cores = int(args.threads)
+    else:
+        num_cores = 1
 
     # parse disease and inheritance information
     if args.hpo_list is not None:
@@ -88,6 +103,11 @@ if __name__=="__main__":
     else:
         family_file = None
         family_type = "SINGLE"
+    
+    skip_db_check = args.skip_db_check
+
+    only_top_results = args.only_top_results
+    
 
     vep_annotation_dict = configuration["VEP-Annotation"]
     prioritization_information_dict = configuration["Analysis-Input"]["prioritization-information"]
@@ -95,8 +115,9 @@ if __name__=="__main__":
 
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
+    assembly_build = configuration["Assembly-Build"]
 
-    # TODO: make it work if only InDel or only SNP variants are given
+    ref_path = configuration["Analysis-Input"]["ref-path"]
 
     # convert splitted input data to vcf and annotate
     input_file = os.path.splitext(input_vcf)[0]
@@ -108,7 +129,7 @@ if __name__=="__main__":
     logger.info("Starting VCF preparation...")
     # sorting and filtering step to remove unsupported variants
     annotate.sort_vcf(input_vcf, str(working_directory + input_filename + "_sorted.vcf"), vep_annotation_dict)
-    annotate.annotate_consequence_information(str(working_directory + input_filename + "_sorted.vcf"), str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, num_cores)
+    annotate.annotate_consequence_information(str(working_directory + input_filename + "_sorted.vcf"), str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, assembly_build, num_cores)
     filt_vcf.filter_coding_variants(str(working_directory + input_filename + "_consequence.vcf"), str(working_directory + input_filename + "_filtered.vcf"), "CONS")
 
     # convert input vcf to pandas dataframe
@@ -117,45 +138,91 @@ if __name__=="__main__":
 
     # Annotation with VEP
     logger.info("Starting VEP annotation...")
-    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_snp_vep.vcf"), vep_annotation_dict, False, False, num_cores)
-    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_vep.vcf"), vep_annotation_dict, True, False, num_cores)
-    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_vep.vcf"), vep_annotation_dict, False, True, num_cores)
+    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_snp_vep.vcf"), vep_annotation_dict, assembly_build, False, False, num_cores)
+    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_vep.vcf"), vep_annotation_dict, assembly_build, True, False, num_cores)
+    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_vep.vcf"), vep_annotation_dict, assembly_build, False, True, num_cores)
 
     # Additional annotation with AnnotateFromVCF (a ngs-bits tool)
     # If VCF is used as output format VEP won't annotate from custom VCF files
     logger.info("Starting AnnotateFromVCF annotation...")
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), vep_annotation_dict, num_cores)
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), vep_annotation_dict, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), vep_annotation_dict, False, False, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_vep.vcf"), str(working_directory + input_filename + "_indel_vep_annotated.vcf"), vep_annotation_dict, False, True, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), vep_annotation_dict, True, False, num_cores)
 
-    # Filter low confidence regions
-    annotate.filter_regions(str(working_directory + input_filename + "_snp_vep_annotated.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_filtered.vcf"), vep_annotation_dict)
-    annotate.filter_regions(str(working_directory + input_filename + "_indel_vep.vcf"), str(working_directory + input_filename + "_indel_vep_filtered.vcf"), vep_annotation_dict)
+    # Additional annotation with AnnotateFromBed (a ngs-bits tool)
+    annotate.annotate_from_bed(str(working_directory + input_filename + "_snp_vep_annotated.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), vep_annotation_dict, num_cores)
+    annotate.annotate_from_bed(str(working_directory + input_filename + "_indel_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), vep_annotation_dict, num_cores)
+
+    # Additional annotation with AnnotateFromBigWig (a ngs-bits tool)
+    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), vep_annotation_dict, num_cores)
+    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), vep_annotation_dict, num_cores)
+
+    # Filter low confidence regions with VariantFilterRegions (a ngs-bits tool)
+    annotate.filter_regions(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), vep_annotation_dict)
+    annotate.filter_regions(str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), vep_annotation_dict)
 
     # convert annotated vcfs back to pandas dataframes
-    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snp_vep_annotated_filtered.vcf"), False, num_cores)
-    input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_vep_filtered.vcf"), True, num_cores)
-    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), True, num_cores)
+    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), False, num_cores)
+    input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), True, num_cores)
+    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), True, num_cores)
 
-    # combine the two indel sets
-    input_data_indel_combined_annotated = combine_expanded_indels.parallelized_indel_combination(input_data_indel_annotated, input_data_indel_expanded_annotated, feature_list, num_cores)
+    if (not input_data_snp_annotated.dropna(how='all').empty) or ((not input_data_indel_annotated.dropna(how='all').empty) and (not input_data_indel_expanded_annotated.dropna(how='all').empty)):
+        
+        if ((not input_data_indel_annotated.empty) and (not input_data_indel_expanded_annotated.empty)):
+            # combine the two indel sets
+            logger.info("Combine InDel variants ...")
+            input_data_indel_combined_annotated = combine_expanded_indels.parallelized_indel_combination(input_data_indel_annotated, input_data_indel_expanded_annotated, feature_list, num_cores)
+        else:
+            logger.warn("No InDel variants given move on to SNP processing!")
+            input_data_indel_combined_annotated = pd.DataFrame()
 
-    # predict pathogenicity score
-    logger.info("Score variants...")
-    predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp_annotated, allele_frequency_list, feature_list, num_cores)
-    predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_indel_combined_annotated, allele_frequency_list, feature_list, num_cores)
+        # predict pathogenicity score
+        logger.info("Score variants...")
 
-    predicted_data = pd.concat([predicted_data_snp, predicted_data_indel])
-    predicted_data.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
-    predicted_data.reset_index(inplace=True, drop=True)
-    predicted_data = predicted_data[predicted_data_snp.columns]
+        if not input_data_snp_annotated.dropna(how='all').empty:
+            predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp_annotated, allele_frequency_list, feature_list, num_cores)
+        else:
+            logger.warn("No SNP variants, skip SNP prediction!")
+            predicted_data_snp = pd.DataFrame()
+        
+        if not input_data_indel_combined_annotated.dropna(how='all').empty:
+            predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_indel_combined_annotated, allele_frequency_list, feature_list, num_cores)
+        else:
+            logger.info("No InDel variants, skip InDel prediction!")
+            predicted_data_indel = pd.DataFrame()
 
-    # prioritize and filter variants
-    logger.info("Filter variants and finalize score...")
-    prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, num_cores, family_file, family_type, hpo_file, gene_exclusion_file)
+        if (not predicted_data_snp.dropna(how='all').empty) and (not predicted_data_indel.dropna(how='all').empty):
+            predicted_data = pd.concat([predicted_data_snp, predicted_data_indel])
+            predicted_data.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
+            predicted_data.reset_index(inplace=True, drop=True)
+            predicted_data = predicted_data[predicted_data_snp.columns]
 
-    ## TODO: create additional output files according to the inheritance information (only filtered data)
-    write_result.write_result_vcf(prioritized_data, str(working_directory + input_filename + "_aidiva_result.vcf"), bool(family_type == "SINGLE"))
-    write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + input_filename + "_aidiva_result_filtered.vcf"), bool(family_type == "SINGLE"))
-    prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.tsv"), sep="\t", index=False)
-    prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
-    logger.info("Pipeline successfully finsished!")
+        elif (predicted_data_snp.dropna(how='all').empty) and (not predicted_data_indel.dropna(how='all').empty):
+            predicted_data = predicted_data_indel
+        
+        elif (predicted_data_indel.dropna(how='all').empty) and (not predicted_data_snp.dropna(how='all').empty):
+            predicted_data = predicted_data_snp
+
+        else:
+            logger.error("Something went terribly wrong!")
+
+        # prioritize and filter variants
+        logger.info("Filter variants and finalize score...")
+        prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, ref_path, num_cores, assembly_build, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
+
+        ## TODO: create additional output files according to the inheritance information (only filtered data)
+        if only_top_results:
+            prioritized_data[prioritized_data["FILTER_PASSED"] == 1].head(n=25).to_csv(str(working_directory + input_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+            logger.info("Only 25 best variants are reported as result!")
+        else:
+            write_result.write_result_vcf(prioritized_data, str(working_directory + input_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
+            write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(working_directory + input_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+            prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"})
+            prioritized_data.to_csv(str(working_directory + input_filename + "_aidiva_result.tsv"), sep="\t", index=False)
+            prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(working_directory + input_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+        logger.info("Pipeline successfully finsished!")
+
+    else:
+        write_result.write_result_vcf(None, str(working_directory + input_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
+        write_result.write_result_vcf(None, str(working_directory + input_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+        logger.warn("The given input files were empty!")

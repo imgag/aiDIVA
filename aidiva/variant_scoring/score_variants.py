@@ -1,22 +1,21 @@
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.datasets import make_classification
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.model_selection import GridSearchCV
-import pandas as pd
-import numpy as np
-import multiprocessing as mp
 import argparse
-import pickle
-from functools import partial
+import gzip
 import logging
+import multiprocessing as mp
+import numpy as np
+import pandas as pd
+import pickle
+
+from functools import partial
 
 
-mean_dict = {"phastCons46mammal": 0.09691308336428194,
-             "phastCons46primate": 0.12353343703613741,
-             "phastCons46vertebrate": 0.1366339183101041,
-             "phyloP46mammal": -0.0063575303590607925,
-             "phyloP46primate": -0.012076641890840553,
-             "phyloP46vertebrate": 0.06761867323083483,
+
+MEAN_DICT = {"phastCons_mammal": 0.09691308336428194,
+             "phastCons_primate": 0.12353343703613741,
+             "phastCons_vertebrate": 0.1366339183101041,
+             "phyloP_mammal": -0.0063575303590607925,
+             "phyloP_primate": -0.012076641890840553,
+             "phyloP_vertebrate": 0.06761867323083483,
              "phastCons100": 0.11273633387190414,
              "phyloP100": 0.052907788505469275,
              "MutationAssessor": 1.7961304794577417,
@@ -27,9 +26,10 @@ mean_dict = {"phastCons46mammal": 0.09691308336428194,
              "SIFT": 0.35216996259535444,
              "REVEL": 0.28019263637740743,
              "PolyPhen": 0.5169017014355943,
-             "oe_lof": 0.53667483333333332}
+             "oe_lof": 0.53667483333333332,
+             "CAPICE": 0.5}
 
-median_dict = {"MutationAssessor": 1.87,
+MEDIAN_DICT = {"MutationAssessor": 1.87,
                "CONDEL": 0.4805749233199981,
                "EIGEN_PHRED": 3.010301,
                "CADD_PHRED": 3.99,
@@ -37,9 +37,10 @@ median_dict = {"MutationAssessor": 1.87,
                "SIFT": 0.153,
                "REVEL": 0.193,
                "PolyPhen": 0.547,
-               "oe_lof": 0.48225}
+               "oe_lof": 0.48225,
+               "CAPICE": 0.5}
 
-supported_coding_variants = ["stop_gained",
+SUPPORTED_CODING_VARIANTS = ["stop_gained",
                              "stop_lost",
                              "start_lost",
                              "frameshift_variant",
@@ -53,14 +54,14 @@ supported_coding_variants = ["stop_gained",
                              "coding_sequence_variant"]
 
 random_seed = 14038
-
 logger = logging.getLogger(__name__)
 
 
 def import_model(model_file):
-    model_to_import = open(model_file, "rb")
-    rf_model = pickle.load(model_to_import)
-    model_to_import.close()
+    if model_file.endswith(".gz"):
+        rf_model = pickle.load(gzip.open(model_file, "rb"))
+    else:
+        rf_model = pickle.load(open(model_file, "rb"))
 
     return rf_model
 
@@ -91,27 +92,28 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
     for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):
             input_data[feature] = input_data[feature].fillna(0)
+        
         elif feature == "homAF":
             input_data[feature] = input_data[feature].fillna(0)
-        elif feature == "segmentDuplication":
-            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
-            input_data[feature] = input_data[feature].fillna(0)
-        elif feature == "ABB_SCORE":
-            input_data[feature] = input_data[feature].fillna(0)
+        
         elif feature == "CAPICE":
+            # TODO: compute mean and median of CAPICE database
             input_data[feature] = input_data[feature].fillna(0.5)
+        
         elif "SIFT" == feature:
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
-            input_data[feature] = input_data[feature].fillna(median_dict["SIFT"])
+            input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["SIFT"])
+        
         elif feature == "oe_lof":
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != "") and (":" not in value) and ("-" not in value))], default=np.nan), axis=1)
-            input_data[feature] = input_data[feature].fillna(median_dict["oe_lof"])
+            input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["oe_lof"])
+        
         else:
             input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
             if ("phastCons" in feature) or ("phyloP" in feature):
-                input_data[feature] = input_data[feature].fillna(mean_dict[feature])
+                input_data[feature] = input_data[feature].fillna(MEAN_DICT[feature])
             else:
-                input_data[feature] = input_data[feature].fillna(median_dict[feature])
+                input_data[feature] = input_data[feature].fillna(MEDIAN_DICT[feature])
 
     return input_data
 
@@ -124,15 +126,14 @@ def predict_pathogenicity(rf_model, input_data, input_features):
 
 
 def parallel_pathogenicity_prediction(rf_model, input_data, input_features, num_cores):
-    splitted_input_data = np.array_split(input_data, num_cores)
+    try:
+        worker_pool = mp.Pool(num_cores)
+        predicted_data = pd.concat(worker_pool.apply(rf_model.predict_proba(), (input_features)))
 
-    worker_pool = mp.Pool(num_cores)
-    predicted_data = pd.concat(worker_pool.apply(rf_model.predict_proba(), (input_features)))
-
-    input_data["AIDIVA_SCORE"] = predicted_data["Probability_Pathogenic"]
-
-    worker_pool.close()
-    worker_pool.join()
+        input_data["AIDIVA_SCORE"] = predicted_data["Probability_Pathogenic"]
+    finally:
+        worker_pool.close()
+        worker_pool.join()
 
     return input_data
 
@@ -159,24 +160,18 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     rf_model = import_model(rf_model)
     prepared_input_data = parallelize_dataframe_processing(input_data, partial(prepare_input_data, feature_list, allele_frequency_list), num_cores)
     input_features = np.asarray(prepared_input_data[feature_list], dtype=np.float64)
-    predicted_data = predict_pathogenicity(rf_model, prepared_input_data, input_features)
+    predicted_data = predict_pathogenicity(rf_model, input_data, input_features)
 
     # frameshift variants are not covered in the used model, set them to 0.9 (1.0 is too high)
     predicted_data.loc[((abs(predicted_data["REF"].str.len() - predicted_data["ALT"].str.len()) % 3 != 0)), "AIDIVA_SCORE"] = 0.9
-    #predicted_data.loc[(predicted_data["Consequence"].str.contains("frameshift")), "AIDIVA_SCORE"] = 0.9
 
     # set splicing donor/acceptor variants to NaN if not additionally a supported consequence is reported for the variant 
     # add filter for splice_region variants
     # later in the pipeline the score from dbscSNV for splicing variants will be used
-    predicted_data.loc[(~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna())) & ~(predicted_data["Consequence"].str.contains("|".join(supported_coding_variants))), "AIDIVA_SCORE"] = np.nan 
+    predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna()))), "AIDIVA_SCORE"] = np.nan
 
     # set synonymous variants to 0.0 if they are not at a splicing site
-    # TODO: maybe add the same condition as with splice variants to let variants pass if they also affect a transcript with a supported consequence
     predicted_data.loc[(predicted_data["Consequence"].str.contains("synonymous") & ~(predicted_data["Consequence"].str.contains("splice"))), "AIDIVA_SCORE"] = 0.0
-
-    # exclude chromosomes MT
-    ## TODO: can be removed (mitochondrial variants should already be filtered out)
-    predicted_data.loc[((predicted_data["CHROM"] == "MT") | (predicted_data["CHROM"] == "chrMT") | (predicted_data["CHROM"] == "M") | (predicted_data["CHROM"] == "chrM")), "AIDIVA_SCORE"] = np.nan
 
     return predicted_data
 

@@ -40,7 +40,6 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
             continue
 
         # remove variants with multiple alternative alleles reported
-        # TODO decide how to handle them in general
         if "," in splitted_line[4]:
             logger.warn("Processed variant was removed, too many alternative alleles reported!")
             continue
