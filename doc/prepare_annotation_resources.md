@@ -101,6 +101,8 @@ python3 prepare_ClinVar_vcf.py clinvar.vcf.gz grc37_clinvar.vcf
 bgzip grch37_clinvar.vcf
 
 tabix -p vcf grch37_clinvar.vcf.gz
+
+rm clinvar.vcf.gz
 ```
 
 GRCh38:
@@ -115,6 +117,8 @@ python3 prepare_ClinVar_vcf.py clinvar.vcf.gz grc38_clinvar.vcf
 bgzip grch38_clinvar.vcf
 
 tabix -p vcf grch38_clinvar.vcf.gz
+
+rm clinvar.vcf.gz
 ```
 
 
@@ -231,7 +235,11 @@ https://storage.googleapis.com/gnomad-public/release/2.1.1/constraint/gnomad.v2.
 ```
 wget -c https://storage.googleapis.com/gnomad-public/release/2.1.1/constraint/gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz
 
+zcat gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz | sed -n '1d;p' | awk -v OFS="\t" -F "\t" '{ print $$75,$$76,$$77,$$24}' > gnomad_OE.bed
 
+cat gnomad_OE.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | sed '/NA/s/\bNA//g' > gnomAD_OE_sorted.bed
+
+rm gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz
 ```
 
 
@@ -276,9 +284,13 @@ tabix -p vcf grch38_gnomAD_genomes_r211.vcf.gz
 ```
 
 
-
 ### \[optional\] HGMD (needs license)
 The possibility to use HGMD in AIdiva is optional due to the fact that you need a license for it. If you choose to include HGMD in the AIdiva analysis you can use the public/professional version of HGMD.
+
+
+### \[optional\] OMIM (needs license)
+The possibility to use OMIM in AIdiva is optional due to the fact that you need a license for it.
+**Currently not implemented!**
 
 
 ### Low Confidence Regions
@@ -319,9 +331,7 @@ bgzip grch37_precomputed_MutationAssessor.vcf
 tabix -p vcf grch37_precomputed_MutationAssessor.vcf.gz
 
 rm MA_scores_rel3_hg19_full.tar.gz
-
 rm -r MA_scores_rel3_hg19_full/
-
 rm grch37_precomputed_MutationAssessor_unsort.vcf
 ```
 
@@ -388,15 +398,12 @@ https://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/genomicSuperDups.txt.gz
 ```
 wget -c -O hg19.genomicSuperDups.txt.gz https://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/genomicSuperDups.txt.gz
 
-zcat hg19.genomicSuperDups.txt.gz | cut -f2,3,4,27 > grch37_genomicSuperDups.bed
+zcat hg19.genomicSuperDups.txt.gz | cut -f2,3,4,27 > grch37_genomicSuperDups_unsort.bed
 
-grep -v '#' grch37_genomicSuperDups.bed | sort -k1,1 -k2,2n -k3,3n -t $'\t' | bgzip -c > grch37_genomicSuperDups.bed.gz
-
-tabix -p bed grch37_genomicSuperDups.bed.gz
+grep -v '#' grch37_genomicSuperDups_unsort.bed | sort -k1,1 -k2,2n -k3,3n -t $'\t' > grch37_genomicSuperDups.bed
 
 rm genomicSuperDups.txt.gz
-
-rm grch37_genomicSuperDups.bed
+rm grch37_genomicSuperDups_unsort.bed
 ```
 
 
@@ -407,15 +414,12 @@ https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/genomicSuperDups.txt.gz
 ```
 wget -c -O hg38.genomicSuperDups.txt.gz https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/genomicSuperDups.txt.gz
 
-zcat hg38.genomicSuperDups.txt.gz | cut -f2,3,4,27 > grch38_segmentDuplication.bed
+zcat hg38.genomicSuperDups.txt.gz | cut -f2,3,4,27 > grch38_segmentDuplication_unsort.bed
 
-grep -v '#' grch38_segmentDuplication.bed | sort -k1,1 -k2,2n -k3,3n -t $'\t' | bgzip -c > grch38_segmentDuplication.bed.gz
-
-tabix -p bed grch38_segmentDuplication.bed.gz
+grep -v '#' grch38_segmentDuplication_unsort.bed | sort -k1,1 -k2,2n -k3,3n -t $'\t' > grch38_segmentDuplication.bed
 
 rm hg38.genomicSuperDups.txt.gz
-
-rm grch38_segmentDuplication.bed
+rm grch38_segmentDuplication_unsort.bed
 ```
 
 
@@ -427,15 +431,12 @@ https://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/simpleRepeat.txt.gz
 ```
 wget -c -O hg19.simpleRepeat.txt.gz https://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/simpleRepeat.txt.gz
 
-zcat hg19.simpleRepeat.txt.gz | cut -f2,3,4,11 > grch37_simpleRepeat.bed
+zcat hg19.simpleRepeat.txt.gz | cut -f2,3,4,11 > grch37_simpleRepeat_unsort.bed
 
-grep -v '#' grch37_simpleRepeat.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | bgzip -c > grch37_simpleRepeat.bed.gz
-
-tabix -p bed grch37_simpleRepeat.bed.gz
+grep -v '#' grch37_simpleRepeat_unsort.bed | sort -k1,1 -k2,2n -k3,3n -t '	' > grch37_simpleRepeat.bed
 
 rm hg19.simpleRepeat.txt.gz
-
-rm grch37_simpleRepeat.bed
+rm grch37_simpleRepeat_unsort.bed
 ```
 
 
@@ -446,15 +447,12 @@ https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/simpleRepeat.txt.gz
 ```
 wget -c -O hg38.simpleRepeat.txt.gz https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/simpleRepeat.txt.gz
 
-zcat hg19.simpleRepeat.txt.gz | cut -f2,3,4,11 > grch38_simpleRepeat.bed
+zcat hg19.simpleRepeat.txt.gz | cut -f2,3,4,11 > grch38_simpleRepeat_unsort.bed
 
-grep -v '#' grch38_simpleRepeat.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | bgzip -c > grch38_simpleRepeat.bed.gz
-
-tabix -p bed grch38_simpleRepeat.bed.gz
+grep -v '#' grch38_simpleRepeat_unsort.bed | sort -k1,1 -k2,2n -k3,3n -t '	' > grch38_simpleRepeat.bed
 
 rm hg38.simpleRepeat.txt.gz
-
-rm grch38_simpleRepeat.bed
+rm grch38_simpleRepeat_unsort.bed
 ```
 
 
@@ -468,10 +466,6 @@ wget -c http://www.repeatmasker.org/genomes/hg19/RepeatMasker-rm405-db20140131/h
 
 python3 prepare_RepeatMasker_bed.py hg19.fa.out.gz grch37_repeatmasker.bed
 
-bgzip grch37_repeatmasker.bed
-
-tabix -p bed grch37_repeatmasker.bed.gz
-
 rm hg19.fa.out.gz
 ```
 
@@ -484,10 +478,6 @@ http://www.repeatmasker.org/genomes/hg38/RepeatMasker-rm405-db20140131/hg38.fa.o
 wget -c http://www.repeatmasker.org/genomes/hg38/RepeatMasker-rm405-db20140131/hg38.fa.out.gz
 
 python3 prepare_RepeatMasker_bed.py hg38.fa.out.gz grch38_repeatmasker.bed
-
-bgzip grch38_repeatmasker.bed
-
-tabix -p bed grch38_repeatmasker.bed.gz
 
 rm hg38.fa.out.gz
 ```
@@ -541,11 +531,8 @@ tabix -p vcf grch37_dbscSNV_scores_unsort.vcf.gz
 tabix -p vcf grch38_dbscSNV_scores_unsort.vcf.gz
 
 rm dbscSNV1.1.zip
-
 rm -r dbscSNV_files/
-
 rm grch37_dbscSNV_scores_unsort.vcf
-
 rm grch38_dbscSNV_scores_unsort.vcf
 ```
 
