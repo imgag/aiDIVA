@@ -24,15 +24,15 @@ If a newer scikit-learn version is used the models provided should still work (t
 ## Annotation resources and tools
 If the annotation is not made beforehand make sure that the necessary database resources and tools are present on your system and the paths in the configuration file are set correctly.
 
-For detailed instructions on how to download and prepare the annotation resources please head over to the respective [file]() (prepare_annotation_resources.md) found in the _doc_ folder.
+For detailed instructions on how to download and prepare the annotation resources please head over to the respective [documentation](https://github.com/imgag/AIdiva/blob/master/doc/prepare_annotation_resources.md) (prepare_annotation_resources.md) found in the _doc_ folder.
 
-For detailed instructions on how to download and install the annotation tools please head over to the respective [file]() (isntall_additional_tools.md) found in the _doc_ folder.
+For detailed instructions on how to download and install the annotation tools please head over to the respective [documentation](https://github.com/imgag/AIdiva/blob/master/doc/install_additional_tools.md) (isntall_additional_tools.md) found in the _doc_ folder.
 
 
 ## HPO resources
 The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location.For compatibility reasons the HPO graph resources were generated using networkx v1. Version 2 can still import these resources, but the graph generated with version 2 is not compatible with version 1.
 
-To recreate the HPO resources please head over to the detailed [instructions]() found in the _doc_ folder.
+To recreate the HPO resources please head over to the detailed [instructions](https://github.com/imgag/AIdiva/blob/master/doc/recreate_hpo_resources.md) found in the _doc_ folder.
 <br>
 <br>
 
