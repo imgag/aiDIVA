@@ -2,13 +2,13 @@
 # Configuration file specifiying all the parameters that are needed to run AIdiva in the different modes
 # if you modify the key names make sure to also update them in the run_AIdiva.py script
 ---
-Assembly-Build: GRCh37
+Assembly-Build: GRCh38
 
 
 Analysis-Input:
     # path to the reference assembly used during the expansion of the indels
     # instead of GRCh37 you can also use hg19 the differences between the two should not matter here
-    ref-path: <full-path-to-reference>/GRCh37.fa
+    ref-path: <full-path-to-reference>/GRCh38.fa
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
@@ -75,12 +75,12 @@ Annotation-Resources:
     ngs-bits: <full-path-to-folder>/ngs-bits/
 
     # low-confidence filter file
-    low-confidence: <full-path-to-file>/grch37_low_conf_regions.bed
+    low-confidence: <full-path-to-file>/grch38_low_conf_regions.bed
 
     # BED like files here the key of the dictionary is used as the name to present the feature in the annotated file
     bed-files:
-        simpleRepeat: <full-path-to-file>/grch37_simpleRepeat.bed
-        segmentDuplication: <full-path-to-file>/grch37_genomicSuperDups.bed
+        simpleRepeat: <full-path-to-file>/grch38_simpleRepeat.bed
+        segmentDuplication: <full-path-to-file>/grch38_genomicSuperDups.bed
         oe_lof: <full-path-to-file>/gnomAD_OE_sorted.bed
         repeatMasker: <full-path-to-file>/grch37_repeatmasker.bed
         
@@ -91,18 +91,18 @@ Annotation-Resources:
 
     # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
     vcf-files:
-        EIGEN_PHRED: <full-path-to-file>/grch37_eigen_phred_coding.vcf.gz
-        CONDEL: <full-path-to-file>/grch37_fannsDB_Condel.vcf.gz
-        FATHMM_XF: <full-path-to-file>/grch37_fathmm_xf_coding.vcf.gz
-        MutationAssessor: <full-path-to-file>/grch37_precomputed_MutationAssessor.vcf.gz
-        gnomAD: <full-path-to-file>/grch37_gnomAD_genomes_r211.vcf.gz
-        CADD: <full-path-to-file>/grch37_CADD_snvs_v16.vcf.gz
-        dbscSNV: <full-path-to-file>/grch37_dbscSNV_scores.vcf.gz
-        CAPICE: <full-path-to-file>/capice_v1_grch37_snvs.vcf.gz
-        REVEL: <full-path-to-file>/grch37_revel_v13.vcf.gz
+        EIGEN_PHRED: <full-path-to-file>/grch38_eigen_phred_coding.vcf.gz
+        CONDEL: <full-path-to-file>/grch38_fannsDB_Condel.vcf.gz
+        FATHMM_XF: <full-path-to-file>/grch38_fathmm_xf_coding.vcf.gz
+        MutationAssessor: <full-path-to-file>/grch38_precomputed_MutationAssessor.vcf.gz
+        gnomAD: <full-path-to-file>/grch38_gnomAD_genomes_r211.vcf.gz
+        CADD: <full-path-to-file>/grch38_CADD_snvs_v16.vcf.gz
+        dbscSNV: <full-path-to-file>/grch38_dbscSNV_scores.vcf.gz
+        CAPICE: <full-path-to-file>/capice_v1_grch38_snvs.vcf.gz
+        REVEL: <full-path-to-file>/grch38_revel_v13.vcf.gz
         
         # OPTIONAL: only used if DB check is not skipped
-        clinvar: <full-path-to-file>/grch37_clinvar.vcf.gz
+        clinvar: <full-path-to-file>/grch38_clinvar.vcf.gz
         
         # OPTIONAL: only used if DB check is not skipped
         # NOTE: the following annotation needs a valid license
@@ -123,7 +123,7 @@ Annotation-Resources:
 Internal-Parameters:
     gene2hpo-mapping: ../../data/hpo_resources/gene2hpo.json
     gene2interacting-mapping: ../../data/hpo_resources/gene2interacting.json
-    transcript2length-mapping: ../../data/hpo_resources/grch37transcript2length.json
+    transcript2length-mapping: ../../data/hpo_resources/grch38transcript2length.json
     hgnc2gene-mapping: ../../data/hpo_resources/hgnc2gene.json
     hpo-graph: ../../data/hpo_resources/hpo_graph.gexf
     hpo2replacement-mapping: ../../data/hpo_resources/hpo2replacement.json
