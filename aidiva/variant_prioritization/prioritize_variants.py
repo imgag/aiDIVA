@@ -115,22 +115,26 @@ def parse_gene_list(gene_exclusion_file):
     return genes2exclude
 
 
-def prioritize_variants(variant_data, hpo_resources_folder, reference, num_cores, build, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
+def get_resource_file(resource_path):
+    if resource_path.startswith(".."):
+        resource_file = os.path.dirname(__file__) + "/" + resource_path
+    else:
+        resource_file = resource_path
+    
+    return resource_file
+
+
+def prioritize_variants(variant_data, internal_parameter_dict, reference, num_cores, build, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     # load HPO resources
     # TODO: update to load the hpo resource paths from the yaml file directly (then there can be the compelte path speified if newer ones will be used)
-    hpo_graph_f = hpo_resources_folder + "hpo_graph.gexf"
-    hpo_replacement_f = hpo_resources_folder + "hpo2replacement.json"
-    gene_2_HPO_f = hpo_resources_folder + "gene2hpo.json"
-    hgnc_2_gene_f = hpo_resources_folder + "hgnc2gene.json"
-    gene_2_interacting_f = hpo_resources_folder + "gene2interacting.json"
+    hpo_graph_f = get_resource_file(internal_parameter_dict["hpo-graph"])
+    hpo_replacement_f = get_resource_file(internal_parameter_dict["hpo2replacement-mapping"])
+    gene_2_HPO_f = get_resource_file(internal_parameter_dict["gene2hpo-mapping"])
+    hgnc_2_gene_f = get_resource_file(internal_parameter_dict["hgnc2gene-mapping"])
+    gene_2_interacting_f = get_resource_file(internal_parameter_dict["gene2interacting-mapping"])
+    transcript_length_mapping_f = get_resource_file(internal_parameter_dict["transcript2length-mapping"])
 
-    if build == "GRCh37":
-        logger.info(f"Using GRCh37 transcript length file.")
-        transcript_length_mapping_f = hpo_resources_folder + "grch37transcript2length.json"
-    elif build == "GRCh38":
-        logger.info(f"Using GRCh38 transcript length file.")
-        transcript_length_mapping_f = hpo_resources_folder + "grch38transcript2length.json"
-    else:
+    if not (build == "GRCh37" or build == "GRCh38"):
         logger.error(f"Unrecognized assembly build given: {build}")
     
     hpo_list_file = hpo_list

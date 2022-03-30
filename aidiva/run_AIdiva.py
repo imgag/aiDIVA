@@ -78,10 +78,14 @@ if __name__=="__main__":
     indel_vcf = args.indel_vcf
     expanded_indel_vcf = args.expanded_indel_vcf
 
-    # get machine learning models
-    scoring_model_snp = os.path.dirname(__file__) + "/../data/" + configuration["Analysis-Input"]["scoring-model-snp"]
-    scoring_model_indel = os.path.dirname(__file__) + "/../data/" + configuration["Analysis-Input"]["scoring-model-indel"]
-    hpo_resources_folder = os.path.dirname(__file__) + "/../data/hpo_resources/"
+    # load SNP ML model
+    scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
+    
+    # load InDel ML model
+    scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
+
+    # load internal parameters
+    internal_parameter_dict = configuration["Internal-Parameters"]
 
     # parse output files
     output_filename = args.out_prefix
@@ -167,7 +171,7 @@ if __name__=="__main__":
 
         # prioritize and filter variants
         logger.info("Prioritize variants and finalize score ...")
-        prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, ref_path, num_cores, assembly_build, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
+        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
 
         if only_top_results:
             prioritized_data[prioritized_data["FILTER_PASSED"] == 1].head(n=25).to_csv(str(working_directory + output_filename + "_filtered.tsv"), sep="\t", index=False)

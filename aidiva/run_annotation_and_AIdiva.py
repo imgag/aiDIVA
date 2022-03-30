@@ -67,13 +67,14 @@ if __name__=="__main__":
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
 
-    #data_path = "/mnt/data/"
-    # data_path = os.path.dirname(os.path.abspath(__file__)) + "/../data/"
-
     # parse input files
     input_vcf = args.vcf
-    scoring_model_snp = os.path.dirname(os.path.abspath(__file__)) + "/../data/" + configuration["Analysis-Input"]["scoring-model-snp"]
-    scoring_model_indel = os.path.dirname(os.path.abspath(__file__)) + "/../data/" + configuration["Analysis-Input"]["scoring-model-indel"]
+    
+    # load SNP ML model
+    scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
+    
+    # load InDel ML model
+    scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
     
     # obtain number of threads to use during computation
     if args.threads is not None:
@@ -109,7 +110,7 @@ if __name__=="__main__":
     only_top_results = args.only_top_results
     
 
-    vep_annotation_dict = configuration["VEP-Annotation"]
+    annotation_dict = configuration["Annotation-Resources"]
     prioritization_information_dict = configuration["Analysis-Input"]["prioritization-information"]
     internal_parameter_dict = configuration["Internal-Parameters"]
 
@@ -124,12 +125,10 @@ if __name__=="__main__":
     input_filename = os.path.basename(input_file)
     input_filename = input_filename.split(".")[0]
 
-    hpo_resources_folder = os.path.dirname(os.path.abspath(__file__)) + "/../data/hpo_resources/"
-
     logger.info("Starting VCF preparation...")
     # sorting and filtering step to remove unsupported variants
-    annotate.sort_vcf(input_vcf, str(working_directory + input_filename + "_sorted.vcf"), vep_annotation_dict)
-    annotate.annotate_consequence_information(str(working_directory + input_filename + "_sorted.vcf"), str(working_directory + input_filename + "_consequence.vcf"), vep_annotation_dict, assembly_build, num_cores)
+    annotate.sort_vcf(input_vcf, str(working_directory + input_filename + "_sorted.vcf"), annotation_dict)
+    annotate.annotate_consequence_information(str(working_directory + input_filename + "_sorted.vcf"), str(working_directory + input_filename + "_consequence.vcf"), annotation_dict, assembly_build, num_cores)
     filt_vcf.filter_coding_variants(str(working_directory + input_filename + "_consequence.vcf"), str(working_directory + input_filename + "_filtered.vcf"), "CONS")
 
     # convert input vcf to pandas dataframe
@@ -138,28 +137,28 @@ if __name__=="__main__":
 
     # Annotation with VEP
     logger.info("Starting VEP annotation...")
-    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_snp_vep.vcf"), vep_annotation_dict, assembly_build, False, False, num_cores)
-    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_vep.vcf"), vep_annotation_dict, assembly_build, True, False, num_cores)
-    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_vep.vcf"), vep_annotation_dict, assembly_build, False, True, num_cores)
+    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_snp.vcf"), str(working_directory + input_filename + "_snp_vep.vcf"), annotation_dict, assembly_build, False, False, num_cores)
+    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel.vcf"), str(working_directory + input_filename + "_indel_vep.vcf"), annotation_dict, assembly_build, True, False, num_cores)
+    annotate.call_vep_and_annotate_vcf(str(working_directory + input_filename + "_indel_expanded.vcf"), str(working_directory + input_filename + "_indel_expanded_vep.vcf"), annotation_dict, assembly_build, False, True, num_cores)
 
     # Additional annotation with AnnotateFromVCF (a ngs-bits tool)
     # If VCF is used as output format VEP won't annotate from custom VCF files
     logger.info("Starting AnnotateFromVCF annotation...")
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), vep_annotation_dict, False, False, num_cores)
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_vep.vcf"), str(working_directory + input_filename + "_indel_vep_annotated.vcf"), vep_annotation_dict, False, True, num_cores)
-    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), vep_annotation_dict, True, False, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_snp_vep.vcf"), str(working_directory + input_filename + "_snp_vep_annotated.vcf"), annotation_dict, False, False, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_vep.vcf"), str(working_directory + input_filename + "_indel_vep_annotated.vcf"), annotation_dict, False, True, num_cores)
+    annotate.annotate_from_vcf(str(working_directory + input_filename + "_indel_expanded_vep.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), annotation_dict, True, False, num_cores)
 
     # Additional annotation with AnnotateFromBed (a ngs-bits tool)
-    annotate.annotate_from_bed(str(working_directory + input_filename + "_snp_vep_annotated.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), vep_annotation_dict, num_cores)
-    annotate.annotate_from_bed(str(working_directory + input_filename + "_indel_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), vep_annotation_dict, num_cores)
+    annotate.annotate_from_bed(str(working_directory + input_filename + "_snp_vep_annotated.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), annotation_dict, num_cores)
+    annotate.annotate_from_bed(str(working_directory + input_filename + "_indel_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), annotation_dict, num_cores)
 
     # Additional annotation with AnnotateFromBigWig (a ngs-bits tool)
-    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), vep_annotation_dict, num_cores)
-    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), vep_annotation_dict, num_cores)
+    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_snp_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), annotation_dict, num_cores)
+    annotate.annotate_from_bigwig(str(working_directory + input_filename + "_indel_expanded_vep_annotated.vcf"), str(working_directory + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), annotation_dict, num_cores)
 
     # Filter low confidence regions with VariantFilterRegions (a ngs-bits tool)
-    annotate.filter_regions(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), vep_annotation_dict)
-    annotate.filter_regions(str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), vep_annotation_dict)
+    annotate.filter_regions(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw.vcf"), str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), annotation_dict)
+    annotate.filter_regions(str(working_directory + input_filename + "_indel_vep_annotated_bed.vcf"), str(working_directory + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), annotation_dict)
 
     # convert annotated vcfs back to pandas dataframes
     input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), False, num_cores)
@@ -208,7 +207,7 @@ if __name__=="__main__":
 
         # prioritize and filter variants
         logger.info("Filter variants and finalize score...")
-        prioritized_data = prio.prioritize_variants(predicted_data, hpo_resources_folder, ref_path, num_cores, assembly_build, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
+        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
 
         ## TODO: create additional output files according to the inheritance information (only filtered data)
         if only_top_results:
