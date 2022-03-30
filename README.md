@@ -59,7 +59,7 @@ Make sure to put the trained models in the data folder and make sure that the fi
 ### Running AIdiva on already annotated data:
 
 ```
-python run_AIdiva.py --config AIdiva_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--family_file family.txt] [--threads 1]
+python run_AIdiva.py --config AIdiva_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
 ```
 
 + _config_ -- YAML configuration file (in the `data` folder there are example configuration files for each of the two modes)
@@ -69,13 +69,18 @@ python run_AIdiva.py --config AIdiva_configuration_annotated.yaml --snp_vcf anno
 + _out_prefix_ -- A prefix for the resulting output files
 + _workdir_ -- Working directory, where all temporary files are created and saved (the results will also be stored here)
 + _hpo_list_ -- TXT file containing all the HPO terms observed with the patient [optional]
++ _gene_exclusion_ -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness [optional]
 + _family_file_ -- TXT file containing the sample information if run on multisample VCF files [optional]
++ _family_type_ -- Type of the family relation [SINGLE, TRIO, FAMILY] (default: SINGLE) [optional]
++ _skip_db_check_ -- Skip the database checkup for existing entries in ClinVar (and HGMD) [optional]
++ _only_top_results_ -- Restrict the results to only report the top 25 variants [optional]
 + _threads_ -- Number of threads that should be used (default: 1) [optional]
++ _log_level_ -- Define logging level [DEBUG, INFO, WARN, ERROR, CRITICAL] (default: INFO) [optional]
 
 ### Running AIdiva and perform the annotation:
 
 ```
-python run_annotation_and_AIdiva.py --config AIdiva_configuration_with_annotation.yaml --vcf input.vcf --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--threads 1]
+python run_annotation_and_AIdiva.py --config AIdiva_configuration_with_annotation.yaml --vcf input.vcf --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
 ```
 
 

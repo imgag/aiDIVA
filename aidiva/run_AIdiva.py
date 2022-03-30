@@ -24,7 +24,6 @@ if __name__=="__main__":
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the sample relations of the current data")
     parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="In case of multisample data the kind of sample relation [SINGLE, TRIO, MULTI]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
-    parser.add_argument("--reference", type=str, dest="reference", metavar="GRCh37.fa", required=True, help="Reference sequence to use as FASTA [required]")
     parser.add_argument("--skip_db_check", dest="skip_db_check", action="store_true", required=False, help="Flag to skip database (ClinVar, HGMD) lookup")
     parser.add_argument("--only_top_results", dest="only_top_results", action="store_true", required=False, help="Report only the top 25 variants as result")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use (default: 1)")
@@ -112,11 +111,12 @@ if __name__=="__main__":
     
     skip_db_check = args.skip_db_check
 
-    ref_path = args.reference
+    
 
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
     assembly_build = configuration["Assembly-Build"]
+    ref_path = configuration["Analysis-Input"]["ref-path"]
 
     # convert splitted input data to vcf and annotate
     input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False, num_cores)
