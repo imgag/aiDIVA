@@ -126,7 +126,6 @@ def get_resource_file(resource_path):
 
 def prioritize_variants(variant_data, internal_parameter_dict, reference, num_cores, build, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     # load HPO resources
-    # TODO: update to load the hpo resource paths from the yaml file directly (then there can be the compelte path speified if newer ones will be used)
     hpo_graph_f = get_resource_file(internal_parameter_dict["hpo-graph"])
     hpo_replacement_f = get_resource_file(internal_parameter_dict["hpo2replacement-mapping"])
     gene_2_HPO_f = get_resource_file(internal_parameter_dict["gene2hpo-mapping"])
@@ -359,9 +358,8 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
             else:
                 interacting_genes = []
 
-            # we use the hgnc ID to prevent problems if a given gene symbol isn't used anymore   
-            # let variants with a high AIDIVA_SCORE (>=0.8) pass to prevent missed hits
-            if (variant_gene not in genes2exclude) or (pathogenictiy_prediction >= 0.8):
+            # we use the hgnc ID to prevent problems if a given gene symbol isn't used anymore
+            if (variant_gene not in genes2exclude):
                 if variant_gene in gene_2_HPO.keys():
                     gene_HPO_list = gene_2_HPO.get(variant_gene, [])
 
@@ -379,7 +377,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                     gene_similarities.append(gene_hpo_similarity)
 
                 for interacting_gene in interacting_genes:
-                    if (interacting_gene in genes2exclude) and (pathogenictiy_prediction < 0.8):
+                    if (interacting_gene in genes2exclude):
                         continue
 
                     if interacting_gene in gene_2_HPO.keys():
@@ -629,28 +627,28 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
     # exclude gene, if it is in the exclusion list
     if len(genes2exclude & genenames) > 0:
         for gene in genenames:
-            # let variants with a high AIDIVA_SCORE (>=0.8) pass to be more sensitive
-            if (gene.upper() in genes2exclude) and (float(variant["AIDIVA_SCORE"]) < 0.8):
+            if (gene.upper() in genes2exclude):
                 filter_passed = 0 # gene in exclusion list
                 filter_comment = "gene exclusion"
 
                 return filter_passed, filter_comment
 
-    # let variants with a high AIDIVA_SCORE (>=0.8) pass to be more sensitive
-    if (repeat != "NA") and (repeat != "") and (repeat != "nan") and (float(variant["AIDIVA_SCORE"]) < 0.8):
+    # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
+    if ((repeat != "NA") and (repeat != "") and (repeat != "nan")) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         filter_passed = 0 # tandem repeat
         filter_comment = "tandem repeat"
 
         return filter_passed, filter_comment
     
-    # let variants with a high AIDIVA_SCORE (>=0.8) pass to be more sensitive
-    if (seg_dup > 0) and (float(variant["AIDIVA_SCORE"]) < 0.8):
+    # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
+    if (seg_dup > 0) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         filter_passed = 0 # segmental duplication
         filter_comment = "segmental duplication"
 
         return filter_passed, filter_comment
     
-    if ((len(variant["REF"]) > 1 or len(variant["ALT"]) > 1)) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.8):
+    # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
+    if ((len(variant["REF"]) > 1 or len(variant["ALT"]) > 1)) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         # Get sequence context (vicinity) of a variant for homopolymer check (5 bases up- and down-stream)
         # Get fewer bases when variant is at the start or end of the sequence
         num_bases = 5
@@ -684,7 +682,8 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
             return filter_passed, filter_comment
 
     # check if there is something annoted from REPEATMASKER
-    if str(variant["REPEATMASKER"]).strip() != "" and str(variant["REPEATMASKER"]).strip() != "."  and str(variant["REPEATMASKER"]).strip() != "nan" and not str(variant['REPEATMASKER']).isspace():
+    # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
+    if (str(variant["REPEATMASKER"]).strip() != "" and str(variant["REPEATMASKER"]).strip() != "."  and str(variant["REPEATMASKER"]).strip() != "nan" and not str(variant['REPEATMASKER']).isspace()) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         filter_passed = 0 # masked repeat region
         filter_comment = "masked repeat region"
 
