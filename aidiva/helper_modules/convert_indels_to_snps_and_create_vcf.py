@@ -30,7 +30,7 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
             window_start = max(int(row.POS) - 3, 1)
 
             # make sure that the window won't exceed the reference sequence length
-            window_end = min(int(row.POS) + len(row.REF) + 2, in_fasta.get_reference_length(row.CHROM))
+            window_end = min(int(row.POS) + len(row.REF) + 2, in_fasta.get_reference_length(chrom_id))
             extended_ref_seq = in_fasta.fetch(chrom_id, window_start, window_end)
 
             for i in range(abs(window_end-window_start)):

@@ -651,12 +651,17 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
     if ((len(variant["REF"]) > 1 or len(variant["ALT"]) > 1)) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         # Get sequence context (vicinity) of a variant for homopolymer check (5 bases up- and down-stream)
         # Get fewer bases when variant is at the start or end of the sequence
+        if "chr" in str(variant["CHROM"]):
+            chrom_id = str(variant["CHROM"])
+        else:
+            chrom_id = "chr" + str(variant["CHROM"])
+        
         num_bases = 5
         pos_start = max(int(variant["POS"]) - (num_bases + 1), 1)
-        pos_end = min(int(variant["POS"]) + num_bases, in_fasta.get_reference_length(variant["CHROM"]))
+        pos_end = min(int(variant["POS"]) + num_bases, in_fasta.get_reference_length(chrom_id))
 
         try:
-            sequence_context = in_fasta.fetch(variant["CHROM"], pos_start, pos_end)
+            sequence_context = in_fasta.fetch(chrom_id, pos_start, pos_end)
             sequence_context = sequence_context.upper()
         except FileNotFoundError:
             sequence_context = '.'
