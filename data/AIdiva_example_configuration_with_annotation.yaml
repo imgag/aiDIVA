@@ -12,8 +12,8 @@ Analysis-Input:
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snps: <full-path-to-model>/rf_model_snp.pkl
-    scoring-model-indels: <full-path-to-model>/rf_model_indel.pkl
+    scoring-model-snp: <full-path-to-model>/rf_model_snp.pkl
+    scoring-model-indel: <full-path-to-model>/rf_model_indel.pkl
 
     prioritization-information:
         # Identifier to get the score from the annotated file
@@ -25,7 +25,7 @@ Analysis-Input:
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these)
     # NOTE: currently not used, we use directly the MAX_AF annotation from VEP
-    allele_frequency_list:
+    allele-frequency-list:
         - gnomAD_AFR_AF
         - gnomAD_ASJ_AF
         - gnomAD_EAS_AF
@@ -43,7 +43,7 @@ Model-Features:
 
     # List containing the names of the features used for the model training
     # the exact order of the features is crucial (make sure to have the exact same order as in the training step)
-    feature_list:
+    feature-list:
         - SIFT
         - PolyPhen
         - CADD_PHRED
