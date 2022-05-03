@@ -309,9 +309,9 @@ def extract_columns(cell, process_indel):
                 else:
                     logger.error(f"Could not recognize INFO field {field}")
             else:
-                logger.warn(f"Skip INFO field value {field}!")
+                logger.debug(f"Skip unused INFO field value {field}!")
         else:
-            logger.info(f"Skip empty (NaNs are handled as empty) INFO field {field}")
+            logger.debug(f"Skip empty (NaNs are handled as empty) INFO field {field}")
 
     if (gnomAD_hom > 0.0) and (gnomAD_an > 0.0):
         gnomAD_homAF = gnomAD_hom / gnomAD_an
@@ -450,7 +450,7 @@ def add_sample_information_to_dataframe(sample_ids, sample_header, vcf_as_datafr
 def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 
-    logger.info("Convert")
+    logger.debug("Convert VCF file")
 
     sample_ids = []
     # FORMAT column has index 8 (counted from 0) and sample columns follow afterwards (sample names are unique)

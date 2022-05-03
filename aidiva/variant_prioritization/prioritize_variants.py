@@ -181,14 +181,14 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
 def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, variant_data):
     variant_data = check_inheritance(variant_data, family_type, family)
     
-    logger.info("Investigate Transcript CDS region!")
+    logger.debug("Investigate Transcript CDS region!")
     variant_data[["CDS_START_PERCENTAGE", "PREDICTED_AIDIVA_SCORE", "AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(investigate_transcript_cds_position(variant, transcript_dict)), axis=1)
     
     if not skip_db_check:
-        logger.info("Check databases (ClinVar, HGMD) for known variants!")
+        logger.debug("Check databases (ClinVar, HGMD) for known variants!")
         variant_data[["VARIANT_DB_SCORE", "AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(check_databases_for_pathogenicity_classification(variant)), axis=1)
     else:
-        logger.info(f"Skip variant pathogenicity lookup in existing databases (ClinVar, HGMD).")
+        logger.debug(f"Skip variant pathogenicity lookup in existing databases (ClinVar, HGMD).")
 
     variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information)), axis=1)
     variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query, reference)), axis=1)
@@ -229,7 +229,7 @@ def investigate_transcript_cds_position(variant, transcript_dict):
                     else:
                         adjusted_score = predicted_score
                 else:
-                    logger.warn(f"The CDS start position ({cds_start}) was greater than the CDS length ({cds_length})! Skip percentage computation!")
+                    logger.debug(f"The CDS start position ({cds_start}) was greater than the CDS length ({cds_length})! Skip percentage computation!")
                     start_percentage = np.nan
                     adjusted_score = predicted_score
             else:
@@ -259,7 +259,7 @@ def check_databases_for_pathogenicity_classification(variant):
         elif clinvar_classification.lower() == "pathogenic/likely_pathogenic" or clinvar_classification.lower() == "likely_pathogenic/pathogenic":
             clinvar_classification = "likely_pathogenic"
         else:
-            logger.warn(f"Found unknown ClinVar classification {clinvar_classification}")
+            logger.debug(f"Found unknown ClinVar classification {clinvar_classification}")
 
     hgmd_classification = str(variant["HGMD_CLASS"])
 
@@ -342,7 +342,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                 else:
                     pathogenictiy_prediction = np.nan
                 
-                logger.info("Using dbscSNV prediction instead of AIdiva prediction for splicing variant!")
+                logger.debug("Using dbscSNV prediction instead of AIdiva prediction for splicing variant!")
 
             else:
                 pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])
@@ -369,7 +369,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                         gene_HPO_list = gene_2_HPO.get(gene_symbol, [])
 
                     else:
-                        logger.warn("The processed gene %s (HGNC:%s) is not found in the current HPO resources" % (variant_gene, hgnc_id))
+                        logger.debug("The processed gene %s (HGNC:%s) is not found in the current HPO resources" % (variant_gene, hgnc_id))
                         gene_HPO_list = []
 
                 if gene_HPO_list:
@@ -384,7 +384,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                         gene_HPO_list = gene_2_HPO.get(interacting_gene, [])
 
                     else:
-                        logger.warn("The processed interacting gene %s is not found in the current HPO resources" % (interacting_gene))
+                        logger.debug("The processed interacting gene %s is not found in the current HPO resources" % (interacting_gene))
                         gene_HPO_list = []
 
                     if gene_HPO_list:
@@ -421,7 +421,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                     ada_score = np.nan
 
                 pathogenictiy_prediction = max([rf_score, ada_score], default=np.nan)
-                logger.info("Using dbscSNV prediction instead of AIdiva prediction for splicing variant!")
+                logger.debug("Using dbscSNV prediction instead of AIdiva prediction for splicing variant!")
 
         else:
             pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])
@@ -478,7 +478,7 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
                 for group in variant_data_grouped:
                     check_compound(group, affected_child, parent_1, parent_2)
             else:
-                logger.error(f"Something went while checking the TRIO for compound heterozygosity!")
+                logger.error(f"Something went wrong while checking the TRIO for compound heterozygosity!")
 
             variant_data = pd.concat(variant_data_grouped)
 
@@ -602,13 +602,13 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
     try:
         seg_dup = float(variant[duplication_identifier])
     except Exception as e:
-        logger.warn("Use 0.0 for missing segment duplication entries!")
+        logger.debug("Use 0.0 for missing segment duplication entries!")
         seg_dup = 0.0
     
     try:
         maf = float(variant["MAX_AF"])
     except Exception as e:
-        logger.warn("Allele frequency entry could not be identified, use 0.0 instead!")
+        logger.debug("Allele frequency entry could not be identified, use 0.0 instead!")
         maf = 0.0
 
     # filter for low confidence regions (these are regions where often false positives were observed)
@@ -755,7 +755,7 @@ def check_compound(gene_variants, affected_child, parent_1, parent_2):
                     gene_variants.loc[index_pair[1], "COMPOUND"] = 1
 
             if ("." in affected_child_zygosity_a) or ("." in affected_child_zygosity_b):
-                logger.warn("Skip variant pair, uncalled genotype in affected sample!")
+                logger.debug("Skip variant pair, uncalled genotype in affected sample!")
 
 
 def check_compound_single(gene_variants, variant_columns):
@@ -788,7 +788,7 @@ def check_denovo(variant, family):
         if name in check_samples:
             check_samples[name] = 1
         else:
-            logger.warn(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
+            logger.debug(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
 
         # heterozygous in affected individual - good
         if zygosity == "0/1" and family[name] == 1:
@@ -822,7 +822,7 @@ def check_denovo(variant, family):
     for vals in check_samples.values():
        if vals == 0:
             judgement = 0
-            logger.warn(f"Skip denovo_check for sample {name}!")
+            logger.debug(f"Skip denovo_check for sample {name}!")
             break
 
     return judgement
@@ -841,7 +841,7 @@ def check_dominant(variant, family):
         if name in check_samples:
             check_samples[name] = 1
         else:
-            logger.warn(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
+            logger.debug(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
 
         # affected family members should have the mutation (hom ref not allowed)
         if zygosity == "0/0" and family[name] == 1:
@@ -881,7 +881,7 @@ def check_dominant(variant, family):
     for vals in check_samples.values():
        if vals == 0:
             judgement = 0
-            logger.warn(f"Skip denovo_check for sample! Reason one or more sample names where not defined in the pedigree!")
+            logger.debug(f"Skip denovo_check for sample! Reason one or more sample names where not defined in the pedigree!")
             break
 
     return judgement
@@ -910,7 +910,7 @@ def check_recessive(variant, family, family_type):
         if name in check_samples:
             check_samples[name] = 1
         else:
-            logger.warn(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
+            logger.debug(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
 
         # affected individuals have to be homozygous
         if zygosity == "1/1" and family[name] == 1:
@@ -949,7 +949,7 @@ def check_recessive(variant, family, family_type):
     for vals in check_samples.values():
         if vals == 0:
             judgement = 0
-            logger.warn(f"Skip denovo_check for sample! Reason one or more sample names where not defined in the pedigree!")
+            logger.debug(f"Skip denovo_check for sample! Reason one or more sample names where not defined in the pedigree!")
             break
 
     return judgement
@@ -984,7 +984,7 @@ def check_xlinked(variant, family):
         if name in check_samples:
             check_samples[name] = 1
         else:
-            logger.warn(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
+            logger.debug(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
 
         if family[name] == 0:
             inheritance_logic[name] = zygosity
@@ -1040,7 +1040,7 @@ def check_xlinked(variant, family):
     for vals in check_samples.values():
         if vals == 0:
             judgement = 0
-            logger.warn(f"Skip denovo_check for sample! Reason one or more sample names where not defined in the pedigree!")
+            logger.debug(f"Skip denovo_check for sample! Reason one or more sample names where not defined in the pedigree!")
             break
 
     return judgement

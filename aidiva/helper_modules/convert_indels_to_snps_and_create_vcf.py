@@ -40,7 +40,7 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                 elif (extended_ref_seq[i] == "G") or (extended_ref_seq[i] == "C"):
                     alt_variant = random.choice(["A", "T"])
                 elif (extended_ref_seq[i] == "N"):
-                    logger.warn("Reference base was skipped because it was 'N'!")
+                    logger.debug("Reference base was skipped because it was 'N'!")
                     continue
                 else:
                     logger.error("The given reference sequence seems to be corrupted!")

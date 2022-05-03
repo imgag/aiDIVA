@@ -62,15 +62,15 @@ def calculate_hpo_set_similarity(hpo_graph, hpo_term_set_a, hpo_term_set_b, ic_p
         if term_a not in hpo_graph:
             if term_a in replacements.keys():
                 checked_term_set_a.append(replacements[term_a])
-                logger.warn(f"{term_a} (sample) not in HPO graph! Replacement ({replacements[term_a]}) found will use this term instead!")
+                logger.debug(f"{term_a} (sample) not in HPO graph! Replacement ({replacements[term_a]}) found will use this term instead!")
             elif term_a in alternatives.keys():
                 #checked_term_set_a.extend(alternatives[term_a])
-                logger.warn(f"{term_a} (sample) not in HPO graph! Alternatives ({alternatives[term_a]}) found! HPO term will be skipped!")
+                logger.debug(f"{term_a} (sample) not in HPO graph! Alternatives ({alternatives[term_a]}) found! HPO term will be skipped!")
             elif term_a in considerations.keys():
                 #checked_term_set_a.extend(considerations[term_a])
-                logger.warn(f"{term_a} (sample) not in HPO graph! Considerations ({considerations[term_a]}) found! HPO term will be skipped!")
+                logger.debug(f"{term_a} (sample) not in HPO graph! Considerations ({considerations[term_a]}) found! HPO term will be skipped!")
             else:
-                logger.warn(f"{term_a} (sample) not in HPO graph! HPO term will be skipped!")
+                logger.debug(f"{term_a} (sample) not in HPO graph! HPO term will be skipped!")
         else:
             checked_term_set_a.append(term_a)
     
@@ -78,15 +78,15 @@ def calculate_hpo_set_similarity(hpo_graph, hpo_term_set_a, hpo_term_set_b, ic_p
         if term_b not in hpo_graph:
             if term_b in replacements.keys():
                 checked_term_set_b.append(replacements[term_b])
-                logger.warn(f"{term_b} (gene) not in HPO graph! Replacement ({replacements[term_b]}) found will use this term instead!")
+                logger.debug(f"{term_b} (gene) not in HPO graph! Replacement ({replacements[term_b]}) found will use this term instead!")
             elif term_b in considerations.keys():
                 #checked_term_set_b.extend(considerations[term_b])
-                logger.warn(f"{term_b} (gene) not in HPO graph! Considerations ({considerations[term_b]}) found! HPO term will be skipped!")
+                logger.debug(f"{term_b} (gene) not in HPO graph! Considerations ({considerations[term_b]}) found! HPO term will be skipped!")
             elif term_b in alternatives.keys():
                 #checked_term_set_b.extend(alternatives[term_b])
-                logger.warn(f"{term_b} (gene) not in HPO graph! Alternatives ({alternatives[term_b]}) found! HPO term will be skipped!")
+                logger.debug(f"{term_b} (gene) not in HPO graph! Alternatives ({alternatives[term_b]}) found! HPO term will be skipped!")
             else:
-                logger.warn(f"{term_b} (gene) not in HPO graph! HPO term will be skipped!")
+                logger.debug(f"{term_b} (gene) not in HPO graph! HPO term will be skipped!")
         else:
             checked_term_set_b.append(term_b)
     
@@ -105,6 +105,6 @@ def calculate_hpo_set_similarity(hpo_graph, hpo_term_set_a, hpo_term_set_b, ic_p
         return set_a_to_b_similarity
 
     else:
-        logger.warn(f"Sample HPO set ({hpo_term_set_a}) and/or Gene HPO set ({hpo_term_set_b}) was empty after checking if the terms are part of the used HPO graph! Maybe no supported term was in the set! Similarity set to 0.0!")
+        logger.debug(f"Sample HPO set ({hpo_term_set_a}) and/or Gene HPO set ({hpo_term_set_b}) was empty after checking if the terms are part of the used HPO graph! Maybe no supported term was in the set! Similarity set to 0.0!")
         
         return 0.0
