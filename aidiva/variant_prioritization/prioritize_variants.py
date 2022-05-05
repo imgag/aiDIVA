@@ -61,8 +61,10 @@ def parse_ped_file(family_file):
         if os.path.isfile(family_file):
             with open(family_file, "r") as family_f:
                 for line in family_f:
-                    line = line.rstrip()
-                    splitline = line.split("\t")
+                    if not line.rstrip():
+                        continue
+
+                    splitline = line.rstrip().split("\t")
 
                     if splitline[5] == "2":
                         family_dict[splitline[1]] = 1
@@ -84,8 +86,12 @@ def parse_hpo_list(hpo_list_file):
         if os.path.isfile(hpo_list_file):
             with open(hpo_list_file, "r") as hpo_file:
                 for line in hpo_file:
+                    if not line.rstrip():
+                        continue
+                    
                     hpo_term = line.rstrip()
                     hpo_query.add(hpo_term)
+
             hpo_query = list(hpo_query)
             hpo_query.sort() # makes sure that the gene symbols are ordered (could lead to problems otherwise)
         else:
@@ -104,8 +110,9 @@ def parse_gene_list(gene_exclusion_file):
                 for line in exclusion_file:
                     if line.startswith("#"):
                         continue
-                    if line == "\n":
+                    if not line.rstrip():
                         continue
+                    
                     gene = line.rstrip().split("\t")[0].upper()
                     genes2exclude.add(gene)
         else:
