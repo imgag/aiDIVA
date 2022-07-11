@@ -11,8 +11,9 @@ Ngs-bits is used to annotate the VCF files.
 ```
 git clone https://github.com/imgag/ngs-bits.git
 cd ngs-bits
-git checkout cba4aa891b5af683f74f0b0dabbe143719e0883a && git submodule update --recursive --init
+git checkout 2022_04 && git submodule update --recursive --init
 make build_3rdparty
+make build_libs_release
 make build_tools_release
 ```
 
@@ -41,8 +42,8 @@ mkdir -p $vep_data_dir
 cd $vep_data_dir
 mkdir -p ftp
 cd ftp
-wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_vep_103_GRCh37.tar.gz
-#wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_vep_103_GRCh38.tar.gz
+wget ftp://ftp.ensembl.org/pub/release-103/variation/indexed_vep_cache/homo_sapiens_vep_103_GRCh37.tar.gz
+#wget ftp://ftp.ensembl.org/pub/release-103/variation/indexed_vep_cache/homo_sapiens_vep_103_GRCh38.tar.gz
 
 # install ensembl-vep
 PERL5LIB=$vep_install_dir/Bio/:$vep_cpan_dir/lib/perl5/:$PERL5LIB
