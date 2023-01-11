@@ -66,7 +66,7 @@ def import_vcf_data(in_data):
 
         if header_line == "":
             logger.error("The VCF seems to be corrupted, missing header line!")
-        
+
         # reset file pointer to begin reading at the beginning (is done by closing the file before reading again)
 
     data = pd.read_csv(in_data, names=header_line.split("\t"), sep="\t", comment="#", low_memory=False)
@@ -80,7 +80,7 @@ def convert_indel_vcf_to_expanded_indel_vcf(in_data, out_data, ref_folder):
     input_data, header = import_vcf_data(in_data)
     with open(out_data, "w", newline="") as outfile:
         write_data_information_to_file(input_data, outfile, ref_folder, header)
-    
+
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()

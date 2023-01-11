@@ -61,10 +61,11 @@ def parse_ped_file(family_file):
         if os.path.isfile(family_file):
             with open(family_file, "r") as family_f:
                 for line in family_f:
-                    if not line.rstrip():
+                    if line == "\n":
                         continue
 
-                    splitline = line.rstrip().split("\t")
+                    line = line.rstrip()
+                    splitline = line.split("\t")
 
                     if splitline[5] == "2":
                         family_dict[splitline[1]] = 1
@@ -86,7 +87,7 @@ def parse_hpo_list(hpo_list_file):
         if os.path.isfile(hpo_list_file):
             with open(hpo_list_file, "r") as hpo_file:
                 for line in hpo_file:
-                    if not line.rstrip():
+                    if line == "\n":
                         continue
                     
                     hpo_term = line.rstrip()
@@ -656,6 +657,12 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
     
     # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
     if ((len(variant["REF"]) > 1 or len(variant["ALT"]) > 1)) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
+        # make sure to use the correct internal chromsome notation (with chr)
+        if "chr" in str(variant["CHROM"]):
+            chrom_id = str(variant["CHROM"])
+        else:
+            chrom_id = "chr" + str(variant["CHROM"])
+        
         # Get sequence context (vicinity) of a variant for homopolymer check (5 bases up- and down-stream)
         # Get fewer bases when variant is at the start or end of the sequence
         if "chr" in str(variant["CHROM"]):
