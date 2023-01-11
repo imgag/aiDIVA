@@ -19,6 +19,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
     else:
         os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
+
     cache_path = vep_annotation_dict['vep-cache']
 
     # add essential parameters
@@ -34,6 +35,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     if not expanded:
         # allele frequencies to include
         vep_command = f"{vep_command} --max_af"
+
         # the following AF annotations could be dropped since we only need the max AF
         #vep_command = f"{vep_command} --af"
         #vep_command = f"{vep_command} --af_1kg"
@@ -44,7 +46,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     if not basic:
         vep_command = f"{vep_command} --sift s"
         vep_command = f"{vep_command} --polyphen s"
-    
+
     vep_command = f"{vep_command} -i " + input_vcf_file + " "
     vep_command = f"{vep_command} -o " + output_vcf_file + " "
     vep_command = f"{vep_command} --fork " + str(num_cores) + " "
@@ -58,7 +60,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
 
 def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37", num_cores=1):
-	# the path to the executable
+    # the path to the executable
     vep_command = vep_annotation_dict["vep"] + "/" + "vep "
 
     # set the correct paths to the needed perl modules
@@ -66,7 +68,7 @@ def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annota
         os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
     else:
         os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
-    
+
     cache_path = vep_annotation_dict['vep-cache']
 
     # add essential parameters
@@ -106,9 +108,10 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
             tmp.write(f"{vcf_annotation['dbscSNV']}\t\tADA_SCORE,RF_SCORE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CADD']}\t\tCADD\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['REVEL']}\t\tREVEL\t\ttrue\n".encode())
-        
+
         if not expanded:
             tmp.write(f"{vcf_annotation['clinvar']}\tCLINVAR\tDETAILS\t\ttrue\n".encode())
+
             # HGMD needs a valid license, therefor we check if the file exists otherwise this annotation is skipped
             if os.path.isfile(f"{vcf_annotation['hgmd']}"):
                 tmp.write(f"{vcf_annotation['hgmd']}\tHGMD\tCLASS,RANKSCORE\t\ttrue\n".encode())
@@ -152,7 +155,7 @@ def annotate_from_bed(input_vcf_file, output_vcf_file, annotation_dict, num_core
         else:
             subprocess.run(f"{command} -bed {bed_annotation['repeatMasker']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
             logger.warn("OMIM file is not found! Skip OMIM annotation!")
-    
+
     finally:
         # clean up
         os.remove(tmp_segDup.name)
@@ -219,6 +222,9 @@ if __name__=="__main__":
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="data.vcf", required=True, help="VCF file containing the data, you want to annotate with VEP\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="out.vcf", required=True, help="Specifies the extended output file\n")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the annotation parameters")
+    parser.add_argument("--basic", dest="basic", action="store_true", required=False, help="Flag to perform basic annotation on InDels")
+    parser.add_argument("--expanded", dest="expanded", action="store_true", required=False, help="Flag to perform annotation on expanded InDels")
+    parser.add_argument("--threads", dest="threads", metavar=1, required=False, help="Number of threads to use during annotation")
     args = parser.parse_args()
 
     input_vcf_file = args.in_data
@@ -227,7 +233,48 @@ if __name__=="__main__":
     # parse configuration file
     with open(args.config, "r") as config_file:
         configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
-    
-    annotation_dict = configuration["VEP-Annotation"]
-    
-    call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, annotation_dict)
+
+    assembly_build = configuration["Assembly-Build"]
+    annotation_dict = configuration["Annotation-Resources"]
+
+    if args.threads is not None:
+        num_threads = int(args.threads)
+    else:
+        num_threads = 1
+
+    basic_annotation = args.basic
+    expanded_annotation = args.expanded
+
+    try:
+        # create intermediate temp files
+        tmp_sorted = tempfile.NamedTemporaryFile(mode="w+b", suffix="_sorted.vcf", delete=False)
+        tmp_vep_annot = tempfile.NamedTemporaryFile(mode="w+b", suffix="_vepAnnot.vcf", delete=False)
+        tmp_vcf_annot = tempfile.NamedTemporaryFile(mode="w+b", suffix="_vcfAnnot.vcf", delete=False)
+        tmp_bed_annot = tempfile.NamedTemporaryFile(mode="w+b", suffix="_bedAnnot.vcf", delete=False)
+        tmp_bigwig_annot = tempfile.NamedTemporaryFile(mode="w+b", suffix="_bigwigAnnot.vcf", delete=False)
+
+        # perform annotations
+        sort_vcf(input_vcf_file, tmp_sorted.name, annotation_dict)
+        call_vep_and_annotate_vcf(tmp_sorted.name, tmp_vep_annot.name, annotation_dict, assembly_build, basic_annotation, expanded_annotation, num_threads)
+        annotate_from_vcf(tmp_vep_annot.name, tmp_vcf_annot.name, annotation_dict, expanded_annotation, basic_annotation, num_threads)
+
+        if basic_annotation:
+            annotate_from_bed(tmp_vcf_annot.name, tmp_bed_annot.name, annotation_dict, num_threads)
+            filter_regions(tmp_bed_annot.name, output_vcf_file, annotation_dict)
+
+        elif expanded_annotation:
+            annotate_from_bigwig(tmp_vcf_annot.name, output_vcf_file, annotation_dict, num_threads)
+
+        else:
+            annotate_from_bed(tmp_vcf_annot.name, tmp_bed_annot.name, annotation_dict, num_threads)
+            annotate_from_bigwig(tmp_vcf_annot.name, tmp_bigwig_annot.name, annotation_dict, num_threads)
+            filter_regions(tmp_bigwig_annot.name, output_vcf_file, annotation_dict)
+
+    finally:
+        # clean up
+        os.remove(tmp_sorted.name)
+        os.remove(tmp_vep_annot.name)
+        os.remove(tmp_vcf_annot.name)
+        os.remove(tmp_bed_annot.name)
+        os.remove(tmp_bigwig_annot.name)
+
