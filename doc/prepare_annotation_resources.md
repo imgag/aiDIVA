@@ -71,6 +71,8 @@ python3 prepare_Capice_vcf.py capice_v1.0_build37_snvs.tsv.gz grch37_capice_v1_s
 bgzip grch37_capice_v1_snvs.vcf
 
 tabix -p vcf grch37_capice_v1_snvs.vcf.gz
+
+rm capice_v1.0_build37_snvs.tsv.gz
 ```
 
 
@@ -503,6 +505,11 @@ bgzip grch38_revel_v13.vcf
 
 tabix -p vcf grch37_revel_v13.vcf.gz
 tabix -p vcf grch38_revel_v13.vcf.gz
+
+rm revel-v1.3_all_chromosomes.zip
+rm revel_with_transcript_ids
+rm grch37_revel_v13_unsort.vcf
+rm grch38_revel_v13_unsort.vcf
 ```
 
 
