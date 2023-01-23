@@ -17,6 +17,19 @@ GRCh38:
 <br>
 [http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz](http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz)
 
+```
+gunzip hg19.fa.gz
+bgzip hg19.fa
+
+gunzip hg38.fa.gz
+bgzip hg38.fa
+
+samtools dict hg19.fa.gz
+samtools dict hg38.fa.gz
+
+samtools faidx hg19.fa.gz
+samtools faidx hg38.fa.gz
+```
 
 ## Annotation Databases
 INFO: Please be adviced that some of the annotation sources AIdiva uses are only free for non-commercial and academic use!
