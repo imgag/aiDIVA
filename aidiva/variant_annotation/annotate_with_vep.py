@@ -9,18 +9,20 @@ import yaml
 logger = logging.getLogger(__name__)
 
 
-# TODO: restrict AF annotation to gnomAD and get rid of VEP in the long run
+# TODO: restrict annotation to SIFT and PolyPhen (get rid of VEP in the long run)
 def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37", basic=False, expanded=False, num_cores=1):
     # the path to the executable
     vep_command = vep_annotation_dict["vep"] + "/" + "vep "
 
     # set the correct paths to the needed perl modules
     if "PERL5LIB" in os.environ:
-        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+        #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/:" + os.environ["PERL5LIB"]
     else:
-        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
+        #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
+        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/"
 
-    cache_path = vep_annotation_dict['vep-cache']
+    cache_path = vep_annotation_dict['vep-cache'] + "/" + "cache"
 
     # add essential parameters
     vep_command = f"{vep_command} --species homo_sapiens --assembly {build} "
@@ -59,17 +61,20 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     logger.debug("The VEP annotated VCF is saved as %s" % (output_vcf_file))
 
 
+# TODO rewrite method to use consequence annotation from ngs-bits instead of VEP
 def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37", num_cores=1):
     # the path to the executable
     vep_command = vep_annotation_dict["vep"] + "/" + "vep "
 
     # set the correct paths to the needed perl modules
     if "PERL5LIB" in os.environ:
-        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+        #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
+        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/:" + os.environ["PERL5LIB"]
     else:
-        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
+        #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
+        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/"
 
-    cache_path = vep_annotation_dict['vep-cache']
+    cache_path = vep_annotation_dict['vep-cache'] + "/cache"
 
     # add essential parameters
     vep_command = f"{vep_command} --species homo_sapiens --assembly {build}"
@@ -103,6 +108,7 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
             tmp.write(f"{vcf_annotation['EIGEN_PHRED']}\t\tEIGEN_PHRED\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['FATHMM_XF']}\t\tFATHMM_XF\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
+            # add allele frequencies to gnomAD annotation (instead of annotation from VEP)
             tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAN,Hom\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CAPICE']}\t\tCAPICE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['dbscSNV']}\t\tADA_SCORE,RF_SCORE\t\ttrue\n".encode())
@@ -151,7 +157,7 @@ def annotate_from_bed(input_vcf_file, output_vcf_file, annotation_dict, num_core
 
         if os.path.isfile(f"{bed_annotation['omim']}"):
             subprocess.run(f"{command} -bed {bed_annotation['repeatMasker']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {tmp_repeatmasker.name} -threads {num_cores}", shell=True, check=True)
-            subprocess.run(f"{command} -bed {bed_annotation['omim']} -name OMIM -sep '&' -in {tmp_repeatmasker} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
+            subprocess.run(f"{command} -bed {bed_annotation['omim']} -name OMIM -sep '&' -in {tmp_repeatmasker.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
         else:
             subprocess.run(f"{command} -bed {bed_annotation['repeatMasker']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
             logger.warn("OMIM file is not found! Skip OMIM annotation!")
