@@ -47,7 +47,9 @@ VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
                         "feature_elongation": 36,
                         "regulatory_region_variant": 37,
                         "feature_truncation": 38,
-                        "intergenic_variant": 39}
+                        "intergenic_variant": 39,
+                        # use "unknown" consequence as default if new consequence terms are added to the database that are not yet implemented (this prevents the program from exiting with an error)
+                        "unknown": 40}
 
 USED_INFO_FIELDS = ["INDEL_ID",
                     "CSQ",
@@ -162,6 +164,7 @@ def extract_columns(cell, process_indel):
     omim_details = ""
     annotation = ""
     repeat_masker = ""
+
     #details = ""
     #class_orig = ""
 
@@ -344,8 +347,8 @@ def extract_vep_annotation(cell, annotation_header):
     new_cols = []
 
     # choose the most severe annotation variant
-    # TODO: handle case if new consequence terms were added to the database that are not yet handled from AIdiva
-    consequences = [min([VARIANT_CONSEQUENCES.get(x) for x in field.split("|")[annotation_header.index("Consequence")].split("&")]) for field in annotation_fields]
+    # if new consequence terms were added to the database that are not yet handled from AIdiva use default consequence "unknown" with lowest severity value
+    consequences = [min([VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in field.split("|")[annotation_header.index("Consequence")].split("&")]) for field in annotation_fields]
 
     target_index = min(enumerate(consequences), key=itemgetter(1))[0]
     new_cols = annotation_fields[target_index].strip().split("|")
