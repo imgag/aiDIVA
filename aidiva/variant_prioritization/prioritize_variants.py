@@ -94,10 +94,13 @@ def parse_hpo_list(hpo_list_file):
                     hpo_query.add(hpo_term)
 
             hpo_query = list(hpo_query)
-            hpo_query.sort() # makes sure that the gene symbols are ordered (could lead to problems otherwise)
+            hpo_query.sort() # makes sure that the hpo terms are ordered (could lead to problems otherwise)
         else:
-            logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
-            logger.warn("HPO score finalization will be skipped!")
+            hpo_query = hpo_list_file.split(",")
+            hpo_query.sort()
+            #logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
+    else:
+        logger.warn("HPO score finalization will be skipped!")
     
     return list(hpo_query)
 
