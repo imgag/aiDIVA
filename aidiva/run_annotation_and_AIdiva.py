@@ -200,9 +200,9 @@ if __name__=="__main__":
     annotate.filter_regions(str(working_directory + "/" + input_filename + "_indel_vep_annotated_bed.vcf"), str(working_directory + "/" + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), annotation_dict)
 
     # convert annotated vcfs back to pandas dataframes
-    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), False, num_cores)
-    input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), True, num_cores)
-    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), True, num_cores)
+    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), False, False, num_cores)
+    input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), True, False, num_cores)
+    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), True, True, num_cores)
 
     if (not input_data_snp_annotated.dropna(how='all').empty) or ((not input_data_indel_annotated.dropna(how='all').empty) and (not input_data_indel_expanded_annotated.dropna(how='all').empty)):
         

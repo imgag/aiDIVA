@@ -153,13 +153,13 @@ if __name__=="__main__":
 
     # convert splitted input data to vcf and annotate
     if snp_vcf is not None:
-        input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False, num_cores)
+        input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False, False, num_cores)
     else:
         input_data_snp = pd.DataFrame()
 
     if indel_vcf is not None and expanded_indel_vcf is not None:
-        input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True, num_cores)
-        input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True, num_cores)
+        input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True, False, num_cores)
+        input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True, True, num_cores)
     else:
         input_data_indel = pd.DataFrame()
         input_data_expanded_indel = pd.DataFrame()

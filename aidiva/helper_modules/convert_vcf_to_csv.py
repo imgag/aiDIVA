@@ -427,11 +427,106 @@ def extract_sample_information(row, sample, sample_header=None):
     return sample_information
 
 
-def add_INFO_fields_to_dataframe(process_indel, vcf_as_dataframe):
+# Find and return common prefix of two strings
+def find_common_prefix(string_a, string_b):
+    prefix_end_position = 0
+
+    length_string_a = len(string_a)
+    length_string_b = len(string_b)
+    max_length_prefix = min(length_string_a, length_string_b)
+
+    while prefix_end_position < max_length_prefix and string_a[prefix_end_position] == string_b[prefix_end_position]:
+        prefix_end_position += 1
+
+    shared_prefix = string_a[:prefix_end_position]
+
+    return shared_prefix
+
+
+# Find and return common suffix of two strings
+def find_common_suffix(string_a, string_b):
+    suffix_start_position = 0
+
+    length_string_a = len(string_a)
+    length_string_b = len(string_b)
+    max_length_suffix = min(length_string_a, length_string_b)
+
+    while suffix_start_position < max_length_suffix and string_a[length_string_a-suffix_start_position-1] == string_b[length_string_b-suffix_start_position-1]:
+        suffix_start_position += 1
+
+    if suffix_start_position == 0:
+        return ""
+
+    common_suffix = string_a[suffix_start_position:]
+
+    return common_suffix
+
+
+def convert_variant_representation(row):
+    chrom = row["CHROM"]
+    start_position = row["POS"]
+    ref = row["REF"].upper()
+    alt = row["ALT"].upper()
+
+    # remove common first base
+    if ref != "" and alt != "" and ref[0] == alt[0]:
+        ref = ref[1:]
+        alt = alt[1:]
+        start_position +=1;
+
+    # remove common suffix
+    suffix_length = len(find_common_suffix(ref, alt));
+    if suffix_length > 0:
+        ref = ref[:-suffix_length]
+        alt = alt[:-suffix_length]
+
+    # remove common prefix
+    prefix_length = len(find_common_prefix(ref, obs))
+    if prefix_length > 0:
+        ref = ref[prefix_length:]
+        alt = alt[prefix_length:]
+        start_position += prefix_length
+
+    # determine start and end
+    end_position = start_position
+    ref_length = len(ref)
+    alt_length = len(alt)
+
+    if alt_length == 1 and ref_length == 1: # SNV
+        # nothing to do for SNVs
+        pass
+
+    elif ref_length == 0: # insertion
+        ref = "-"
+        # change insertions from before the coordinate to after the coordinate!!!!
+        start_position -= 1
+        end_position -= 1
+
+    elif alt_length == 0: # deletion
+        end_position = start_position + ref_length - 1
+        alt="-"
+
+    elif alt_length >= 1 and ref_length > 1: #complex indel
+        end_position = start + ref_length - 1
+
+    normalized_variant = f"{chrom}:{start_positon}-{end_position}_{ref}>{alt}"
+
+    return normalized_variant
+
+
+def add_INFO_fields_to_dataframe(process_indel, expanded_indel, vcf_as_dataframe):
+    indel_annotation_columns = ["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
+    snp_annotation_columns = ["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
+
     if process_indel:
-        vcf_as_dataframe[["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        if not expanded_indel:
+            vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
+            vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        else:
+            vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
     else:
-        vcf_as_dataframe[["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
+        vcf_as_dataframe[snp_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
@@ -466,7 +561,7 @@ def add_sample_information_to_dataframe(sample_ids, sample_header, vcf_as_datafr
     return vcf_as_dataframe
 
 
-def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
+def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, num_cores):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 
     logger.debug("Convert VCF file")
@@ -482,7 +577,7 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, num_cores):
     annotation_header = extract_annotation_header(header)
 
     if not vcf_as_dataframe.empty:
-        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_INFO_fields_to_dataframe, process_indel), num_cores)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_INFO_fields_to_dataframe, process_indel, expanded_indel), num_cores)
         vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_VEP_annotation_to_dataframe, annotation_header), num_cores)
 
         if len(vcf_as_dataframe.columns) > 8:
@@ -529,6 +624,7 @@ if __name__ == "__main__":
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="VCF file to convert file\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the converted VCF file\n")
     parser.add_argument("--indel", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of indel variants or not.\n")
+    parser.add_argument("--expanded", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of expanded indel variants.\n")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use.")
     args = parser.parse_args()
 
@@ -537,5 +633,5 @@ if __name__ == "__main__":
     else:
         num_cores = 1
 
-    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, num_cores)
+    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.expanded, num_cores)
     write_vcf_to_csv(vcf_as_dataframe, args.out_data)
