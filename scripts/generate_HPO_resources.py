@@ -136,6 +136,9 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_i
             hpo_graph.node[node]["count"] = 0.0
         elif str(nx.__version__).startswith("2."):
             hpo_graph.nodes[node]["count"] = 0.0
+        elif str(nx.__version__).startswith("3."):
+            # TODO needs further testing and verification
+            hpo_graph.nodes[node]["count"] = 0.0
         else:
             logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
@@ -148,6 +151,10 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_i
             elif str(nx.__version__).startswith("2."):
                 hpo_graph.nodes[node]['replaced_by'] = replacements[node]
                 hpo_graph.nodes[node]['IC'] = -math.log(1.0 / total_counts)
+            elif str(nx.__version__).startswith("3."):
+                # TODO needs further testing and verification
+                hpo_graph.nodes[node]["replaced_by"] = replacement[node]
+                hpo_graph.nodes[node]["IC"] = -math.log(1.0 /total_counts)
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
@@ -155,6 +162,9 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_i
         if str(nx.__version__).startswith("1."):
             hpo_graph.node[node]["count"] = 0.0
         elif str(nx.__version__).startswith("2."):
+            hpo_graph.nodes[node]["count"] = 0.0
+        elif str(nx.__version__).startswith("3."):
+            # TODO needs further testing and verfication
             hpo_graph.nodes[node]["count"] = 0.0
         else:
             logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
@@ -164,6 +174,9 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_i
         if str(nx.__version__).startswith("1."):
             hpo_graph.node[node]["count"] = counts_dict[node]
         elif str(nx.__version__).startswith("2."):
+            hpo_graph.nodes[node]["count"] = counts_dict[node]
+        elif str(nx.__version__).startswith("3."):
+            # TODO needs further testing and verification
             hpo_graph.nodes[node]["count"] = counts_dict[node]
         else:
             logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
@@ -177,6 +190,9 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_i
             count = hpo_graph.node[node]["count"]
         elif str(nx.__version__).startswith("2."):
             count = hpo_graph.nodes[node]["count"]
+        elif str(nx.__version__).startswith("3."):
+            # TODO needs further testing and verification
+            count = hpo_graph.nodes[node]["count"]
         else:
             logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
 
@@ -184,6 +200,9 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_i
             if str(nx.__version__).startswith("1."):
                 count += hpo_graph.node[descendant]["count"]
             elif str(nx.__version__).startswith("2."):
+                count += hpo_graph.nodes[descendant]["count"]
+            elif str(nx.__version__).startswith("3."):
+                # TODO needs further testing and verification
                 count += hpo_graph.nodes[descendant]["count"]
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
@@ -193,12 +212,18 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_i
                 hpo_graph.node[node]["IC"] =  -math.log(float(count) / total_counts)
             elif str(nx.__version__).startswith("2."):
                 hpo_graph.nodes[node]["IC"] =  -math.log(float(count) / total_counts)
+            elif str(nx.__version__).startswith("3."):
+                # TODO needs further testing and verification
+                hpo_graph.nodes[node]["IC"] =  -math.log(float(count) / total_counts)
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
         else :
             if str(nx.__version__).startswith("1."):
                 hpo_graph.node[node]["IC"] = -math.log(1.0 / total_counts) # missing nodes, set as rare as possible
             elif str(nx.__version__).startswith("2."):
+                hpo_graph.nodes[node]["IC"] = -math.log(1.0 / total_counts) # missing nodes, set as rare as possible
+            elif str(nx.__version__).startswith("3."):
+                # TODO needs further testing and verification
                 hpo_graph.nodes[node]["IC"] = -math.log(1.0 / total_counts) # missing nodes, set as rare as possible
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
