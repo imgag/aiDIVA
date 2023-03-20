@@ -481,7 +481,7 @@ def convert_variant_representation(row):
         alt = alt[:-suffix_length]
 
     # remove common prefix
-    prefix_length = len(find_common_prefix(ref, obs))
+    prefix_length = len(find_common_prefix(ref, alt))
     if prefix_length > 0:
         ref = ref[prefix_length:]
         alt = alt[prefix_length:]
