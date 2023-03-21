@@ -29,6 +29,7 @@ if __name__=="__main__":
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use (default: 1)")
     parser.add_argument("--log_path", type=str, dest="log_path", metavar="/output_path/logs/", required=False, help="Path where the log file should be saved, if not specified the log file is saved in the working directory")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO] (default: INFO)")
+    parser.add_argument("--save_as_vcf", dest="save_as_vcf", action="store_true", required=False, help="Flag to create additional result files in VCF format.")
     args = parser.parse_args()
     
     # parse input files
@@ -89,6 +90,7 @@ if __name__=="__main__":
 
     skip_db_check = args.skip_db_check
     only_top_results = args.only_top_results
+    save_as_vcf = args.save_as_vcf
     
     if args.threads is not None:
         num_cores = int(args.threads)
@@ -216,15 +218,28 @@ if __name__=="__main__":
         if only_top_results:
             prioritized_data[prioritized_data["FILTER_PASSED"] == 1].head(n=25).to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
             logger.info("Only 25 best variants are reported as result!")
+
         else:
-            write_result.write_result_vcf(prioritized_data, str(output_filename + ".vcf"), assembly_build, bool(family_type == "SINGLE"))
-            write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+            if save_as_vcf:
+                write_result.write_result_vcf(prioritized_data, str(output_filename + ".vcf"), assembly_build, bool(family_type == "SINGLE"))
+                write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+
             prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"})
             prioritized_data.to_csv(str(output_filename + "_aidiva_result.tsv"), sep="\t", index=False)
             prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+
+            if family_type == "TRIO": #TODO add additional condition for type FAMILY (this type is currently not supported)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["COMPOUND"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_compound.tsv"), sep="\t", index=False)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["DOMINANT_DENOVO"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant_denovo.tsv"), sep="\t", index=False)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["DOMINANT"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant.tsv"), sep="\t", index=False)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["XLINKED"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_xlinked.tsv"), sep="\t", index=False)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["RECESSIVE"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_recessive.tsv"), sep="\t", index=False)
+
         logger.info("Pipeline successfully finsished!")
 
     else:
-        write_result.write_result_vcf(None, str(output_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
-        write_result.write_result_vcf(None, str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+        if save_as_vcf:
+            write_result.write_result_vcf(None, str(output_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
+            write_result.write_result_vcf(None, str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+
         logger.warn("The given input files were empty!")

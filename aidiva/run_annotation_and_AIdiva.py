@@ -31,6 +31,7 @@ if __name__=="__main__":
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     parser.add_argument("--log_path", type=str, dest="log_path", metavar="/output_path/logs/", required=False, help="Path where the log file should be saved, if not specified the log file is saved in the working directory")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO] (default: INFO)")
+    parser.add_argument("--save_as_vcf", dest="save_as_vcf", action="store_true", required=False, help="Flag to create additional result files in VCF format.")
     args = parser.parse_args()
 
     # parse input files
@@ -91,6 +92,8 @@ if __name__=="__main__":
     else:
         family_file = None
         family_type = "SINGLE"
+
+    save_as_vcf = args.save_as_vcf
     
     skip_db_check = args.skip_db_check
     only_top_results = args.only_top_results
@@ -181,7 +184,6 @@ if __name__=="__main__":
     annotate.call_vep_and_annotate_vcf(str(working_directory + "/" + input_filename + "_indel_expanded.vcf"), str(working_directory + "/" + input_filename + "_indel_expanded_vep.vcf"), annotation_dict, assembly_build, False, True, num_cores)
 
     # Additional annotation with AnnotateFromVCF (a ngs-bits tool)
-    # If VCF is used as output format VEP won't annotate from custom VCF files
     logger.info("Starting AnnotateFromVCF annotation...")
     annotate.annotate_from_vcf(str(working_directory + "/" + input_filename + "_snp_vep.vcf"), str(working_directory + "/" + input_filename + "_snp_vep_annotated.vcf"), annotation_dict, False, False, num_cores)
     annotate.annotate_from_vcf(str(working_directory + "/" + input_filename + "_indel_vep.vcf"), str(working_directory + "/" + input_filename + "_indel_vep_annotated.vcf"), annotation_dict, False, True, num_cores)
@@ -205,11 +207,11 @@ if __name__=="__main__":
     input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), True, True, num_cores)
 
     if (not input_data_snp_annotated.dropna(how='all').empty) or ((not input_data_indel_annotated.dropna(how='all').empty) and (not input_data_indel_expanded_annotated.dropna(how='all').empty)):
-        
         if ((not input_data_indel_annotated.empty) and (not input_data_indel_expanded_annotated.empty)):
             # combine the two indel sets
             logger.info("Combine InDel variants ...")
             input_data_indel_combined_annotated = combine_expanded_indels.parallelized_indel_combination(input_data_indel_annotated, input_data_indel_expanded_annotated, feature_list, num_cores)
+
         else:
             logger.warn("No InDel variants given move on to SNP processing!")
             input_data_indel_combined_annotated = pd.DataFrame()
@@ -219,12 +221,14 @@ if __name__=="__main__":
 
         if not input_data_snp_annotated.dropna(how='all').empty:
             predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp_annotated, allele_frequency_list, feature_list, num_cores)
+
         else:
             logger.warn("No SNP variants, skip SNP prediction!")
             predicted_data_snp = pd.DataFrame()
         
         if not input_data_indel_combined_annotated.dropna(how='all').empty:
             predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_indel_combined_annotated, allele_frequency_list, feature_list, num_cores)
+
         else:
             logger.warn("No InDel variants, skip InDel prediction!")
             predicted_data_indel = pd.DataFrame()
@@ -252,15 +256,28 @@ if __name__=="__main__":
         if only_top_results:
             prioritized_data[prioritized_data["FILTER_PASSED"] == 1].head(n=25).to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
             logger.info("Only 25 best variants are reported as result!")
+
         else:
-            write_result.write_result_vcf(prioritized_data, str(output_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
-            write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+            if save_as_vcf:
+                write_result.write_result_vcf(prioritized_data, str(output_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
+                write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+
             prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"})
             prioritized_data.to_csv(str(output_filename + "_aidiva_result.tsv"), sep="\t", index=False)
             prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+
+            if family_type == "TRIO": #TODO add additional condition for type FAMILY (this type is currently not supported)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["COMPOUND"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_compound.tsv"), sep="\t", index=False)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["DOMINANT_DENOVO"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant_denovo.tsv"), sep="\t", index=False)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["DOMINANT"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant.tsv"), sep="\t", index=False)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["XLINKED"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_xlinked.tsv"), sep="\t", index=False)
+                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["RECESSIVE"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_recessive.tsv"), sep="\t", index=False)
+
         logger.info("Pipeline successfully finsished!")
 
     else:
-        write_result.write_result_vcf(None, str(output_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
-        write_result.write_result_vcf(None, str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+        if save_as_vcf:
+            write_result.write_result_vcf(None, str(output_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
+            write_result.write_result_vcf(None, str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+
         logger.warn("The given input files were empty!")
