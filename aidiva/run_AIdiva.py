@@ -212,7 +212,7 @@ if __name__=="__main__":
 
         # prioritize and filter variants
         logger.info("Prioritize variants and finalize score ...")
-        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
+        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
 
         ## TODO: create additional output files according to the inheritance information (only filtered data)
         if only_top_results:

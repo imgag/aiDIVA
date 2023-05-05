@@ -47,6 +47,7 @@ def load_from_json(json_file):
     if json_file.endswith(".gz"):
         with gzip.open(json_file, "rt") as json_f:
             loaded_resource = json.load(json_f)
+
     else:
         with open(json_file, "r") as json_f:
             loaded_resource = json.load(json_f)
@@ -69,10 +70,13 @@ def parse_ped_file(family_file):
 
                     if splitline[5] == "2":
                         family_dict[splitline[1]] = 1
+
                     elif splitline[5] == "1":
                         family_dict[splitline[1]] = 0
+
                     else:
                         logger.error("There was a problem with the given PED file describing the family relations.")
+
         else:
             logger.error("The specified family file %s is not a valid file" % (family_file))
             logger.warn("Inheritance assessment will be skipped!")
@@ -89,16 +93,18 @@ def parse_hpo_list(hpo_list_file):
                 for line in hpo_file:
                     if line == "\n":
                         continue
-                    
+
                     hpo_term = line.rstrip()
                     hpo_query.add(hpo_term)
 
             hpo_query = list(hpo_query)
             hpo_query.sort() # makes sure that the hpo terms are ordered (could lead to problems otherwise)
+
         else:
             hpo_query = hpo_list_file.split(",")
             hpo_query.sort()
             #logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
+
     else:
         logger.warn("HPO score finalization will be skipped!")
     
@@ -114,11 +120,13 @@ def parse_gene_list(gene_exclusion_file):
                 for line in exclusion_file:
                     if line.startswith("#"):
                         continue
+
                     if not line.rstrip():
                         continue
-                    
+
                     gene = line.rstrip().split("\t")[0].upper()
                     genes2exclude.add(gene)
+
         else:
             logger.error("The specified gene exclusion list %s is not a valid file" % (gene_exclusion_file))
             logger.warn("No genes will be excluded during filtering!")
@@ -129,13 +137,45 @@ def parse_gene_list(gene_exclusion_file):
 def get_resource_file(resource_path):
     if resource_path.startswith(".."):
         resource_file = os.path.dirname(__file__) + "/" + resource_path
+
     else:
         resource_file = resource_path
-    
+
     return resource_file
 
 
-def prioritize_variants(variant_data, internal_parameter_dict, reference, num_cores, build, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
+def get_feature_completeness(variant, feature_list):
+    feature_data = variant[feature_list]
+    num_features = len(feature_list)
+    num_missing_features = feature_data.isna().sum()
+    percentage_missing_features = 0
+
+    if num_missing_features >= 1:
+        percentage_missing_features = float(num_missing_features) / float(num_features)
+
+    return percentage_missing_features
+
+
+def compare_polyphen_and_sift_prediction(variant):
+    polyphen_score = variant["PolyPhen"]
+    sift_score = variant["SIFT"]
+
+    polyphen_sift_opposed = 0
+
+    if str(polyphen_score) != "nan" and str(polyphen_score) != "" and str(sift_score) != "nan" and str(sift_score) != "":
+        polyphen_score = float(polyphen_score)
+        sift_score = float(sift_score)
+
+        if polyphen_score < 0.5 and sift_score < 0.5:
+            polyphen_sift_opposed = 1
+
+        elif polyphen_score > 0.5 and sift_score > 0.5
+            polyphen_sift_opposed 1
+
+    return polyphen_sift_opposed
+
+
+def prioritize_variants(variant_data, internal_parameter_dict, reference, num_cores, build, feature_list, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     # load HPO resources
     hpo_graph_f = get_resource_file(internal_parameter_dict["hpo-graph"])
     hpo_replacement_f = get_resource_file(internal_parameter_dict["hpo2replacement-mapping"])
@@ -146,7 +186,7 @@ def prioritize_variants(variant_data, internal_parameter_dict, reference, num_co
 
     if not (build == "GRCh37" or build == "GRCh38"):
         logger.error(f"Unrecognized assembly build given: {build}")
-    
+
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 
@@ -164,7 +204,7 @@ def prioritize_variants(variant_data, internal_parameter_dict, reference, num_co
     information_content_per_node = nx.get_node_attributes(hpo_graph, "IC")
     node_ancestor_mapping = {hpo_term: nx.ancestors(hpo_graph, hpo_term) for hpo_term in hpo_graph}
 
-    variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, skip_db_check, transcript_length_mapping, family, family_type, genes2exclude, gene_2_hpo, hgnc_2_gene, gene_2_interacting, hpo_graph, hpo_query, information_content_per_node, node_ancestor_mapping, hpo_replacement_information, reference), num_cores)
+    variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, skip_db_check, transcript_length_mapping, family, family_type, genes2exclude, gene_2_hpo, hgnc_2_gene, gene_2_interacting, hpo_graph, hpo_query, information_content_per_node, node_ancestor_mapping, hpo_replacement_information, reference, feature_list), num_cores)
     variant_data = variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False])
     variant_data = variant_data.reset_index(drop=True)
 
@@ -176,12 +216,14 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
 
     if len(variant_data) <= num_partitions:
         dataframe_splitted = np.array_split(variant_data, 1)
+
     else:
         dataframe_splitted = np.array_split(variant_data, num_partitions)
 
     try:
         pool = mp.Pool(num_cores)
         variant_data = pd.concat(pool.map(function, dataframe_splitted))
+
     finally:
         pool.close()
         pool.join()
@@ -189,8 +231,11 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
     return variant_data
 
 
-def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, variant_data):
+def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, variant_data):
     variant_data = check_inheritance(variant_data, family_type, family)
+    
+    variant_data["MISSING_FEATURE_PERCENTAGE"] = variant_data.apply(lambda variant: pd.Series(get_feature_completeness(variant, feature_list)), axis=1)
+    variant_data["POLYPHEN_SIFT_OPPOSED"] = variant_data.apply(lambda variant: pd.Series(compare_polyphen_and_sift_prediction(variant)), axis=1)
     
     logger.debug("Investigate Transcript CDS region!")
     variant_data[["CDS_START_PERCENTAGE", "PREDICTED_AIDIVA_SCORE", "AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(investigate_transcript_cds_position(variant, transcript_dict)), axis=1)
@@ -198,6 +243,7 @@ def parallelized_variant_processing(skip_db_check, transcript_dict, family, fami
     if not skip_db_check:
         logger.debug("Check databases (ClinVar, HGMD) for known variants!")
         variant_data[["VARIANT_DB_SCORE", "AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(check_databases_for_pathogenicity_classification(variant)), axis=1)
+
     else:
         logger.debug(f"Skip variant pathogenicity lookup in existing databases (ClinVar, HGMD).")
 
@@ -239,13 +285,16 @@ def investigate_transcript_cds_position(variant, transcript_dict):
                         adjusted_score = float(predicted_score) - 0.05
                     else:
                         adjusted_score = predicted_score
+
                 else:
                     logger.debug(f"The CDS start position ({cds_start}) was greater than the CDS length ({cds_length})! Skip percentage computation!")
                     start_percentage = np.nan
                     adjusted_score = predicted_score
+
             else:
                 start_percentage = np.nan
                 adjusted_score = predicted_score
+
         else:
             start_percentage = np.nan
             adjusted_score = predicted_score
