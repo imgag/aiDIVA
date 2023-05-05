@@ -169,8 +169,8 @@ def compare_polyphen_and_sift_prediction(variant):
         if polyphen_score < 0.5 and sift_score < 0.5:
             polyphen_sift_opposed = 1
 
-        elif polyphen_score > 0.5 and sift_score > 0.5
-            polyphen_sift_opposed 1
+        elif polyphen_score > 0.5 and sift_score > 0.5:
+            polyphen_sift_opposed = 1
 
     return polyphen_sift_opposed
 
