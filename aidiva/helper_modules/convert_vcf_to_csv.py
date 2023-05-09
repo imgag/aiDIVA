@@ -507,7 +507,7 @@ def convert_variant_representation(row):
         alt="-"
 
     elif alt_length >= 1 and ref_length > 1: #complex indel
-        end_position = start + ref_length - 1
+        end_position = start_position + ref_length - 1
 
     normalized_variant = f"{chrom}:{start_position}-{end_position}_{ref}>{alt}"
 

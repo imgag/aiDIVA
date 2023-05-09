@@ -22,7 +22,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
         os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/"
 
-    cache_path = vep_annotation_dict['vep-cache'] + "/" + "cache"
+    cache_path = vep_annotation_dict['vep-cache'] + "/"
 
     # add essential parameters
     vep_command = f"{vep_command} --species homo_sapiens --assembly {build} "
@@ -74,7 +74,7 @@ def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annota
         #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
         os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/"
 
-    cache_path = vep_annotation_dict['vep-cache'] + "/cache"
+    cache_path = vep_annotation_dict['vep-cache'] + "/"
 
     # add essential parameters
     vep_command = f"{vep_command} --species homo_sapiens --assembly {build}"
