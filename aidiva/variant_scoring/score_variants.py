@@ -60,6 +60,7 @@ logger = logging.getLogger(__name__)
 def import_model(model_file):
     if model_file.endswith(".gz"):
         rf_model = pickle.load(gzip.open(model_file, "rb"))
+
     else:
         rf_model = pickle.load(open(model_file, "rb"))
 
@@ -85,33 +86,36 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
             for allele_frequency in allele_frequency_list:
                 input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
                 input_data[allele_frequency] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
+
             input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
+
         else:
             logger.error("Empty allele frequency list was given!")
 
     for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):
             input_data[feature] = input_data[feature].fillna(0)
-        
+
         elif feature == "homAF":
             input_data[feature] = input_data[feature].fillna(0)
-        
+
         elif feature == "CAPICE":
             # TODO: compute mean and median of CAPICE database
             input_data[feature] = input_data[feature].fillna(0.5)
-        
+
         elif "SIFT" == feature:
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["SIFT"])
-        
+
         elif feature == "oe_lof":
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != "") and (":" not in value) and ("-" not in value))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["oe_lof"])
-        
+
         else:
             input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
             if ("phastCons" in feature) or ("phyloP" in feature):
                 input_data[feature] = input_data[feature].fillna(MEAN_DICT[feature])
+
             else:
                 input_data[feature] = input_data[feature].fillna(MEDIAN_DICT[feature])
 
@@ -129,8 +133,8 @@ def parallel_pathogenicity_prediction(rf_model, input_data, input_features, num_
     try:
         worker_pool = mp.Pool(num_cores)
         predicted_data = pd.concat(worker_pool.apply(rf_model.predict_proba(), (input_features)))
-
         input_data["AIDIVA_SCORE"] = predicted_data["Probability_Pathogenic"]
+
     finally:
         worker_pool.close()
         worker_pool.join()
@@ -143,12 +147,14 @@ def parallelize_dataframe_processing(dataframe, function, num_cores):
 
     if len(dataframe) <= num_partitions:
         dataframe_splitted = np.array_split(dataframe, 1)
+
     else:
         dataframe_splitted = np.array_split(dataframe, num_partitions)
 
     try:
         pool = mp.Pool(num_cores)
         dataframe = pd.concat(pool.map(function, dataframe_splitted))
+
     finally:
         pool.close()
         pool.join()
@@ -191,6 +197,7 @@ if __name__=="__main__":
 
     if args.allele_frequency_list:
         allele_frequency_list = args.allele_frequency_list.split(",")
+
     else:
         allele_frequency_list = []
 

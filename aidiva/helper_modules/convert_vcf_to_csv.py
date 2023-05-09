@@ -522,8 +522,10 @@ def add_INFO_fields_to_dataframe(process_indel, expanded_indel, vcf_as_dataframe
         if not expanded_indel:
             vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
             vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+
         else:
             vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+
     else:
         vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
         vcf_as_dataframe[snp_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
@@ -550,6 +552,7 @@ def add_sample_information_to_dataframe(sample_ids, sample_header, vcf_as_datafr
                 sample_header_multi.append("ALT." + sample_id)
                 sample_header_multi.append(sample_id + ".full")
             vcf_as_dataframe[sample_header_multi] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample, sample_header)), axis=1)
+
         else:
             vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
             sample_header_default = ["GT." + sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
@@ -572,6 +575,7 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, n
     if len(vcf_as_dataframe.columns) > 8:
         for i in range(9, len(vcf_as_dataframe.columns)):
             sample_ids.append(vcf_as_dataframe.columns[i])
+
         sample_header = extract_sample_header(header)
 
     annotation_header = extract_annotation_header(header)
@@ -583,14 +587,17 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, n
         if len(vcf_as_dataframe.columns) > 8:
             if "FORMAT" in vcf_as_dataframe.columns:
                 vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_sample_information_to_dataframe, sample_ids, sample_header), num_cores)
+
             else:
                 # This warning is always triggered when the expanded indel vcf file is processed. If it is only triggered once in this case it can be ignored.
                 logger.warn("It seems that your VCF file does contain sample information but no FORMAT description!")
+
         else:
             logger.error("MISSING SAMPLE INFORMATION!")
 
         # replace empty strings or only spaces with NaN
         vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True)
+
     else:
         logger.error("The given VCF file is empty!")
 
@@ -602,12 +609,14 @@ def parallelize_dataframe_processing(vcf_as_dataframe, function, num_cores):
 
     if len(vcf_as_dataframe) <= num_partitions:
         dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
+
     else:
         dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
 
     try:
         pool = mp.Pool(num_cores)
         vcf_as_dataframe = pd.concat(pool.map(function, dataframe_splitted))
+
     finally:
         pool.close()
         pool.join()
@@ -630,6 +639,7 @@ if __name__ == "__main__":
 
     if args.threads is not None:
         num_cores = int(args.threads)
+
     else:
         num_cores = 1
 

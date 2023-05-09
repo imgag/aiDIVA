@@ -3,6 +3,7 @@ import logging
 import multiprocessing as mp
 import numpy as np
 import pandas as pd
+import warnings
 
 from functools import partial
 
@@ -11,21 +12,29 @@ logger = logging.getLogger(__name__)
 
 
 def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature):
-    if grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).empty:
-        logger.error(f"Could not combine expanded InDels, INDEL_ID {row['INDEL_ID']} missing in data!")
-        return np.nan
-    else:
-        return grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).median()
+    with warnings.catch_warnings():
+        # we expect to see RuntimeWarnings if the values for a certain variant are missing (the following filter will prevent them from bloating the log file)
+        warnings.filterwarnings(action='ignore', message='Mean of empty slice')
+
+        if grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).empty:
+            logger.error(f"Could not combine expanded InDels, INDEL_ID {row['INDEL_ID']} missing in data!")
+            return np.nan
+
+        else:
+            return grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).median()
 
 
 def combine_vcf_dataframes(feature_list, grouped_expanded_vcf, vcf_as_dataframe):
     for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):
             continue
+
         elif (feature == "simpleRepeat"):
             continue
+
         elif (feature == "oe_lof"):
             continue
+
         else:
             vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
 
@@ -41,12 +50,16 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
     for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):
             continue
+
         elif (feature == "simpleRepeat"):
             continue
+
         elif (feature == "oe_lof"):
             continue
+
         elif (feature == "SIFT"):
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
+
         else:
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
@@ -59,6 +72,7 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
 
     if len(vcf_as_dataframe) <= num_partitions:
         dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
+
     else:
         dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
 
@@ -66,6 +80,7 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
         function_to_parallelize = partial(combine_vcf_dataframes, feature_list, grouped_expanded_vcf)
         pool = mp.Pool(num_cores)
         vcf_as_dataframe = pd.concat(pool.map(function_to_parallelize, dataframe_splitted))
+
     finally:
         pool.close()
         pool.join()
@@ -88,6 +103,7 @@ if __name__=="__main__":
 
     if args.threads is not None:
         num_cores = int(args.threads)
+
     else:
         num_cores = 1
 
