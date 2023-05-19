@@ -3,6 +3,7 @@ import gzip
 import json
 import logging
 import math
+import pandas as pd
 import sys
 import networkx as nx
 
@@ -45,10 +46,8 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
 
 # download data:
 # wget http://purl.obolibrary.org/obo/hp.obo -> ontology file
-# counts as:
-# wget http://purl.obolibrary.org/obo/hp/hpoa/phenotype_annotation.tab
-# awk -F '\t'  '{print $5}' < phenotype_annotation.tab | sort  | uniq -c | awk '{print $2 "\t" $1}' > HPO_counts.txt -> counts file
-def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_information_file):
+# wget http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa
+def create_hpo_graph(hpo_ontology, phenotype_hpoa, hpo_graph_file, hpo_replacement_information_file):
     logger.info("Extract HPO edges...")
     hpo_edges = dict()
     replacements = dict()
@@ -109,15 +108,24 @@ def create_hpo_graph(hpo_ontology, hpo_counts, hpo_graph_file, hpo_replacement_i
     # generate graph with counts:
     counts_dict = dict()
     total_counts = 0
-    with open(hpo_counts, "r") as count_file:
-        for line in count_file:
-            if line.startswith("HPO-ID"):
-                continue
-            splitted_line = line.strip().split("\t")
-            hpo_term = splitted_line[0]
-            count = int(splitted_line[1])
-            counts_dict[hpo_term] = count
-            total_counts += count
+
+    phenotype_info_table = pd.read_csv(phenotype_hpoa, sep="\t", comment="#", low_memory=False)
+    hpo_counts = phenotype_info_table["hpo_id"].value_counts()
+
+    for hpo_term, count_value in hpo_counts.items():
+        counts_dict[hpo_term] = count_value
+        total_counts += count_value
+
+    #total_counts = 0
+    #with open(hpo_counts, "r") as count_file:
+    #    for line in count_file:
+    #        if line.startswith("HPO-ID"):
+    #            continue
+    #        splitted_line = line.strip().split("\t")
+    #        hpo_term = splitted_line[0]
+    #        count = int(splitted_line[1])
+    #        counts_dict[hpo_term] = count
+    #        total_counts += count
 
     # get replacements of obsolete nodes
     replacements = dict(hpo_edges.get("replacements", []))
@@ -319,7 +327,7 @@ if __name__=="__main__":
     parser.add_argument("--hpo_ontology", type=str, dest="hpo_ontology", metavar="hp.obo", required=False, help="File containing the HPO ontology\n")
     parser.add_argument("--gene_phenotype", type=str, dest="gene_phenotype", metavar="phenotype_to_genes.txt", required=False, help="File that contains information about the genes and the associated phenotypes\n")
     parser.add_argument("--gene_hpo", type=str, dest="gene_hpo", metavar="gene2hpo.json", required=False, help="File to save the generated gene2hpo_dict\n")
-    parser.add_argument("--hpo_counts", type=str, dest="hpo_counts", metavar="HPO_counts.txt", required=False, help="File containing the hpo counts needed for the hpo graph construction\n")
+    parser.add_argument("--phenotype_hpoa", type=str, dest="phenotype_hpoa", metavar="phenotype.hpoa", required=False, help="File containing inforamtion to all hpo ids, is used to compute the hpo counts\n")
     parser.add_argument("--hpo_graph", type=str, dest="hpo_graph", metavar="hpo_graph.gexf", required=False, help="File to save the generated hpo graph\n")
     parser.add_argument("--hpo_replacements", type=str, dest="hpo_replacements", metavar="hpo2replacement.json", required=False, help="File to save the hpo replacement information\n")
     parser.add_argument("--hgnc_symbols", type=str, dest="hgnc_symbols", metavar="hgnc_complete_set.txt", required=False, help="File containing the approved hgnc genes and their previous gene symbols if there are any\n")
@@ -335,7 +343,7 @@ if __name__=="__main__":
         generate_gene2hpo_dict(args.gene_phenotype, args.gene_hpo)
 
     if args.hpo_ontology and args.hpo_counts and args.hpo_graph and args.hpo_replacements:
-        create_hpo_graph(args.hpo_ontology, args.hpo_counts, args.hpo_graph, args.hpo_replacements)
+        create_hpo_graph(args.hpo_ontology, args.phenotype_hpoa, args.hpo_graph, args.hpo_replacements)
     
     if args.hgnc_symbols and args.hgnc_gene:
         create_gene2hgnc_mapping(args.hgnc_symbols, args.hgnc_gene)
