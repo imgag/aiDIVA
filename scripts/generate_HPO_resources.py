@@ -342,7 +342,7 @@ if __name__=="__main__":
     if args.gene_phenotype and args.gene_hpo:
         generate_gene2hpo_dict(args.gene_phenotype, args.gene_hpo)
 
-    if args.hpo_ontology and args.hpo_counts and args.hpo_graph and args.hpo_replacements:
+    if args.hpo_ontology and args.phenotype_hpoa and args.hpo_graph and args.hpo_replacements:
         create_hpo_graph(args.hpo_ontology, args.phenotype_hpoa, args.hpo_graph, args.hpo_replacements)
     
     if args.hgnc_symbols and args.hgnc_gene:
