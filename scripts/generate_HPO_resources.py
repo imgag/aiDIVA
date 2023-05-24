@@ -261,7 +261,7 @@ def create_gene2hgnc_mapping(hgnc_symbol_file, hgnc_2_gene):
     logger.info(f"Gene symbol to HGNC mapping successfully generated and saved as {hgnc_2_gene}")
 
 
-# wget https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.gz
+# wget https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.
 # wget https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
 def create_gene2interacting_mapping(string_mapping, string_db_links, string_interactions):
     with gzip.open(string_mapping, "rt") as string_mapping_file:
@@ -309,10 +309,10 @@ def create_transcript_length_mapping(transcript_lengths, transcript_information)
                 continue
             else:
                 # header:
-                # #Gene stable ID [TAB] Gene stable ID version [TAB] Transcript stable ID [TAB] Transcript stable ID version [TAB] CDS Length [TAB] Transcript length (including UTRs and CDS) [TAB] Strand
+                # #Gene stable ID [TAB] Transcript stable ID [TAB] CDS Length [TAB] Transcript length (including UTRs and CDS) [TAB] Strand
                 splitted = line.split("\t")
-                transcript_id = splitted[2]
-                cds_length = splitted[4]
+                transcript_id = splitted[1]
+                cds_length = splitted[2]
 
                 if cds_length != "":
                     transcript_mapping[transcript_id] = cds_length
