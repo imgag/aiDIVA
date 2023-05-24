@@ -80,18 +80,6 @@ def read_input_data(input_file):
 # fill CAPICE missing values with -> 0.5
 # fill missing values from other features with -> median or mean
 def prepare_input_data(feature_list, allele_frequency_list, input_data):
-    # compute maximum Minor Allele Frequency (MAF) from population frequencies if MAX_AF not present
-    if ("MaxAF" not in input_data.columns) and ("MAX_AF" not in input_data.columns):
-        if allele_frequency_list:
-            for allele_frequency in allele_frequency_list:
-                input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
-                input_data[allele_frequency] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
-
-            input_data["MaxAF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()])), axis=1)
-
-        else:
-            logger.error("Empty allele frequency list was given!")
-
     for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):
             input_data[feature] = input_data[feature].fillna(0)
@@ -164,6 +152,19 @@ def parallelize_dataframe_processing(dataframe, function, num_cores):
 
 def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequency_list, feature_list, num_cores):
     rf_model = import_model(rf_model)
+
+    # compute maximum Minor Allele Frequency (MAF) from population frequencies if MAX_AF not present
+    if ("MaxAF" not in input_data.columns) and ("MAX_AF" not in input_data.columns):
+        if allele_frequency_list:
+            for allele_frequency in allele_frequency_list:
+                input_data[allele_frequency] = input_data[allele_frequency].fillna(0)
+                input_data[allele_frequency] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
+
+            input_data["MAX_AF"] = input_data.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
+
+        else:
+            logger.error("Empty allele frequency list was given!")
+
     prepared_input_data = parallelize_dataframe_processing(input_data, partial(prepare_input_data, feature_list, allele_frequency_list), num_cores)
     input_features = np.asarray(prepared_input_data[feature_list], dtype=np.float64)
     predicted_data = predict_pathogenicity(rf_model, input_data, input_features)

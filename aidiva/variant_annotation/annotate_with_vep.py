@@ -35,14 +35,18 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = f"{vep_command} --variant_class"
 
     if not expanded:
+        pass # deprecated
         # allele frequencies to include
-        vep_command = f"{vep_command} --max_af"
+        #vep_command = f"{vep_command} --max_af"
 
         # the following AF annotations could be dropped since we only need the max AF
         #vep_command = f"{vep_command} --af"
         #vep_command = f"{vep_command} --af_1kg"
         #vep_command = f"{vep_command} --af_esp"
-        #vep_command = f"{vep_command} --af_gnomad"
+        if build == "GRCh37":
+            vep_command = f"{vep_command} --af_gnomad"
+        elif build == "GRCh38":
+            vep_command = f"{vep_command} --af_gnomadg"
 
     # vep plugins to use
     if not basic:
@@ -110,6 +114,7 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
             tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
             # add allele frequencies to gnomAD annotation (instead of annotation from VEP)
             tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAN,Hom\t\ttrue\n".encode())
+            #tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAFR_AF,AMR_AF,EAS_AF,NFE_AF,SAS_AF\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CAPICE']}\t\tCAPICE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['dbscSNV']}\t\tADA_SCORE,RF_SCORE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CADD']}\t\tCADD\t\ttrue\n".encode())
