@@ -114,7 +114,7 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
             tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
             # add allele frequencies to gnomAD annotation (instead of annotation from VEP)
             tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAN,Hom\t\ttrue\n".encode())
-            #tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAFR_AF,AMR_AF,EAS_AF,NFE_AF,SAS_AF\t\ttrue\n".encode())
+            tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAFR_AF,AMR_AF,EAS_AF,NFE_AF,SAS_AF\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CAPICE']}\t\tCAPICE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['dbscSNV']}\t\tADA_SCORE,RF_SCORE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CADD']}\t\tCADD\t\ttrue\n".encode())
