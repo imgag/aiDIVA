@@ -1,6 +1,6 @@
-# AIdiva - Augmented Intelligence Disease Variant Analysis
+# aiDIVA - Augmented Intelligence Disease Variant Analysis
 
-AIdiva is an analysis pipeline that predicts the pathogenicity of given variants and prioritizes them according to the predicted pathogenicity to identify potential disease causing variants of a given sample.
+aiDIVA is an analysis pipeline that predicts the pathogenicity of given variants and prioritizes them according to the predicted pathogenicity to identify potential disease causing variants of a given sample.
 
 The pathogenicity prediction is based on two random forest (RF) models. One is covering SNP variants, whereas the other one covers inframe InDel variants (frameshift variants are not covered).
 
@@ -51,10 +51,10 @@ _Frameshift_ variants will get the no score, whereas _synonymous_ variants alway
 
 Pretrained random forest models using our current feature set can be found [here](https://download.imgag.de/ahboced1/AIdiva_pretrained_models/). The models were trained using scikit-learn v0.19.1. The trained models of scikit-learn are version dependent, but during our tests it also worked to load the 0.19.1 model with newer versions of scikit-learn (only the other way round it didn't work).
 
-## Running AIdiva
-AIdiva can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. When the variant annotation with VEP should also be performed with AIdiva this is the only required command line argument. In the other case when an already annotated file is given there are a few more arguments that needs to be passed instead of being specified in the configuration file. The reason for this different set of parameters is due to the fact that it makes it more convenient to include AIdiva in another existing pipeline.
+## Running aiDIVA
+aiDIVA can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. When the variant annotation with VEP should also be performed with aiDIVA this is the only required command line argument. In the other case when an already annotated file is given there are a few more arguments that needs to be passed instead of being specified in the configuration file. The reason for this different set of parameters is due to the fact that it makes it more convenient to include aiDIVA in another existing pipeline.
 
-Make sure to put the trained models in the data folder and make sure that the filename in the `AIdiva_configuration_annotated.yaml` is correct.
+Make sure to put the trained models in the data folder and make sure that the filename in the `aiDIVA_configuration_annotated.yaml` is correct.
 
 ### Running AIdiva on already annotated data:
 
@@ -84,5 +84,5 @@ python run_annotation_and_AIdiva.py --config AIdiva_configuration_with_annotatio
 ```
 
 
-## AIdiva results
-AIdiva will produce three different output files two CSV files with the annotation and the results from the prediction and the prioritization. One of these two contains all variants, whereas the other one only contains the variants that passed the internal filtering step. The third file is a VCF file with the results in the INFO field, there are nine different fields in the INFO field. Four indicate a possible inheritance if the given VCF was a multisample VCF (These are missing if only a single sample VCF was given). One indicates if all internal filters were passed (AIDIVA_FILTER).
+## aiDIVA results
+aiDIVA will produce three different output files two CSV files with the annotation and the results from the prediction and the prioritization. One of these two contains all variants, whereas the other one only contains the variants that passed the internal filtering step. The third file is a VCF file with the results in the INFO field, there are nine different fields in the INFO field. Four indicate a possible inheritance if the given VCF was a multisample VCF (These are missing if only a single sample VCF was given). One indicates if all internal filters were passed (AIDIVA_FILTER).
