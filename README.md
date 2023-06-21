@@ -43,9 +43,9 @@ Last update of HPO resources: 30th July, 2021
 
 
 ## Pathogenicity prediction
-There are two random forest models that are used in AIdiva to predict the pathogenicity of a given variant. One for SNP variants and the other for inframe InDel variants. The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
+There are two random forest models that are used in aiDIVA to predict the pathogenicity of a given variant. One for SNP variants and the other for inframe InDel variants. The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
 
-The scripts used to train the models can be found in the following GitHub repository: [AIdiva-Training](https://github.com/imgag/AIdiva-Training)
+The scripts used to train the models can be found in the following GitHub repository: [aiDIVA-Training](https://github.com/imgag/aiDIVA-Training)
 
 _Frameshift_ variants will get the no score, whereas _synonymous_ variants always get the lowest score 0.0
 
@@ -56,7 +56,7 @@ aiDIVA can be run either on already annotated VCF files or unannotated VCF files
 
 Make sure to put the trained models in the data folder and make sure that the filename in the `aiDIVA_configuration_annotated.yaml` is correct.
 
-### Running AIdiva on already annotated data:
+### Running aiDIVA on already annotated data:
 
 ```
 python run_AIdiva.py --config AIdiva_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
