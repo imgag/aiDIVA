@@ -77,7 +77,7 @@ python run_AIdiva.py --config AIdiva_configuration_annotated.yaml --snp_vcf anno
 + _threads_ -- Number of threads that should be used (default: 1) [optional]
 + _log_level_ -- Define logging level [DEBUG, INFO, WARN, ERROR, CRITICAL] (default: INFO) [optional]
 
-### Running AIdiva and perform the annotation:
+### Running aiDIVA and perform the annotation:
 
 ```
 python run_annotation_and_AIdiva.py --config AIdiva_configuration_with_annotation.yaml --vcf input.vcf --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
