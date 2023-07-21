@@ -29,6 +29,9 @@ def combine_vcf_dataframes(feature_list, grouped_expanded_vcf, vcf_as_dataframe)
         if (feature == "MaxAF") or (feature == "MAX_AF"):
             continue
 
+        if feature == "homAF":
+            continue
+
         elif (feature == "simpleRepeat"):
             continue
 
@@ -49,6 +52,9 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
 
     for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):
+            continue
+
+        if feature == "homAF":
             continue
 
         elif (feature == "simpleRepeat"):

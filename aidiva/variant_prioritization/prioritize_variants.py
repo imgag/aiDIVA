@@ -362,7 +362,7 @@ def check_databases_for_pathogenicity_classification(variant):
 
     # log a warning message if hgmd score and clinvar_score are both not missing but differ
     if (hgmd_score != clinvar_score) and not (np.isnan(hgmd_score) or np.isnan(clinvar_score)):
-        logger.warn(f"The scores of the used databases (ClinVar, HGMD) are different: {clinvar_score}, {hgmd_score} (Variant: {variant['CHROM']}:{variant['POS']}_{variant['REF']}_{variant['ALT']}) \n If the HGMD database was used during the annotation you may want to further investigate this matter, otherwise you can ignore this warning since we just use the predicted value as default value if the entry is missing.")
+        logger.warn(f"The scores of the used databases (ClinVar, HGMD) are different: {clinvar_score}, {hgmd_score} (Variant: {variant['#CHROM']}:{variant['POS']}_{variant['REF']}_{variant['ALT']}) \n If the HGMD database was used during the annotation you may want to further investigate this matter, otherwise you can ignore this warning since we just use the predicted value as default value if the entry is missing.")
 
     if np.isnan(clinvar_score) and not np.isnan(hgmd_score):
         database_score = hgmd_score
@@ -458,7 +458,8 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                 hpo_relatedness_interacting = max(gene_similarities_interacting, default=0.0)
 
                 # predicted pathogenicity has a higher weight than the HPO relatedness
-                final_score = (pathogenictiy_prediction * 0.6 + float(hpo_relatedness) * 0.3 + float(hpo_relatedness_interacting) * 0.1)
+                # weight optimization suggests the following weights
+                final_score = (pathogenictiy_prediction * 0.32 + float(hpo_relatedness) * 0.67 + float(hpo_relatedness_interacting) * 0.01)
 
             else:
                 final_score = np.nan
@@ -713,17 +714,17 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
     # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
     if ((len(variant["REF"]) > 1 or len(variant["ALT"]) > 1)) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         # make sure to use the correct internal chromsome notation (with chr)
-        if "chr" in str(variant["CHROM"]):
-            chrom_id = str(variant["CHROM"])
+        if "chr" in str(variant["#CHROM"]):
+            chrom_id = str(variant["#CHROM"])
         else:
-            chrom_id = "chr" + str(variant["CHROM"])
+            chrom_id = "chr" + str(variant["#CHROM"])
         
         # Get sequence context (vicinity) of a variant for homopolymer check (5 bases up- and down-stream)
         # Get fewer bases when variant is at the start or end of the sequence
-        if "chr" in str(variant["CHROM"]):
-            chrom_id = str(variant["CHROM"])
+        if "chr" in str(variant["#CHROM"]):
+            chrom_id = str(variant["#CHROM"])
         else:
-            chrom_id = "chr" + str(variant["CHROM"])
+            chrom_id = "chr" + str(variant["#CHROM"])
         
         num_bases = 5
         pos_start = max(int(variant["POS"]) - (num_bases + 1), 1)
@@ -1041,7 +1042,7 @@ def check_xlinked(variant, family):
     check_samples = dict()
     inheritance_logic = dict()
 
-    if not ((variant["CHROM"] == "X") or (variant["CHROM"] == "x") or (variant["CHROM"] == "chrX") or (variant["CHROM"] == "chrx") or (variant["CHROM"] == "23")):
+    if not ((variant["#CHROM"] == "X") or (variant["#CHROM"] == "x") or (variant["#CHROM"] == "chrX") or (variant["#CHROM"] == "chrx") or (variant["#CHROM"] == "23")):
         return 0
 
     # create data structure for completeness check

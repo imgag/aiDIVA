@@ -179,6 +179,8 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna()))), "AIDIVA_SCORE"] = np.nan
 
     # set synonymous variants to 0.0 if they are not at a splicing site
+    # TODO check how to handle overlapping consequences
+    #predicted_data.loc[(predicted_data["Consequence"].str.contains("synonymous") & ~(predicted_data["Consequence"].str.contains("splice")) & ~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"]))), "AIDIVA_SCORE"] = 0.0
     predicted_data.loc[(predicted_data["Consequence"].str.contains("synonymous") & ~(predicted_data["Consequence"].str.contains("splice"))), "AIDIVA_SCORE"] = 0.0
 
     return predicted_data
