@@ -197,7 +197,7 @@ if __name__=="__main__":
 
         if (not predicted_data_snp.dropna(how='all').empty) and (not predicted_data_indel.dropna(how='all').empty):
             predicted_data = pd.concat([predicted_data_snp, predicted_data_indel])
-            predicted_data.sort_values(["CHROM", "POS"], ascending=[True, True], inplace=True)
+            predicted_data.sort_values(["#CHROM", "POS"], ascending=[True, True], inplace=True)
             predicted_data.reset_index(inplace=True, drop=True)
             predicted_data = predicted_data[predicted_data_snp.columns]
 
