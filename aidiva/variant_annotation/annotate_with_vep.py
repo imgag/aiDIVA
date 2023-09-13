@@ -116,12 +116,13 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
             #tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAN,Hom\t\ttrue\n".encode())
             #tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAN,Hom,AFR_AF,AMR_AF,EAS_AF,NFE_AF,SAS_AF\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CAPICE']}\t\tCAPICE\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['dbscSNV']}\t\tADA_SCORE,RF_SCORE\t\ttrue\n".encode())
+            tmp.write(f"{vcf_annotation['dbscSNV']}\t\tADA=ADA_SCORE,RF=RF_SCORE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CADD']}\t\tCADD\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['REVEL']}\t\tREVEL\t\ttrue\n".encode())
 
         if not expanded:
             tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAN,Hom,AFR_AF,AMR_AF,EAS_AF,NFE_AF,SAS_AF\t\ttrue\n".encode())
+            tmp.write(f"{vcf_annotation['SpliceAI']}\t\tSpliceAI\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['clinvar']}\tCLINVAR\tDETAILS\t\ttrue\n".encode())
 
             # HGMD needs a valid license, therefor we check if the file exists otherwise this annotation is skipped
