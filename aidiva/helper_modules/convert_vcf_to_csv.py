@@ -75,6 +75,7 @@ USED_INFO_FIELDS = ["INDEL_ID",
                     "CADD",
                     "ADA_SCORE",
                     "RF_SCORE",
+                    "SpliceAI",
                     "oe_lof",
                     "SegDup",
                     "SimpleRepeats",
@@ -167,6 +168,8 @@ def extract_columns(cell, process_indel):
     segDup = np.nan
     ada = np.nan
     rf = np.nan
+    spliceAI = np.nan
+    spliceAI_raw = []
     oe_lof = np.nan
     simpleRepeat = ""
     clinvar_details = ""
@@ -328,6 +331,10 @@ def extract_columns(cell, process_indel):
                     else:
                         rf = float(field_splitted[1])
 
+                elif field_splitted[0] == "SpliceAI":
+                    spliceAI_raw = field_splitted[1].split("|")
+                    spliceAI = max([float(spliceAI_raw[2]), float(spliceAI_raw[3]), float(spliceAI_raw[4]), float(spliceAI_raw[5])], default=np.nan)
+
                 elif field_splitted[0] == "oe_lof":
                     oe_lof = min([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
 
@@ -376,10 +383,10 @@ def extract_columns(cell, process_indel):
     max_af = max([gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af], default=np.nan)
 
     if process_indel:
-        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig] #, abb_score]
+        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig] #, abb_score]
 
     else:
-        extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig, abb_score]
+        extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig, abb_score]
 
     return extracted_columns
 
@@ -557,8 +564,8 @@ def convert_variant_representation(row):
 
 
 def add_INFO_fields_to_dataframe(process_indel, expanded_indel, vcf_as_dataframe):
-    indel_annotation_columns = ["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
-    snp_annotation_columns = ["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
+    indel_annotation_columns = ["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
+    snp_annotation_columns = ["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
 
     if process_indel:
         if not expanded_indel:
