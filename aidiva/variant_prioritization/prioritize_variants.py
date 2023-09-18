@@ -388,7 +388,8 @@ def check_databases_for_pathogenicity_classification(variant):
 
 def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information):
     if HPO_query:
-        if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["rf_score"]) == "nan") or (str(variant["rf_score"]) == "")) and ((str(variant["ada_score"]) == "nan") or (str(variant["ada_score"]) == "")):
+        #if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["rf_score"]) == "nan") or (str(variant["rf_score"]) == "")) and ((str(variant["ada_score"]) == "nan") or (str(variant["ada_score"]) == "")):
+        if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["SpliceAI"]) == "nan") or (str(variant["SpliceAI"]) == "")):
             final_score = np.nan
             hpo_relatedness = np.nan
             hpo_relatedness_interacting = np.nan
@@ -396,16 +397,21 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
         else:
             if np.isnan(variant["AIDIVA_SCORE"]):
                 # if both scores are present use maximum to benefit of the strengths of each model
-                if ((str(variant["rf_score"]) != "nan") and (str(variant["rf_score"]) != "")) and ((str(variant["ada_score"]) != "nan") and (str(variant["ada_score"]) != "")):
-                    pathogenictiy_prediction = max([float(variant["rf_score"]), float(variant["ada_score"])], default=np.nan)
-                elif ((str(variant["rf_score"]) != "") and (str(variant["rf_score"]) != "nan")) and ((str(variant["ada_score"]) == "") or (str(variant["ada_score"]) == "nan")):
-                    pathogenictiy_prediction = float(variant["rf_score"])
-                elif ((str(variant["ada_score"]) != "") and (str(variant["ada_score"]) != "nan")) and ((str(variant["rf_score"]) == "") or (str(variant["rf_score"]) == "nan")):
-                    pathogenictiy_prediction = float(variant["ada_score"])
+                #if ((str(variant["rf_score"]) != "nan") and (str(variant["rf_score"]) != "")) and ((str(variant["ada_score"]) != "nan") and (str(variant["ada_score"]) != "")):
+                #    pathogenictiy_prediction = max([float(variant["rf_score"]), float(variant["ada_score"])], default=np.nan)
+                #elif ((str(variant["rf_score"]) != "") and (str(variant["rf_score"]) != "nan")) and ((str(variant["ada_score"]) == "") or (str(variant["ada_score"]) == "nan")):
+                #    pathogenictiy_prediction = float(variant["rf_score"])
+                #elif ((str(variant["ada_score"]) != "") and (str(variant["ada_score"]) != "nan")) and ((str(variant["rf_score"]) == "") or (str(variant["rf_score"]) == "nan")):
+                #    pathogenictiy_prediction = float(variant["ada_score"])
+                #else:
+                #    pathogenictiy_prediction = np.nan
+                
+                if ((str(variant["SpliceAI"]) != "nan") and (str(variant["SpliceAI"]) != "")):
+                    pathogenictiy_prediction = float(variant["SpliceAI"])
                 else:
                     pathogenictiy_prediction = np.nan
                 
-                logger.debug("Using dbscSNV prediction instead of AIdiva prediction for splicing variant!")
+                logger.debug("Using SpliceAI prediction instead of AIdiva prediction for splicing variant!")
 
             else:
                 pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])
@@ -468,24 +474,26 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
 
     else:
         if np.isnan(variant["AIDIVA_SCORE"]):
-            if ((str(variant["rf_score"]) == "") or (str(variant["rf_score"]) == "nan")) and ((str(variant["ada_score"]) == "") or (str(variant["ada_score"]) == "nan")):
+            #if ((str(variant["rf_score"]) == "") or (str(variant["rf_score"]) == "nan")) and ((str(variant["ada_score"]) == "") or (str(variant["ada_score"]) == "nan")):
+            if ((str(variant["SpliceAI"]) == "") or (str(variant["SpliceAI"]) == "nan")):
                 pathogenictiy_prediction = np.nan
 
             else:
-                if (str(variant["rf_score"]) != "") and (str(variant["rf_score"]) != "nan"):                        
-                    rf_score = float(variant["rf_score"])
+                #if (str(variant["rf_score"]) != "") and (str(variant["rf_score"]) != "nan"):
+                #    rf_score = float(variant["rf_score"])
 
-                else:
-                    rf_score = np.nan
+                #else:
+                #    rf_score = np.nan
                 
-                if (str(variant["ada_score"]) != "") and (str(variant["ada_score"]) != "nan"):
-                    ada_score = float(variant["ada_score"])
+                #if (str(variant["ada_score"]) != "") and (str(variant["ada_score"]) != "nan"):
+                #    ada_score = float(variant["ada_score"])
 
-                else:
-                    ada_score = np.nan
+                #else:
+                #    ada_score = np.nan
 
-                pathogenictiy_prediction = max([rf_score, ada_score], default=np.nan)
-                logger.debug("Using dbscSNV prediction instead of AIdiva prediction for splicing variant!")
+                #pathogenictiy_prediction = max([rf_score, ada_score], default=np.nan)
+                pathogenictiy_prediction = float(variant["SpliceAI"])
+                logger.debug("Using SpliceAI prediction instead of AIdiva prediction for splicing variant!")
 
         else:
             pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])

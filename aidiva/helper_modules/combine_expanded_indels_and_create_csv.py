@@ -41,8 +41,8 @@ def combine_vcf_dataframes(feature_list, grouped_expanded_vcf, vcf_as_dataframe)
         else:
             vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
 
-    vcf_as_dataframe["ada_score"] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, "ada_score")), axis=1)
-    vcf_as_dataframe["rf_score"] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, "rf_score")), axis=1)
+    #vcf_as_dataframe["ada_score"] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, "ada_score")), axis=1)
+    #vcf_as_dataframe["rf_score"] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, "rf_score")), axis=1)
 
     return vcf_as_dataframe
 
@@ -69,8 +69,8 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
         else:
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
-    expanded_vcf_as_dataframe["ada_score"] = expanded_vcf_as_dataframe["ada_score"].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
-    expanded_vcf_as_dataframe["rf_score"] = expanded_vcf_as_dataframe["rf_score"].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
+    #expanded_vcf_as_dataframe["ada_score"] = expanded_vcf_as_dataframe["ada_score"].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
+    #expanded_vcf_as_dataframe["rf_score"] = expanded_vcf_as_dataframe["rf_score"].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("INDEL_ID")
 
