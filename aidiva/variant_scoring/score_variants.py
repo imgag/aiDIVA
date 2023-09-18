@@ -177,7 +177,7 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     # later in the pipeline the score from dbscSNV for splicing variants will be used
     # TODO: change to use SpliceAI instead of dbscSNV for splice variants
     #predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna()))), "AIDIVA_SCORE"] = np.nan
-    predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["SpliceAI"].isna())), "AIDIVA_SCORE"] = np.nan
+    predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["SpliceAI"].isna()))), "AIDIVA_SCORE"] = np.nan
 
 
     # set synonymous variants to 0.0 if they are not at a splicing site
