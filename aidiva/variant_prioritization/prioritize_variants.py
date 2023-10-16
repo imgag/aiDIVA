@@ -17,9 +17,7 @@ if not __name__=="__main__":
     from . import get_HPO_similarity_score as gs
 
 
-CODING_VARIANTS = ["splice_acceptor_variant",
-                   "splice_donor_variant",
-                   "stop_gained",
+CODING_VARIANTS = ["stop_gained",
                    "frameshift_variant",
                    "stop_lost",
                    "start_lost",
@@ -27,15 +25,61 @@ CODING_VARIANTS = ["splice_acceptor_variant",
                    "inframe_deletion",
                    "missense_variant",
                    "protein_altering_variant",
-                   "splice_region_variant",
-                   "splice_donor_5th_base_variant",
-                   "splice_donor_region_variant",
-                   "splice_polypyrimidine_tract_variant",
                    "incomplete_terminal_codon_variant",
-                   "start_retained_variant",
-                   "stop_retained_variant",
-                   "synonymous_variant",
                    "coding_sequence_variant"]
+
+SYNONYMOUS_VARIANTS = ["synonymous_variant",
+                       "start_retained_variant",
+                       "stop_retained_variant"]
+
+SPLICE_VARIANTS = ["splice_acceptor_variant",
+                   "splice_donor_variant",
+                   "splice_donor_5th_base_variant",
+                   "splice_region_variant",
+                   "splice_donor_region_variant",
+                   "splice_polypyrimidine_tract_variant"]
+
+VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
+                        "splice_acceptor_variant": 2,
+                        "splice_donor_variant": 3,
+                        "stop_gained": 4,
+                        "frameshift_variant": 5,
+                        "stop_lost": 6,
+                        "start_lost": 7,
+                        "transcript_amplification": 8,
+                        "inframe_insertion": 9,
+                        "inframe_deletion": 10,
+                        "missense_variant": 11,
+                        "protein_altering_variant": 12,
+                        "splice_region_variant": 13,
+                        "splice_donor_5th_base_variant": 14,
+                        "splice_donor_region_variant": 15,
+                        "splice_polypyrimidine_tract_variant": 16,
+                        "incomplete_terminal_codon_variant": 17,
+                        "start_retained_variant": 18,
+                        "stop_retained_variant": 19,
+                        "synonymous_variant": 20,
+                        "coding_sequence_variant": 21,
+                        "mature_miRNA_variant": 22,
+                        "5_prime_UTR_variant": 23,
+                        "3_prime_UTR_variant": 24,
+                        "non_coding_transcript_exon_variant": 25,
+                        "intron_variant": 26,
+                        "NMD_transcript_variant": 27,
+                        "non_coding_transcript_variant": 28,
+                        "upstream_gene_variant": 29,
+                        "downstream_gene_variant": 30,
+                        "TFBS_ablation": 31,
+                        "TFBS_amplification": 32,
+                        "TF_binding_site_variant": 33,
+                        "regulatory_region_ablation": 34,
+                        "regulatory_region_amplification": 35,
+                        "feature_elongation": 36,
+                        "regulatory_region_variant": 37,
+                        "feature_truncation": 38,
+                        "intergenic_variant": 39,
+                        # use "unknown" consequence as default if new consequence terms are added to the database that are not yet implemented (this prevents the program from exiting with an error)
+                        "unknown": 40}
 
 
 logger = logging.getLogger(__name__)
@@ -465,7 +509,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
 
                 # predicted pathogenicity has a higher weight than the HPO relatedness
                 # weight optimization suggests the following weights
-                final_score = (pathogenictiy_prediction * 0.32 + float(hpo_relatedness) * 0.67 + float(hpo_relatedness_interacting) * 0.01)
+                final_score = (pathogenictiy_prediction * 0.34 + float(hpo_relatedness) * 0.65 + float(hpo_relatedness_interacting) * 0.01)
 
             else:
                 final_score = np.nan
@@ -650,11 +694,11 @@ def homopolymer_filter(sequence):
                 base_type_zero_count += 1
 
         # Set homopolymer flag
-        if max_homopolymer_length >= 5 or max_base_freq >= 0.8:
+        if (max_homopolymer_length >= 5) or (max_base_freq >= 0.8):
             homopolymer_flag = 1
 
         # Set low complexity flag
-        if base_type_zero_count > 1 or max_homopolymer_length >= 4:
+        if (base_type_zero_count > 1) or (max_homopolymer_length >= 4):
             low_complexity_flag = 1
 
     return homopolymer_flag, low_complexity_flag
@@ -666,8 +710,10 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
 
     in_fasta = pysam.FastaFile(reference)
 
-    consequences = str(variant["Consequence"])
-    found_consequences = consequences.split("&")
+    #consequences = str(variant["Consequence"])
+    #found_consequences = consequences.split("&")
+    most_severe_consequence = str(variant["MOST_SEVERE_CONSEQUENCE"])
+
     repeat = str(variant[repeat_identifier])
     filter_comment = ""
 
@@ -766,7 +812,7 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
 
     # check if there is something annoted from REPEATMASKER
     # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
-    if (str(variant["REPEATMASKER"]).strip() != "" and str(variant["REPEATMASKER"]).strip() != "."  and str(variant["REPEATMASKER"]).strip() != "nan" and not str(variant['REPEATMASKER']).isspace()) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
+    if (str(variant["REPEATMASKER"]).strip() != "") and (str(variant["REPEATMASKER"]).strip() != ".") and (str(variant["REPEATMASKER"]).strip() != "nan") and (not str(variant['REPEATMASKER']).isspace()) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         filter_passed = 0 # masked repeat region
         filter_comment = "masked repeat region"
 
@@ -774,33 +820,39 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
 
     # MAF threshold could be changed dynamically based on inheritance mode (hom/het)
     if maf <= 0.01 or np.isnan(maf):
-        if any(term for term in CODING_VARIANTS if term in found_consequences):
-            if not np.isnan(variant["FINAL_AIDIVA_SCORE"]):
-                if len(HPO_query) >= 1:
-                    if float(variant["HPO_RELATEDNESS"]) > 0.0:
-                        filter_passed = 1
-                        filter_comment = "passed all"
+        # check if most severe consequence is supported
+        if (most_severe_consequence in CODING_VARIANTS) or (most_severe_consequence in SPLICE_VARIANTS):
+                if not np.isnan(variant["FINAL_AIDIVA_SCORE"]):
+                    if len(HPO_query) >= 1:
+                        if float(variant["HPO_RELATEDNESS"]) > 0.0:
+                            filter_passed = 1
+                            filter_comment = "passed all"
 
-                    elif float(variant["HPO_RELATEDNESS_INTERACTING"]) > 0.0:
-                        filter_passed = 1
-                        filter_comment = "HPO related to interacting genes"
-                    
+                        elif float(variant["HPO_RELATEDNESS_INTERACTING"]) > 0.0:
+                            filter_passed = 1
+                            filter_comment = "HPO related to interacting genes"
+
+                        else:
+                            filter_passed = 0 # no relation to reported HPO terms
+                            filter_comment = "no HPO relation"
+
                     else:
-                        filter_passed = 0 # no relation to reported HPO terms
-                        filter_comment = "no HPO relation"
-                
+                        filter_passed = 1 # skip hpo filter if no terms are present
+                        filter_comment = "no HPO terms given"
+
                 else:
-                    filter_passed = 1 # skip hpo filter if no terms are present
-                    filter_comment = "no HPO terms given"
-            
-            else:
-                filter_passed = 0 # no prediction present (eg. variant type not covered by the used ML models)
-                filter_comment = "missing AIDIVA_SCORE"
+                    filter_passed = 0 # no prediction present (eg. variant type not covered by the used ML models)
+                    filter_comment = "missing prediction"
 
         else:
-            filter_passed = 0 # non coding
-            filter_comment = "non coding"
-            
+            filter_passed = 0 # non coding or synonymous
+
+            if most_severe_consequence in SYNONYMOUS_VARIANTS:
+                filter_comment = "synonymous variant"
+
+            else:
+                filter_comment = "variant type not supported"
+
     else:
         filter_passed = 0 # allele frequency to high
         filter_comment = "high MAF"

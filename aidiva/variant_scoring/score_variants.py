@@ -27,7 +27,9 @@ MEAN_DICT = {"phastCons_mammal": 0.09691308336428194,
              "REVEL": 0.28019263637740743,
              "PolyPhen": 0.5169017014355943,
              "oe_lof": 0.53667483333333332,
-             "CAPICE": 0.5}
+             "CAPICE": 0.04487945928377704,
+             "ALPHA_MISSENSE_SCORE": 0.4074365673385914,
+             "EVE_SCORE": 0.4866676824933756}
 
 MEDIAN_DICT = {"MutationAssessor": 1.87,
                "CONDEL": 0.4805749233199981,
@@ -38,7 +40,9 @@ MEDIAN_DICT = {"MutationAssessor": 1.87,
                "REVEL": 0.193,
                "PolyPhen": 0.547,
                "oe_lof": 0.48225,
-               "CAPICE": 0.5}
+               "CAPICE": 0.0006,
+               "ALPHA_MISSENSE_SCORE": 0.2509,
+               "EVE_SCORE": 0.4946792317600748}
 
 SUPPORTED_CODING_VARIANTS = ["stop_gained",
                              "stop_lost",
@@ -49,9 +53,18 @@ SUPPORTED_CODING_VARIANTS = ["stop_gained",
                              "missense_variant",
                              "protein_altering_variant",
                              "incomplete_terminal_codon_variant",
-                             "start_retained_variant",
-                             "stop_retained_variant",
                              "coding_sequence_variant"]
+
+SYNONYMOUS_VARIANTS = ["synonymous_variant",
+                       "start_retained_variant",
+                       "stop_retained_variant"]
+                     
+SPLICE_VARIANTS = ["splice_acceptor_variant",
+                   "splice_donor_variant",
+                   "splice_donor_5th_base_variant",
+                   "splice_region_variant",
+                   "splice_donor_region_variant",
+                   "splice_polypyrimidine_tract_variant"]
 
 random_seed = 14038
 logger = logging.getLogger(__name__)
@@ -86,10 +99,13 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
 
         elif feature == "homAF":
             input_data[feature] = input_data[feature].fillna(0)
+            
+        elif feature == "HIGH_IMPACT":
+            input_data[feature] = input_data[feature].fillna(0)
 
-        elif feature == "CAPICE":
+        #elif feature == "CAPICE":
             # TODO: compute mean and median of CAPICE database
-            input_data[feature] = input_data[feature].fillna(0.5)
+            #input_data[feature] = input_data[feature].fillna(0.5)
 
         elif "SIFT" == feature:
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
@@ -98,6 +114,31 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
         elif feature == "oe_lof":
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != "") and (":" not in value) and ("-" not in value))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["oe_lof"])
+
+        #elif feature == "REVEL":
+        #    if input_data["IMPACT"] == "HIGH":
+        #        input_data[feature] = input_data[feature].fillna(1.0)
+        #    else:
+        #        input_data[feature] = input_data[feature].fillna(1.0)
+
+        #elif feature == "EVE_SCORE":
+        #    if input_data["IMPACT"] == "HIGH":
+        #        input_data[feature] = input_data[feature].fillna(1.0)
+
+        #    else:
+        #        input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["EVE_SCORE"])
+
+        #elif feature == "ALPHA_MISSENSE_SCORE":
+        #    if input_data["IMPACT"] == "HIGH" and not "splice" in input_data["Consequence"]:
+        #        input_data[feature] = input_data[feature].fillna(1.0)
+
+        #    else:
+        #        input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["ALPHA_MISSENSE_SCORE"])
+
+        elif feature == "REVEL" or feature == "ALPHA_MISSENSE_SCORE" or feature == "EVE_SCORE":
+            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != "") & (not ":" in value) & (not "-" in value))], default=np.nan), axis=1)
+            input_data.loc[(~(input_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS))) & (input_data["IMPACT"] == "HIGH") & (input_data[feature].isna())), feature] = 1.0
+            input_data[feature] = input_data[feature].fillna(MEDIAN_DICT[feature])
 
         else:
             input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
@@ -178,14 +219,15 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     # TODO: change to use SpliceAI instead of dbscSNV for splice variants
     #predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna()))), "AIDIVA_SCORE"] = np.nan
     #predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["SpliceAI"].isna()))), "AIDIVA_SCORE"] = np.nan
-    predicted_data.loc[(~(predicted_data["Consequence"].str.contains("|".join(SUPPORTED_CODING_VARIANTS))) & (~(predicted_data["SpliceAI"].isna()))), "AIDIVA_SCORE"] = np.nan
+    #predicted_data.loc[(~(predicted_data["Consequence"].str.contains("|".join(SUPPORTED_CODING_VARIANTS))) & (~(predicted_data["SpliceAI"].isna()))), "AIDIVA_SCORE"] = np.nan
+    predicted_data.loc[(~(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SUPPORTED_CODING_VARIANTS))) & (predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS)))), "AIDIVA_SCORE"] = np.nan
     #predicted_data.loc[((predicted_data["Consequence"].str.contains("splice")) & (~(predicted_data["SpliceAI"].isna()))), "AIDIVA_SCORE"] = np.nan
 
 
     # set synonymous variants to 0.0 if they are not at a splicing site
     # TODO check how to handle overlapping consequences
     #predicted_data.loc[(predicted_data["Consequence"].str.contains("synonymous") & ~(predicted_data["Consequence"].str.contains("splice")) & ~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"]))), "AIDIVA_SCORE"] = 0.0
-    predicted_data.loc[(predicted_data["Consequence"].str.contains("synonymous") & ~(predicted_data["Consequence"].str.contains("splice"))), "AIDIVA_SCORE"] = 0.0
+    predicted_data.loc[(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SYNONYMOUS_VARIANTS)) & ~(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SUPPORTED_CODING_VARIANTS))) & ~(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS)))), "AIDIVA_SCORE"] = 0.0
 
     return predicted_data
 

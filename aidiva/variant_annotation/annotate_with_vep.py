@@ -10,17 +10,17 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: restrict annotation to SIFT and PolyPhen (get rid of VEP in the long run)
-def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37", basic=False, expanded=False, num_cores=1):
+def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh38", basic=False, expanded=False, num_cores=1):
     # the path to the executable
-    vep_command = vep_annotation_dict["vep"] + "/" + "vep "
+    vep_command = f"{vep_annotation_dict['vep']}/vep "
 
     # set the correct paths to the needed perl modules
     if "PERL5LIB" in os.environ:
         #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
-        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/:" + os.environ["PERL5LIB"]
+        os.environ["PERL5LIB"] = f"{vep_annotation_dict['vep']}/Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/:{vep_annotation_dict['vep-plugin-path']}:{os.environ['PERL5LIB']}"
     else:
         #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
-        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/"
+        os.environ["PERL5LIB"] = f"{vep_annotation_dict['vep']}/Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/:{vep_annotation_dict['vep-plugin-path']}"
 
     cache_path = vep_annotation_dict['vep-cache'] + "/"
 
@@ -37,9 +37,6 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     if not expanded:
         pass # deprecated
         # allele frequencies to include
-        #vep_command = f"{vep_command} --max_af"
-
-        # the following AF annotations could be dropped since we only need the max AF
         #vep_command = f"{vep_command} --af"
         #vep_command = f"{vep_command} --af_1kg"
         #vep_command = f"{vep_command} --af_esp"
@@ -52,6 +49,9 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     if not basic:
         vep_command = f"{vep_command} --sift s"
         vep_command = f"{vep_command} --polyphen s"
+
+        vep_command = f"{vep_command} --plugin EVE,file={vep_annotation_dict['plugin-files']['EVE']}"
+        vep_command = f"{vep_command} --plugin AlphaMissense,file={vep_annotation_dict['plugin-files']['AlphaMissense']}"
 
     vep_command = f"{vep_command} -i " + input_vcf_file + " "
     vep_command = f"{vep_command} -o " + output_vcf_file + " "
@@ -66,17 +66,17 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
 
 # TODO rewrite method to use consequence annotation from ngs-bits instead of VEP
-def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh37", num_cores=1):
+def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh38", num_cores=1):
     # the path to the executable
     vep_command = vep_annotation_dict["vep"] + "/" + "vep "
 
     # set the correct paths to the needed perl modules
     if "PERL5LIB" in os.environ:
         #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/:" + os.environ["PERL5LIB"]
-        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/:" + os.environ["PERL5LIB"]
+        os.environ["PERL5LIB"] = f"{vep_annotation_dict['vep']}/Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/:{vep_annotation_dict['vep-plugin-path']}:{os.environ['PERL5LIB']}"
     else:
         #os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:" + vep_annotation_dict["vep"] + "/" + "cpan/lib/perl5/"
-        os.environ["PERL5LIB"] = vep_annotation_dict["vep"] + "/" + "Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/"
+        os.environ["PERL5LIB"] = f"{vep_annotation_dict['vep']}/Bio/:/mnt/storage2/share/opt/perl_cpan_ubuntu20.04/lib/perl5/:{vep_annotation_dict['vep-plugin-path']}"
 
     cache_path = vep_annotation_dict['vep-cache'] + "/"
 
@@ -122,14 +122,21 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
 
         if not expanded:
             tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAN,Hom,AFR_AF,AMR_AF,EAS_AF,NFE_AF,SAS_AF\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['SpliceAI']}\t\tSpliceAI\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['clinvar']}\tCLINVAR\tDETAILS\t\ttrue\n".encode())
 
             # HGMD needs a valid license, therefor we check if the file exists otherwise this annotation is skipped
             if os.path.isfile(f"{vcf_annotation['hgmd']}"):
                 tmp.write(f"{vcf_annotation['hgmd']}\tHGMD\tCLASS,RANKSCORE\t\ttrue\n".encode())
+
             else:
                 logger.warn("HGMD file is not found! Skip HGMD annotation!")
+
+            # switch between SNV and InDel file
+            if basic:
+                tmp.write(f"{vcf_annotation['SpliceAI-InDel']}\t\tSpliceAI\t\ttrue\n".encode())
+
+            else:
+                tmp.write(f"{vcf_annotation['SpliceAI-SNV']}\t\tSpliceAI\t\ttrue\n".encode())
 
         # close temporary file to make it accessible
         tmp.close()
@@ -232,7 +239,7 @@ def sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict):
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description = "AIdiva -- Annotation with VEP")
+    parser = argparse.ArgumentParser(description = "aiDIVA -- Annotation with VEP")
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="data.vcf", required=True, help="VCF file containing the data, you want to annotate with VEP\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="out.vcf", required=True, help="Specifies the annotated output file\n")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the annotation parameters")

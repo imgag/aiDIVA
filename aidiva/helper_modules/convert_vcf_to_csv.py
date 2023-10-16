@@ -571,22 +571,61 @@ def add_INFO_fields_to_dataframe(process_indel, expanded_indel, vcf_as_dataframe
         if not expanded_indel:
             vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
             vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+            #vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
+            #vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
 
         else:
             vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+            #vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
+            #vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
 
     else:
         vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
         vcf_as_dataframe[snp_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        #vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
+        #vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
     return vcf_as_dataframe
+   
+
+# extract the most severe consequence if overlapping consequences were found
+def get_most_severe_consequence(row):
+    consequences = str(row["Consequence"])
+    found_consequences = consequences.split("&")
+
+    # use most severe consequence for filtering if overlapping consequences are present
+    if len(found_consequences) > 1:
+        most_severe_consequence = found_consequences[0]
+        
+        for consequence in found_consequences:
+            if VARIANT_CONSEQUENCES[consequence] < VARIANT_CONSEQUENCES[most_severe_consequence]:
+                most_severe_consequence = consequence
+    else:
+        most_severe_consequence = found_consequences[0]
+    
+    return most_severe_consequence
+
+
+# binary coding of the variant impact (1: HIGH, 0: otherwise)
+def specify_impact_class(row):
+    variant_impact = row["IMPACT"]
+    
+    if variant_impact == "HIGH":
+        return 1
+    else:
+        return 0
 
 
 def add_VEP_annotation_to_dataframe(annotation_header, vcf_as_dataframe):
     vcf_as_dataframe[annotation_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)), axis=1)
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
+    vcf_as_dataframe = vcf_as_dataframe.rename(columns={"am_class": "ALPHA_MISSENSE_CLASS"})
+    vcf_as_dataframe = vcf_as_dataframe.rename(columns={"am_pathogenicity": "ALPHA_MISSENSE_SCORE"})
+
+    vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
+    vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
 
     return vcf_as_dataframe
 

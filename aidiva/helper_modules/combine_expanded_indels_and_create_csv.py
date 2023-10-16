@@ -11,6 +11,18 @@ from functools import partial
 logger = logging.getLogger(__name__)
 
 
+SYNONYMOUS_VARIANTS = ["synonymous_variant",
+                       "start_retained_variant",
+                       "stop_retained_variant"]
+
+SPLICE_VARIANTS = ["splice_acceptor_variant",
+                   "splice_donor_variant",
+                   "splice_donor_5th_base_variant",
+                   "splice_region_variant",
+                   "splice_donor_region_variant",
+                   "splice_polypyrimidine_tract_variant"]
+
+
 def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature):
     with warnings.catch_warnings():
         # we expect to see RuntimeWarnings if the values for a certain variant are missing (the following filter will prevent them from bloating the log file)
@@ -21,7 +33,15 @@ def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, fe
             return np.nan
 
         else:
-            return grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).median()
+            current_group = grouped_expanded_vcf.get_group(row["INDEL_ID"])
+            
+            # we only use non-splicing und non-synonymous variants with impact High or Moderate
+            current_group = current_group[(~(current_group["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SYNONYMOUS_VARIANTS))) & ~(current_group["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS)))) & ((current_group["IMPACT"] == "HIGH") | (current_group["IMPACT"] == "MODERATE"))]
+
+            # to prevent underscoring of High impact variants
+            current_group.loc[(current_group["IMPACT"] == "High") & (current_group[feature].isna()), feature] = 1.0
+
+            return current_group[feature].mean()
 
 
 def combine_vcf_dataframes(feature_list, grouped_expanded_vcf, vcf_as_dataframe):
@@ -38,11 +58,11 @@ def combine_vcf_dataframes(feature_list, grouped_expanded_vcf, vcf_as_dataframe)
         elif (feature == "oe_lof"):
             continue
 
+        elif (feature == "HIGH_IMPACT"):
+            continue
+
         else:
             vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
-
-    #vcf_as_dataframe["ada_score"] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, "ada_score")), axis=1)
-    #vcf_as_dataframe["rf_score"] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, "rf_score")), axis=1)
 
     return vcf_as_dataframe
 
@@ -63,14 +83,14 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
         elif (feature == "oe_lof"):
             continue
 
+        elif (feature == "HIGH_IMPACT"):
+            continue
+
         elif (feature == "SIFT"):
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
         else:
             expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
-
-    #expanded_vcf_as_dataframe["ada_score"] = expanded_vcf_as_dataframe["ada_score"].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
-    #expanded_vcf_as_dataframe["rf_score"] = expanded_vcf_as_dataframe["rf_score"].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
 
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("INDEL_ID")
 
