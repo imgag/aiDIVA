@@ -15,46 +15,18 @@ if __name__=="__main__":
     parser.add_argument("--vcf", type=str, dest="vcf", metavar="input.vcf(.gz)", required=True, help="VCF file with the variants to annotate [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
     parser.add_argument("--out_folder", type=str, dest="out_folder", metavar="/output_path/aidiva_result", required=True, help="Prefix that is used to save the annotated files [required]")
+    parser.add_argument("--filtered", dest="filtered", action="store_true", required=False, help="Flag indicating that the filtered files already exist in the result folder (skips the prefiltering step to save time)")
+    parser.add_argument("--filtered_folder", type=str, dest="filtered_folder", metavar="/output_path/aidiva_filtered", required=False, help="Path to the prefiltered input VCF files")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     parser.add_argument("--log_path", type=str, dest="log_path", metavar="/output_path/logs/", required=False, help="Path where the log file should be saved, if not specified the log file is saved in the working directory")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO] (default: INFO)")
     args = parser.parse_args()
-
-    # parse input files
-    if os.path.isfile(args.vcf):
-        input_vcf = args.vcf
-    else:
-        raise SystemExit("The given input file could not be opened!")
-
-    # parse configuration file
-    if args.config is not None:
-        try:
-            config_file = open(args.config, "r")
-        except OSError:
-            raise SystemExit("The given config file could not be opened!")
-        else:
-            configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
-            config_file.close()
-    else:
-        raise SystemExit("The parameter 'config' was not specified!")
-
-    # parse output files
-    if args.out_folder is not None:
-        output_folder = args.out_folder
-    else:
-        raise SystemExit("The parameter 'out_prefix' was not specified!")
-
+    
     workdir = tempfile.TemporaryDirectory(suffix="", prefix="aidiva_workdir_", dir=None)
     working_directory = workdir.name
 
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
-
-    # obtain number of threads to use during computation
-    if args.threads is not None:
-        num_cores = int(args.threads)
-    else:
-        num_cores = 1
 
     # use log level INFO as default
     if args.log_level is not None:
@@ -96,7 +68,44 @@ if __name__=="__main__":
 
     logger.info("Running annotation")
     logger.info("Start program")
+
+    # parse input files
+    if os.path.isfile(args.vcf):
+        input_vcf = args.vcf
+    else:
+        raise SystemExit("The given input file could not be opened!")
+
+    # parse configuration file
+    if args.config is not None:
+        try:
+            config_file = open(args.config, "r")
+        except OSError:
+            raise SystemExit("The given config file could not be opened!")
+        else:
+            configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
+            config_file.close()
+    else:
+        raise SystemExit("The parameter 'config' was not specified!")
+
+    # parse output files
+    if args.out_folder is not None:
+        output_folder = args.out_folder
+    else:
+        raise SystemExit("The parameter 'out_prefix' was not specified!")
+
     logger.info(f"Output directory: {output_folder}")
+
+    if args.filtered and args.filtered_folder is not None:
+        filtered_folder = args.filtered_folder
+    else:
+        logger.info("Pre-filtering will be performed and filtered files are saved to the output folder.")
+        filtered_folder = output_folder
+
+    # obtain number of threads to use during computation
+    if args.threads is not None:
+        num_cores = int(args.threads)
+    else:
+        num_cores = 1
 
     annotation_dict = configuration["Annotation-Resources"]
 
@@ -111,12 +120,13 @@ if __name__=="__main__":
 
     logger.info("Starting VCF preparation...")
     # sorting and filtering step to remove unsupported variants
-    annotate.sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict)
-    annotate.annotate_consequence_information(str(working_directory + "/" + input_filename + "_sorted.vcf"), str(working_directory + "/" + input_filename + "_consequence.vcf"), annotation_dict, assembly_build, num_cores)
-    filt_vcf.filter_coding_variants(str(working_directory + "/" + input_filename + "_consequence.vcf"), str(output_folder + "/" + input_filename + "_filtered.vcf"), "CONS")
+    if not args.filtered:
+        annotate.sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict)
+        annotate.annotate_consequence_information(str(working_directory + "/" + input_filename + "_sorted.vcf"), str(working_directory + "/" + input_filename + "_consequence.vcf"), annotation_dict, assembly_build, num_cores)
+        filt_vcf.filter_coding_variants(str(working_directory + "/" + input_filename + "_consequence.vcf"), str(filtered_folder + "/" + input_filename + "_filtered.vcf"), "CONS")
 
     # convert input vcf to pandas dataframe
-    split_vcf.split_vcf_file_in_indel_and_snps_set(str(output_folder + "/" + input_filename + "_filtered.vcf"), str(working_directory + "/" + input_filename + "_snp.vcf"), str(working_directory + "/" + input_filename + "_indel.vcf"))
+    split_vcf.split_vcf_file_in_indel_and_snps_set(str(filtered_folder + "/" + input_filename + "_filtered.vcf"), str(working_directory + "/" + input_filename + "_snp.vcf"), str(working_directory + "/" + input_filename + "_indel.vcf"))
     expand_indels_and_create_vcf.convert_indel_vcf_to_expanded_indel_vcf(str(working_directory + "/" + input_filename + "_indel.vcf"), str(working_directory + "/" + input_filename + "_indel_expanded.vcf"), ref_path)
 
     # Annotation with VEP

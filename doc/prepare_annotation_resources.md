@@ -265,7 +265,7 @@ https://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver/hg19ToHg38.over.chain.g
 ```
 CrossMap.py vcf hg19ToHg38.over.chain.gz gnomAD_OE_sorted.bed hg38.fa.gz gnomAD_OE_grch38.bed
 
-cat gnomad_OE_grch38.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | sed '/NA/s/\bNA//g' > gnomAD_OE_grch38_sorted.bed
+cat gnomad_OE_grch38.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | sed '/NA/s/\bNA//g' | awk 'NF==4' > gnomAD_OE_grch38_sorted.bed
 ```
 
 
