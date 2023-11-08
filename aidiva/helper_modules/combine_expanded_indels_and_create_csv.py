@@ -61,6 +61,9 @@ def combine_vcf_dataframes(feature_list, grouped_expanded_vcf, vcf_as_dataframe)
         elif (feature == "HIGH_IMPACT"):
             continue
 
+        elif (feature == "IS_INDEL"):
+            continue
+
         else:
             vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
 
@@ -84,6 +87,9 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
             continue
 
         elif (feature == "HIGH_IMPACT"):
+            continue
+
+        elif (feature == "IS_INDEL"):
             continue
 
         elif (feature == "SIFT"):
