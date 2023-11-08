@@ -571,6 +571,7 @@ def add_INFO_fields_to_dataframe(process_indel, expanded_indel, vcf_as_dataframe
         if not expanded_indel:
             vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
             vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+            vcf_as_dataframe["IS_INDEL"] = 1
             #vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
             #vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
 
@@ -582,6 +583,7 @@ def add_INFO_fields_to_dataframe(process_indel, expanded_indel, vcf_as_dataframe
     else:
         vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
         vcf_as_dataframe[snp_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        vcf_as_dataframe["IS_INDEL"] = 0
         #vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
         #vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
 

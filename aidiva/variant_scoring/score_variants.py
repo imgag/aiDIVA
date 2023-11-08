@@ -90,7 +90,6 @@ def read_input_data(input_file):
 # fill SegDup missing values with -> 0
 # fill ABB_SCORE missing values with -> 0
 # fill Allele Frequency missing values with -> 0
-# fill CAPICE missing values with -> 0.5
 # fill missing values from other features with -> median or mean
 def prepare_input_data(feature_list, allele_frequency_list, input_data):
     for feature in feature_list:
@@ -102,6 +101,10 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
             
         elif feature == "HIGH_IMPACT":
             input_data[feature] = input_data[feature].fillna(0)
+
+        # TODO if there occur problems we have to impute missing values (probably with 0)
+        elif (feature == "IS_INDEL"):
+            continue
 
         #elif feature == "CAPICE":
             # TODO: compute mean and median of CAPICE database
