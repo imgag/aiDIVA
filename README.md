@@ -49,12 +49,12 @@ The scripts used to train the models can be found in the following GitHub reposi
 
 _Frameshift_ variants will get the no score, whereas _synonymous_ variants always get the lowest score 0.0
 
-Pretrained random forest models using our current feature set can be found [here](https://download.imgag.de/ahboced1/AIdiva_pretrained_models/). The models were trained using scikit-learn v0.19.1. The trained models of scikit-learn are version dependent, but during our tests it also worked to load the 0.19.1 model with newer versions of scikit-learn (only the other way round it didn't work).
+Pretrained random forest models using our current feature set can be found [here](https://download.imgag.de/ahboced1/aiDIVA_pretrained_models/). The models were trained using scikit-learn v0.19.1. The trained models of scikit-learn are version dependent, but during our tests it also worked to load the 0.19.1 model with newer versions of scikit-learn (only the other way round it didn't work).
 
 ## Running aiDIVA
 aiDIVA can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. When the variant annotation with VEP should also be performed with aiDIVA this is the only required command line argument. In the other case when an already annotated file is given there are a few more arguments that needs to be passed instead of being specified in the configuration file. The reason for this different set of parameters is due to the fact that it makes it more convenient to include aiDIVA in another existing pipeline.
 
-Make sure to put the trained models in the data folder and make sure that the filename in the `AIdiva_configuration_annotated.yaml` is correct.
+Make sure to put the trained models in the data folder and make sure that the filename in the `aiDIVA_configuration_annotated.yaml` is correct.
 
 ### Running aiDIVA on already annotated data:
 
