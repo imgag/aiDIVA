@@ -43,11 +43,11 @@ Last update of HPO resources: 30th July, 2021
 
 
 ## Pathogenicity prediction
-There are two random forest models that are used in aiDIVA to predict the pathogenicity of a given variant. One for SNP variants and the other for inframe InDel variants. The training data of the two models consists of variants from Clinvar combined with additional variants from HGMD that are not present in Clinvar.
+There is one combined random forest model that is used in aiDIVA to predict the pathogenicity of a given variant. It covers SNP variants and inframe InDel variants. The training data of the model consists of variants from Clinvar and was internally validated on variants from HGMD (pathogenic) and gnomAD (benign) that are not present in Clinvar.
 
-The scripts used to train the models can be found in the following GitHub repository: [aiDIVA-Training](https://github.com/imgag/aiDIVA-Training)
+The scripts used to train the model can be found in the following GitHub repository: [aiDIVA-Training](https://github.com/imgag/aiDIVA-Training)
 
-_Frameshift_ variants will get the no score, whereas _synonymous_ variants always get the lowest score 0.0
+_Frameshift_ variants will get a default score of 0.9, whereas _synonymous_ variants always get the lowest score 0.0
 
 Pretrained random forest models using our current feature set can be found [here](https://download.imgag.de/ahboced1/aiDIVA_pretrained_models/). The models were trained using scikit-learn v0.19.1. The trained models of scikit-learn are version dependent, but during our tests it also worked to load the 0.19.1 model with newer versions of scikit-learn (only the other way round it didn't work).
 
