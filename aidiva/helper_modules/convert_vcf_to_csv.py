@@ -396,11 +396,15 @@ def extract_vep_annotation(cell, annotation_header):
     new_cols = []
 
     # choose the most severe annotation variant
-    # if new consequence terms were added to the database that are not yet handled from AIdiva use default consequence "unknown" with lowest severity value
-    consequences = [min([VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in field.split("|")[annotation_header.index("Consequence")].split("&")]) for field in annotation_fields]
+    # if new consequence terms were added to the database that are not yet handled from aiDIVA use default consequence "unknown" with lowest severity value
+    if (len(annotation_fields) >= 1) and (annotation_fields[0] != ""):
+        consequences = [min([VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in field.split("|")[annotation_header.index("Consequence")].split("&")]) for field in annotation_fields]
+        target_index = min(enumerate(consequences), key=itemgetter(1))[0]
+        new_cols = annotation_fields[target_index].strip().split("|")
 
-    target_index = min(enumerate(consequences), key=itemgetter(1))[0]
-    new_cols = annotation_fields[target_index].strip().split("|")
+    else:
+        # can happen with the expanded InDels
+        logger.warn("Empty VEP annotation!")
 
     return new_cols
 
