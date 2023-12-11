@@ -161,7 +161,7 @@ def create_hpo_graph(hpo_ontology, phenotype_hpoa, hpo_graph_file, hpo_replaceme
                 hpo_graph.nodes[node]['IC'] = -math.log(1.0 / total_counts)
             elif str(nx.__version__).startswith("3."):
                 # TODO needs further testing and verification
-                hpo_graph.nodes[node]["replaced_by"] = replacement[node]
+                hpo_graph.nodes[node]["replaced_by"] = replacements[node]
                 hpo_graph.nodes[node]["IC"] = -math.log(1.0 /total_counts)
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1 or v2 installed!")
@@ -270,8 +270,14 @@ def create_gene2interacting_mapping(string_mapping, string_db_links, string_inte
         for line in string_mapping_file:
             if line.startswith("#") or (line == "\n"):
                 continue
+
             splitted_line = line.replace("\n", "").split("\t")
-            string2name[splitted_line[2]] = splitted_line[1].upper()
+
+            string_id = str(splitted_line[2])
+            gene_name = str(splitted_line[1])
+            print(gene_name, string_id)
+
+            string2name[string_id] = gene_name.upper()
 
     with gzip.open(string_db_links, "rt") as string_links_file: 
         string_interaction_mapping = dict()
@@ -279,6 +285,7 @@ def create_gene2interacting_mapping(string_mapping, string_db_links, string_inte
         for line in string_links_file:
             if line.startswith("protein") or (line == "\n"):
                 continue
+
             splitted_line = line.replace("\n", "").split(" ")
             protein_a = splitted_line[0]
             protein_b = splitted_line[1]

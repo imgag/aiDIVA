@@ -50,7 +50,7 @@ wget ftp://ftp.ensembl.org/pub/release-109/variation/indexed_vep_cache/homo_sapi
 PERL5LIB=$vep_install_dir/Bio/:$vep_cpan_dir/lib/perl5/:$PERL5LIB
 cd $vep_install_dir
 
-perl INSTALL.pl --SPECIES homo_sapiens --ASSEMBLY GRCh38 --AUTO acp --PLUGINS EVE --NO_UPDATE --NO_BIOPERL --CACHEDIR $vep_data_dir/cache --CACHEURL $vep_data_dir/ftp --NO_TEST
+perl INSTALL.pl --SPECIES homo_sapiens --ASSEMBLY GRCh38 --AUTO acp --NO_UPDATE --NO_BIOPERL --CACHEDIR $vep_data_dir/cache --CACHEURL $vep_data_dir/ftp --NO_TEST
 #perl INSTALL.pl --SPECIES homo_sapiens --ASSEMBLY GRCh37 --AUTO acp --NO_UPDATE --NO_BIOPERL --CACHEDIR $vep_data_dir/cache --CACHEURL $vep_data_dir/ftp --NO_TEST
 
 cd $vep_data_dir/cache/Plugins

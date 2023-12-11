@@ -121,7 +121,7 @@ if __name__=="__main__":
     logger.info("Starting VCF preparation...")
     # sorting and filtering step to remove unsupported variants
     if not args.filtered:
-        annotate.sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict)
+        annotate.left_normalize_and_sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict, ref_path)
         annotate.annotate_consequence_information(str(working_directory + "/" + input_filename + "_sorted.vcf"), str(working_directory + "/" + input_filename + "_consequence.vcf"), annotation_dict, assembly_build, num_cores)
         filt_vcf.filter_coding_variants(str(working_directory + "/" + input_filename + "_consequence.vcf"), str(filtered_folder + "/" + input_filename + "_filtered.vcf"), "CONS")
 

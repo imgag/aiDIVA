@@ -50,7 +50,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         vep_command = f"{vep_command} --sift s"
         vep_command = f"{vep_command} --polyphen s"
 
-        vep_command = f"{vep_command} --plugin EVE,file={vep_annotation_dict['plugin-files']['EVE']}"
+        #vep_command = f"{vep_command} --plugin EVE,file={vep_annotation_dict['plugin-files']['EVE']}"
         vep_command = f"{vep_command} --plugin AlphaMissense,file={vep_annotation_dict['plugin-files']['AlphaMissense']}"
 
     vep_command = f"{vep_command} -i " + input_vcf_file + " "
@@ -231,11 +231,16 @@ def filter_regions(input_vcf_file, output_vcf_file, annotation_dict):
     subprocess.run(command, shell=True, check=True)
 
 
-def sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict):
-    command = f"{vep_annotation_dict['ngs-bits']}/VcfSort"
+def left_normalize_and_sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, ref_path):
+    try:
+        tmp_left_normalized = tempfile.NamedTemporaryFile(mode="w+b", suffix="_left_normalized.vcf", delete=False)
 
-    command = f"{command} -in {input_vcf_file} -out {output_vcf_file}"
-    subprocess.run(command, shell=True, check=True)
+        subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfLeftNormalize -in {input_vcf_file} -out {tmp_left_normalized.name} -ref {ref_path}", shell=True, check=True)
+        subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfSort -in {tmp_left_normalized.name} -out {output_vcf_file}", shell=True, check=True)
+
+    finally:
+        # clean up
+        os.remove(tmp_left_normalized.name)
 
 
 if __name__=="__main__":

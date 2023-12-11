@@ -28,8 +28,8 @@ MEAN_DICT = {"phastCons_mammal": 0.09691308336428194,
              "PolyPhen": 0.5169017014355943,
              "oe_lof": 0.53667483333333332,
              "CAPICE": 0.04487945928377704,
-             "ALPHA_MISSENSE_SCORE": 0.4074365673385914,
-             "EVE_SCORE": 0.4866676824933756}
+             "ALPHA_MISSENSE_SCORE": 0.4074365673385914}
+             #"EVE_SCORE": 0.4866676824933756}
 
 MEDIAN_DICT = {"MutationAssessor": 1.87,
                "CONDEL": 0.4805749233199981,
@@ -41,8 +41,8 @@ MEDIAN_DICT = {"MutationAssessor": 1.87,
                "PolyPhen": 0.547,
                "oe_lof": 0.48225,
                "CAPICE": 0.0006,
-               "ALPHA_MISSENSE_SCORE": 0.2509,
-               "EVE_SCORE": 0.4946792317600748}
+               "ALPHA_MISSENSE_SCORE": 0.2509}
+               #"EVE_SCORE": 0.4946792317600748}
 
 SUPPORTED_CODING_VARIANTS = ["stop_gained",
                              "stop_lost",
@@ -138,7 +138,7 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
         #    else:
         #        input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["ALPHA_MISSENSE_SCORE"])
 
-        elif feature == "REVEL" or feature == "ALPHA_MISSENSE_SCORE" or feature == "EVE_SCORE":
+        elif feature == "REVEL" or feature == "ALPHA_MISSENSE_SCORE": #or feature == "EVE_SCORE":
             input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != "") & (not ":" in value) & (not "-" in value))], default=np.nan), axis=1)
             input_data.loc[(~(input_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS))) & (input_data["IMPACT"] == "HIGH") & (input_data[feature].isna())), feature] = 1.0
             input_data[feature] = input_data[feature].fillna(MEDIAN_DICT[feature])

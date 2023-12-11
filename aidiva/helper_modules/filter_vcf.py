@@ -106,9 +106,12 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name):
                 consequences += consequence.split("&")
 
             # check if variant is coding and write to outfile
-            if any(term for term in CODING_VARIANTS if term in consequences):
-                splitted_line[7] = "CODING_FILTERED=TRUE"
-                outfile.write("\t".join(splitted_line))
+            for term in CODING_VARIANTS:
+                if term in consequences:
+                    splitted_line[7] = "CODING_FILTERED=TRUE"
+                    outfile.write(str("\t".join(splitted_line) + "\n"))
+                    break
+
         else:
             logger.error("Annotation field missing!")
             logger.warn("Variant filtering will be skipped!")

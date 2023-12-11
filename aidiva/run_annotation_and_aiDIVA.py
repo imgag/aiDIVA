@@ -168,8 +168,8 @@ if __name__=="__main__":
     input_filename = input_filename.split(".")[0]
 
     logger.info("Starting VCF preparation...")
-    # sorting and filtering step to remove unsupported variants
-    annotate.sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict)
+    # left normalizing, sorting, and filtering step to remove unsupported variants
+    annotate.left_normalize_and_sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict, ref_path)
     annotate.annotate_consequence_information(str(working_directory + "/" + input_filename + "_sorted.vcf"), str(working_directory + "/" + input_filename + "_consequence.vcf"), annotation_dict, assembly_build, num_cores)
     filt_vcf.filter_coding_variants(str(working_directory + "/" + input_filename + "_consequence.vcf"), str(working_directory + "/" + input_filename + "_filtered.vcf"), "CONS")
 

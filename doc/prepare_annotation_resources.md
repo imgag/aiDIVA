@@ -138,8 +138,8 @@ rm clinvar.vcf.gz
 
 
 ### Condel
+!!! Account needed !!!
 Please first download the FannsDB database from here: [https://bbglab.irbbarcelona.org/fannsdb/](https://bbglab.irbbarcelona.org/fannsdb/) 
-(a free registration is required).
 \
 \
 Afterwards the `prepare_Condel_vcf.py` script found in the _scripts_ folder can be used to create the VCF annotation file. For the annotation the VCF file needs to be _bgzipped_ and _indexed_
@@ -537,7 +537,7 @@ rm grch38_revel_v13_unsort.vcf
 ```
 
 
-### dbscSNV
+### dbscSNV (in newer versions of aiDIVA SpliceAI is used instead)
 GRCh37 and GRCh38:
 \
 ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbscSNV1.1.zip
@@ -567,3 +567,37 @@ rm grch37_dbscSNV_scores_unsort.vcf
 rm grch38_dbscSNV_scores_unsort.vcf
 ```
 
+
+### SpliceAI
+GRCh37 and GRCh38
+\
+!!! Account needed !!!
+\
+\
+Manually download the following files `spliceai_scores.masked.snv.hg38.vcf.gz` and `spliceai_scores.masked.indel.hg38.vcf.gz` (or `spliceai_scores.masked.snv.hg19.vcf.gz` `spliceai_scores.masked.indel.hg19.vcf.gz`
+\
+[https://basespace.illumina.com/s/otSPW8hnhaZR](https://basespace.illumina.com/s/otSPW8hnhaZR)
+
+```
+tabix -p vcf spliceai_scores.masked.snv.hg38.vcf.gz
+tabix -p vcf spliceai_scores.masked.indel.hg38.vcf.gz
+
+tabix -p vcf spliceai_scores.masked.snv.hg19.vcf.gz
+tabix -p vcf spliceai_scores.masked.indel.hg19.vcf.gz
+```
+
+
+### AlphaMissense
+GRCh37 and GRCh38
+\
+!!! Google Account needed !!!
+\
+Manually donwload the following files `AlphaMissense_hg38.tsv.gz` or `AlphaMissense_hg19.tsv.gz`
+\
+https://console.cloud.google.com/storage/browser/dm_alphamissense
+
+```
+tabix -p vcf AlphaMissense_hg38.tsv.gz
+
+tabix -p vcf AlphaMissense_hg19.tsv.gz
+```
