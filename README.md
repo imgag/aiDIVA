@@ -1,8 +1,8 @@
-# aiDIVA - Augmented Intelligence Disease Variant Analysis
+# aiDIVA - augmented intelligence-based Disease Variant Analysis
 
 aiDIVA is an analysis pipeline that predicts the pathogenicity of given variants and prioritizes them according to the predicted pathogenicity to identify potential disease causing variants of a given sample.
 
-The pathogenicity prediction is based on two random forest (RF) models. One is covering SNP variants, whereas the other one covers inframe InDel variants (frameshift variants are not covered).
+The pathogenicity prediction is based on a random forest (RF) model. That covers both SNV and inframe InDel variants (frameshift variants are not covered).
 
 
 ## System requirements
