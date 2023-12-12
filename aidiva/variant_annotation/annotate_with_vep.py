@@ -231,26 +231,32 @@ def filter_regions(input_vcf_file, output_vcf_file, annotation_dict):
     subprocess.run(command, shell=True, check=True)
 
 
-def left_normalize_and_sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, ref_path):
-    try:
-        tmp_left_normalized = tempfile.NamedTemporaryFile(mode="w+b", suffix="_left_normalized.vcf", delete=False)
+def left_normalize_and_sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, ref_path, inhouse_sample):
+    if inhouse_sample:
+        subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfSort -in {input_vcf_file} -out {output_vcf_file}", shell=True, check=True)
 
-        subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfLeftNormalize -in {input_vcf_file} -out {tmp_left_normalized.name} -ref {ref_path}", shell=True, check=True)
-        subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfSort -in {tmp_left_normalized.name} -out {output_vcf_file}", shell=True, check=True)
+    else:
+        try:
+            tmp_left_normalized = tempfile.NamedTemporaryFile(mode="w+b", suffix="_left_normalized.vcf", delete=False)
 
-    finally:
-        # clean up
-        os.remove(tmp_left_normalized.name)
+            subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfLeftNormalize -in {input_vcf_file} -out {tmp_left_normalized.name} -ref {ref_path}", shell=True, check=True)
+            subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfSort -in {tmp_left_normalized.name} -out {output_vcf_file}", shell=True, check=True)
+
+        finally:
+            # clean up
+            os.remove(tmp_left_normalized.name)
 
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "aiDIVA -- Annotation with VEP")
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="data.vcf", required=True, help="VCF file containing the data, you want to annotate with VEP\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="out.vcf", required=True, help="Specifies the annotated output file\n")
-    parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the annotation parameters")
-    parser.add_argument("--basic", dest="basic", action="store_true", required=False, help="Flag to perform basic annotation on InDels")
-    parser.add_argument("--expanded", dest="expanded", action="store_true", required=False, help="Flag to perform annotation on expanded InDels")
-    parser.add_argument("--threads", dest="threads", metavar=1, required=False, help="Number of threads to use during annotation")
+    parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the annotation parameters\n")
+    parser.add_argument("--reference", type=str, dest="reference", metavar="GRCh38.fa", required=True, help="Reference Genome used during variant calling\n")
+    parser.add_argument("--basic", dest="basic", action="store_true", required=False, help="Flag to perform basic annotation on InDels\n")
+    parser.add_argument("--expanded", dest="expanded", action="store_true", required=False, help="Flag to perform annotation on expanded InDels\n")
+    parser.add_argument("--inhouse_sample", dest="inhouse_sample", action="store_true", required=False, help="Flag to indicate that we are annotating an inhouse sample (skips leftNormalize since it is already performed)\n")
+    parser.add_argument("--threads", dest="threads", metavar=1, required=False, help="Number of threads to use during annotation\n")
     args = parser.parse_args()
 
     input_vcf_file = args.in_data
@@ -270,6 +276,7 @@ if __name__=="__main__":
 
     basic_annotation = args.basic
     expanded_annotation = args.expanded
+    inhouse_sample = args.inhouse_sample
 
     try:
         # create intermediate temp files
@@ -280,7 +287,7 @@ if __name__=="__main__":
         tmp_bigwig_annot = tempfile.NamedTemporaryFile(mode="w+b", suffix="_bigwigAnnot.vcf", delete=False)
 
         # perform annotations
-        sort_vcf(input_vcf_file, tmp_sorted.name, annotation_dict)
+        left_normalize_and_sort_vcf(input_vcf_file, tmp_sorted.name, annotation_dict, reference, inhouse_sample)
         call_vep_and_annotate_vcf(tmp_sorted.name, tmp_vep_annot.name, annotation_dict, assembly_build, basic_annotation, expanded_annotation, num_threads)
         annotate_from_vcf(tmp_vep_annot.name, tmp_vcf_annot.name, annotation_dict, expanded_annotation, basic_annotation, num_threads)
 

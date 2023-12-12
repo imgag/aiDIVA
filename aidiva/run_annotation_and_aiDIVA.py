@@ -28,6 +28,7 @@ if __name__=="__main__":
     parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="String indicating the present family type [SINGLE, TRIO]")
     parser.add_argument("--skip_db_check", dest="skip_db_check", action="store_true", required=False, help="Flag to skip DB lookup of variants")
     parser.add_argument("--only_top_results", dest="only_top_results", action="store_true", required=False, help="Report only the top 25 variants as result")
+    parser.add_argument("--inhouse_sample", dest="inhouse_sample", action="store_true", required=False, help="Flag to indicate that we are annotating an inhouse sample (skips leftNormalize since it is already performed)")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     parser.add_argument("--log_path", type=str, dest="log_path", metavar="/output_path/logs/", required=False, help="Path where the log file should be saved, if not specified the log file is saved in the working directory")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO] (default: INFO)")
@@ -97,6 +98,7 @@ if __name__=="__main__":
     
     skip_db_check = args.skip_db_check
     only_top_results = args.only_top_results
+    inhouse_sample = args.inhouse_sample
 
     # obtain number of threads to use during computation
     if args.threads is not None:
@@ -169,7 +171,7 @@ if __name__=="__main__":
 
     logger.info("Starting VCF preparation...")
     # left normalizing, sorting, and filtering step to remove unsupported variants
-    annotate.left_normalize_and_sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict, ref_path)
+    annotate.left_normalize_and_sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict, ref_path, inhouse_sample)
     annotate.annotate_consequence_information(str(working_directory + "/" + input_filename + "_sorted.vcf"), str(working_directory + "/" + input_filename + "_consequence.vcf"), annotation_dict, assembly_build, num_cores)
     filt_vcf.filter_coding_variants(str(working_directory + "/" + input_filename + "_consequence.vcf"), str(working_directory + "/" + input_filename + "_filtered.vcf"), "CONS")
 

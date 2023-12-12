@@ -17,6 +17,7 @@ if __name__=="__main__":
     parser.add_argument("--out_folder", type=str, dest="out_folder", metavar="/output_path/aidiva_result", required=True, help="Prefix that is used to save the annotated files [required]")
     parser.add_argument("--filtered", dest="filtered", action="store_true", required=False, help="Flag indicating that the filtered files already exist in the result folder (skips the prefiltering step to save time)")
     parser.add_argument("--filtered_folder", type=str, dest="filtered_folder", metavar="/output_path/aidiva_filtered", required=False, help="Path to the prefiltered input VCF files")
+    parser.add_argument("--inhouse_sample", dest="inhouse_sample", action="store_true", required=False, help="Flag to indicate that we are annotating an inhouse sample (skips leftNormalize since it is already performed)")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     parser.add_argument("--log_path", type=str, dest="log_path", metavar="/output_path/logs/", required=False, help="Path where the log file should be saved, if not specified the log file is saved in the working directory")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO] (default: INFO)")
@@ -27,6 +28,8 @@ if __name__=="__main__":
 
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
+    
+    inhouse_sample = args.inhouse_sample
 
     # use log level INFO as default
     if args.log_level is not None:
@@ -121,7 +124,7 @@ if __name__=="__main__":
     logger.info("Starting VCF preparation...")
     # sorting and filtering step to remove unsupported variants
     if not args.filtered:
-        annotate.left_normalize_and_sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict, ref_path)
+        annotate.left_normalize_and_sort_vcf(input_vcf, str(working_directory + "/" + input_filename + "_sorted.vcf"), annotation_dict, ref_path, inhouse_sample)
         annotate.annotate_consequence_information(str(working_directory + "/" + input_filename + "_sorted.vcf"), str(working_directory + "/" + input_filename + "_consequence.vcf"), annotation_dict, assembly_build, num_cores)
         filt_vcf.filter_coding_variants(str(working_directory + "/" + input_filename + "_consequence.vcf"), str(filtered_folder + "/" + input_filename + "_filtered.vcf"), "CONS")
 
