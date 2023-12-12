@@ -40,7 +40,7 @@ def write_data_information_to_file(input_data, outfile, ref_sequence, header):
                 elif (extended_ref_seq[i] == "G") or (extended_ref_seq[i] == "C"):
                     alt_variant = random.choice(["A", "T"])
                 elif (extended_ref_seq[i] == "N"):
-                    logger.warn("Reference base was skipped because it was 'N'!")
+                    logger.debug("Reference base was skipped because it was 'N'!")
                     continue
                 else:
                     logger.error("The given reference sequence seems to be corrupted!")
@@ -84,7 +84,7 @@ def convert_indel_vcf_to_expanded_indel_vcf(in_data, out_data, ref_folder):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.csv", required=True, help="InDel VCF file to expand\n")
+    parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="InDel VCF file to expand\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.vcf", required=True, help="Output VCF file\n")
     parser.add_argument("--ref_path", type=str, dest="ref_path", metavar="/path/to/hg19/Homo_sapiens.GRCh37.dna.chromosome.[ID].fa", required=True, help="Path were the reference genome is found.\n")
     args = parser.parse_args()

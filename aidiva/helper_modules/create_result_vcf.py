@@ -44,7 +44,7 @@ def write_header(out_file, assembly_build, single):
         out_file.write("##contig=<ID=chr22,length=50818468>\n")
         out_file.write("##contig=<ID=chrX,length=156040895>\n")
         out_file.write("##contig=<ID=chrY,length=57227415>\n")
-    else:
+    elif assembly_build == "GRCh37":
         out_file.write("##reference=GRCh37.fa\n")
         out_file.write("##contig=<ID=chr1,length=249250621>\n")
         out_file.write("##contig=<ID=chr2,length=243199373>\n")
@@ -70,12 +70,15 @@ def write_header(out_file, assembly_build, single):
         out_file.write("##contig=<ID=chr22,length=51304566>\n")
         out_file.write("##contig=<ID=chrX,length=155270560>\n")
         out_file.write("##contig=<ID=chrY,length=59373566>\n")
+    else:
+        logger.error(f"Unsupported assembly build: {assembly_build}")
 
     out_file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
 
 def write_result_vcf(input_data, vcf_file, assembly_build, single):
     with open(vcf_file, "w") as out_file:
         if input_data is not None:
+            input_data = input_data.rename(columns={"#CHROM": "CHROM"})
             input_data = input_data.sort_values(["CHROM", "POS"], ascending=[True, True])
             input_data = input_data.reset_index(drop=True)
             colnames = input_data.columns

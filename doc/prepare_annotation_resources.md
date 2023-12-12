@@ -1,5 +1,5 @@
 # Preparation Of Annotation Resources
-This document provides links to download the annoation sources used in AIdiva. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
+This document provides links to download the annoation sources used in aiDIVA. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
 \
 \
 For some of the annotation sources there are no GRCh38/hg38 files available in these cases we lifted the GRCh37/hg19 sources manually to the new assembly using the tool [CrossMap](https://github.com/liguowang/CrossMap). For this manual liftover we also provide code snippets.
@@ -17,9 +17,22 @@ GRCh38:
 <br>
 [http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz](http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz)
 
+```
+gunzip hg19.fa.gz
+bgzip hg19.fa
+
+gunzip hg38.fa.gz
+bgzip hg38.fa
+
+samtools dict hg19.fa.gz
+samtools dict hg38.fa.gz
+
+samtools faidx hg19.fa.gz
+samtools faidx hg38.fa.gz
+```
 
 ## Annotation Databases
-INFO: Please be adviced that some of the annotation sources AIdiva uses are only free for non-commercial and academic use!
+INFO: Please be adviced that some of the annotation sources aiDIVA uses are only free for non-commercial and academic use!
 
 If for some reason you choose to exclude one or more of the Annotation sources shown here you have to make sure to modify the source code accordingly. If an annotation source is used as a feature for the random forest and you exclude it in your analysis you have to train a new model before you can use Aidiva.
 
@@ -125,8 +138,8 @@ rm clinvar.vcf.gz
 
 
 ### Condel
+!!! Account needed !!!
 Please first download the FannsDB database from here: [https://bbglab.irbbarcelona.org/fannsdb/](https://bbglab.irbbarcelona.org/fannsdb/) 
-(a free registration is required).
 \
 \
 Afterwards the `prepare_Condel_vcf.py` script found in the _scripts_ folder can be used to create the VCF annotation file. For the annotation the VCF file needs to be _bgzipped_ and _indexed_
@@ -230,7 +243,7 @@ rm fathmm_xf_coding_hg38.vcf.gz
 
 
 ### GnomAD (oe_lof and homAF)
-The oe_lof score is gene based, therefor this resource is the same for GRCh37/hg19 and GRCh38/hg38.
+GRCh37:
 \
 https://storage.googleapis.com/gnomad-public/release/2.1.1/constraint/gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz
 
@@ -242,6 +255,17 @@ zcat gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz | sed -n '1d;p' | awk -v OFS="\t"
 cat gnomad_OE.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | sed '/NA/s/\bNA//g' > gnomAD_OE_sorted.bed
 
 rm gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz
+```
+
+GRCh38:
+\
+Needs manual liftover of the previously generated gnomAD_OE_sorted.bed
+https://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver/hg19ToHg38.over.chain.gz
+
+```
+CrossMap.py vcf hg19ToHg38.over.chain.gz gnomAD_OE_sorted.bed hg38.fa.gz gnomAD_OE_grch38.bed
+
+cat gnomad_OE_grch38.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | sed '/NA/s/\bNA//g' | awk 'NF==4' > gnomAD_OE_grch38_sorted.bed
 ```
 
 
@@ -513,7 +537,7 @@ rm grch38_revel_v13_unsort.vcf
 ```
 
 
-### dbscSNV
+### dbscSNV (in newer versions of aiDIVA SpliceAI is used instead)
 GRCh37 and GRCh38:
 \
 ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbscSNV1.1.zip
@@ -543,3 +567,37 @@ rm grch37_dbscSNV_scores_unsort.vcf
 rm grch38_dbscSNV_scores_unsort.vcf
 ```
 
+
+### SpliceAI
+GRCh37 and GRCh38
+\
+!!! Account needed !!!
+\
+\
+Manually download the following files `spliceai_scores.masked.snv.hg38.vcf.gz` and `spliceai_scores.masked.indel.hg38.vcf.gz` (or `spliceai_scores.masked.snv.hg19.vcf.gz` `spliceai_scores.masked.indel.hg19.vcf.gz`
+\
+[https://basespace.illumina.com/s/otSPW8hnhaZR](https://basespace.illumina.com/s/otSPW8hnhaZR)
+
+```
+tabix -p vcf spliceai_scores.masked.snv.hg38.vcf.gz
+tabix -p vcf spliceai_scores.masked.indel.hg38.vcf.gz
+
+tabix -p vcf spliceai_scores.masked.snv.hg19.vcf.gz
+tabix -p vcf spliceai_scores.masked.indel.hg19.vcf.gz
+```
+
+
+### AlphaMissense
+GRCh37 and GRCh38
+\
+!!! Google Account needed !!!
+\
+Manually donwload the following files `AlphaMissense_hg38.tsv.gz` or `AlphaMissense_hg19.tsv.gz`
+\
+https://console.cloud.google.com/storage/browser/dm_alphamissense
+
+```
+tabix -p vcf AlphaMissense_hg38.tsv.gz
+
+tabix -p vcf AlphaMissense_hg19.tsv.gz
+```

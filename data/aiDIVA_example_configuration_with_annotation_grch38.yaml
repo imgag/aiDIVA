@@ -1,0 +1,129 @@
+## aiDIVA -- Augmented Intelligence Disease Variant Analysis
+# Configuration file specifiying all the parameters that are needed to run aiDIVA in the different modes
+# if you modify the key names make sure to also update them in the run_aiDIVA.py script
+---
+Assembly-Build: GRCh38
+
+
+Analysis-Input:
+    # path to the reference assembly used during the expansion of the indels
+    # instead of GRCh38 you can also use hg38 the differences between the two should not matter here
+    ref-path: <full-path-to-reference>/GRCh38.fa
+
+    # trained scoring models used to predict the pathogenicity score
+    # if no trained model is present you can use the train_model.py script to train a new custom model
+    scoring-model-snp: <full-path-to-model>/rf_model_snp.pkl
+    scoring-model-indel: <full-path-to-model>/rf_model_indel.pkl
+
+    prioritization-information:
+        # Identifier to get the score from the annotated file
+        cadd-identifier: CADD_PHRED
+        repeat-identifier: simpleRepeat
+        duplication-identifier: segmentDuplication
+
+
+Model-Features:
+    # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these)
+    # NOTE: currently not used, we use directly the MAX_AF annotation from VEP
+    allele-frequency-list:
+        - gnomAD_AFR_AF
+        - gnomAD_ASJ_AF
+        - gnomAD_EAS_AF
+        - gnomAD_FIN_AF
+        - gnomAD_NFE_AF
+        - gnomAD_OTH_AF
+        - gnomAD_SAS_AF
+        - AA_AF
+        - EA_AF
+        - AFR_AF
+        - AMR_AF
+        - EAS_AF
+        - EUR_AF
+        - SAS_AF
+
+    # List containing the names of the features used for the model training
+    # the exact order of the features is crucial (make sure to have the exact same order as in the training step)
+    feature-list:
+        - SIFT
+        - PolyPhen
+        - CADD_PHRED
+        - REVEL
+        - MAX_AF
+        - EIGEN_PHRED
+        - CONDEL
+        - FATHMM_XF
+        - MutationAssessor
+        - phastCons_mammal
+        - phastCons_primate
+        - phastCons_vertebrate
+        - phyloP_mammal
+        - phyloP_primate
+        - phyloP_vertebrate
+        - oe_lof
+        - homAF
+        - CAPICE
+
+
+Annotation-Resources:
+    # VEP: path to the VEP executable
+    vep: <full-path-to-folder>/ensembl-vep-release-103.1/vep
+
+    # Cache directory and plugin directory
+    vep-cache: <full-path-to-folder>/ensembl-vep-103/cache
+
+    # ngs-bits install path
+    ngs-bits: <full-path-to-folder>/ngs-bits/
+
+    # low-confidence filter file
+    low-confidence: <full-path-to-file>/grch38_low_conf_regions.bed
+
+    # BED like files here the key of the dictionary is used as the name to present the feature in the annotated file
+    bed-files:
+        simpleRepeat: <full-path-to-file>/grch38_simpleRepeat.bed
+        segmentDuplication: <full-path-to-file>/grch38_genomicSuperDups.bed
+        oe_lof: <full-path-to-file>/gnomAD_OE_sorted.bed
+        repeatMasker: <full-path-to-file>/grch37_repeatmasker.bed
+        
+        # OPTIONAL: only used if DB check is not skipped
+        # NOTE: currently not implemented
+        # NOTE: the following annotation needs a valid license
+        omim: <full-path-to-file>/omim.bed
+
+    # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
+    vcf-files:
+        EIGEN_PHRED: <full-path-to-file>/grch38_eigen_phred_coding.vcf.gz
+        CONDEL: <full-path-to-file>/grch38_fannsDB_Condel.vcf.gz
+        FATHMM_XF: <full-path-to-file>/grch38_fathmm_xf_coding.vcf.gz
+        MutationAssessor: <full-path-to-file>/grch38_precomputed_MutationAssessor.vcf.gz
+        gnomAD: <full-path-to-file>/grch38_gnomAD_genomes_r211.vcf.gz
+        CADD: <full-path-to-file>/grch38_CADD_snvs_v16.vcf.gz
+        dbscSNV: <full-path-to-file>/grch38_dbscSNV_scores.vcf.gz
+        CAPICE: <full-path-to-file>/capice_v1_grch38_snvs.vcf.gz
+        REVEL: <full-path-to-file>/grch38_revel_v13.vcf.gz
+        
+        # OPTIONAL: only used if DB check is not skipped
+        clinvar: <full-path-to-file>/grch38_clinvar.vcf.gz
+        
+        # OPTIONAL: only used if DB check is not skipped
+        # NOTE: the following annotation needs a valid license
+        hgmd: <full-path-to-file>/HGMD.vcf.gz
+
+    # Bigwig files the key of the dictionary is used as the name to present the feature in the annotated file
+    bigwig-files:
+        phastCons_mammal: <full-path-to-file>/primates.phastCons46way.bw
+        phastCons_primate: <full-path-to-file>/placentalMammals.phastCons46way.bw
+        phastCons_vertebrate: <full-path-to-file>/vertebrate.phastCons46way.bw
+        phyloP_mammal: <full-path-to-file>/primates.phyloP46way.bw
+        phyloP_primate: <full-path-to-file>/placentalMammals.phyloP46way.bw
+        phyloP_vertebrate: <full-path-to-file>/vertebrate.phyloP46way.bw
+
+
+# DO NOT CHANGE THE FOLLOWING IF YOU DON'T KNOW WHAT YOU DO
+# In case you change the following parameters (eg. if you recomputed the hpo resources) make sure to specify the full path to the newly created resources
+Internal-Parameters:
+    gene2hpo-mapping: ../../data/hpo_resources/gene2hpo.json
+    gene2interacting-mapping: ../../data/hpo_resources/gene2interacting.json
+    transcript2length-mapping: ../../data/hpo_resources/grch38transcript2length.json
+    hgnc2gene-mapping: ../../data/hpo_resources/hgnc2gene.json
+    hpo-graph: ../../data/hpo_resources/hpo_graph.gexf
+    hpo2replacement-mapping: ../../data/hpo_resources/hpo2replacement.json

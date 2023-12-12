@@ -2,7 +2,7 @@
 
 aiDIVA is an analysis pipeline that predicts the pathogenicity of given variants and prioritizes them according to the predicted pathogenicity to identify potential disease causing variants of a given sample.
 
-The pathogenicity prediction is based on a random forest (RF) model. That covers both SNV and inframe InDel variants (frameshift variants are not covered).
+The pathogenicity prediction is based on a random forest (RF) model. That covers both SNV and inframe InDel variants (frameshift variants are not covered, they are handled separately).
 
 
 ## System requirements
@@ -24,15 +24,15 @@ If a newer scikit-learn version is used the models provided should still work (t
 ## Annotation resources and tools
 If the annotation is not made beforehand make sure that the necessary database resources and tools are present on your system and the paths in the configuration file are set correctly.
 
-For detailed instructions on how to download and prepare the annotation resources please head over to the respective [documentation](https://github.com/imgag/AIdiva/blob/master/doc/prepare_annotation_resources.md) (prepare_annotation_resources.md) found in the _doc_ folder.
+For detailed instructions on how to download and prepare the annotation resources please head over to the respective [documentation](https://github.com/imgag/aiDIVA/blob/master/doc/prepare_annotation_resources.md) (prepare_annotation_resources.md) found in the _doc_ folder.
 
-For detailed instructions on how to download and install the annotation tools please head over to the respective [documentation](https://github.com/imgag/AIdiva/blob/master/doc/install_additional_tools.md) (isntall_additional_tools.md) found in the _doc_ folder.
+For detailed instructions on how to download and install the annotation tools please head over to the respective [documentation](https://github.com/imgag/aiDIVA/blob/master/doc/install_additional_tools.md) (isntall_additional_tools.md) found in the _doc_ folder.
 
 
 ## HPO resources
 The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location. Although we used networkx v3.1 to create the HPO graph it should also be possible to use networkx in version 1 or 2. We included some workarounds to still support the older versions.
 
-To recreate the HPO resources please head over to the detailed [instructions](https://github.com/imgag/AIdiva/blob/master/doc/recreate_hpo_resources.md) found in the _doc_ folder.
+To recreate the HPO resources please head over to the detailed [instructions](https://github.com/imgag/aiDIVA/blob/master/doc/recreate_hpo_resources.md) found in the _doc_ folder.
 <br>
 <br>
 
@@ -51,15 +51,17 @@ _Frameshift_ variants will get a default score of 0.9, whereas _synonymous_ vari
 
 Pretrained random forest models using our current feature set can be found [here](https://download.imgag.de/ahboced1/aiDIVA_pretrained_models/). The current model was trained using scikit-learn v1.3.0. The trained models of scikit-learn are version dependent.
 
+
 ## Running aiDIVA
 aiDIVA can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. When the variant annotation with VEP should also be performed with aiDIVA this is the only required command line argument. In the other case when an already annotated file is given there are a few more arguments that needs to be passed instead of being specified in the configuration file. The reason for this different set of parameters is due to the fact that it makes it more convenient to include aiDIVA in another existing pipeline.
 
 Make sure to specify the trained model in the config file `aiDIVA_configuration_annotated.yaml`.
 
+
 ### Running aiDIVA on already annotated data:
 
 ```
-python run_aiDIVA.py --config AIdiva_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
+python run_aiDIVA.py --config aiDIVA_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
 ```
 
 + _config_ -- YAML configuration file (in the `data` folder there are example configuration files for each of the two modes)
@@ -80,7 +82,7 @@ python run_aiDIVA.py --config AIdiva_configuration_annotated.yaml --snp_vcf anno
 ### Running aiDIVA and perform the annotation:
 
 ```
-python run_annotation_and_aiDIVA.py --config AIdiva_configuration_with_annotation.yaml --vcf input.vcf --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
+python run_annotation_and_aiDIVA.py --config aiDIVA_configuration_with_annotation.yaml --vcf input.vcf --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
 ```
 
 

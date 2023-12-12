@@ -41,7 +41,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
 
         # remove variants with multiple alternative alleles reported
         if "," in splitted_line[4]:
-            logger.warn("Processed variant was removed, too many alternative alleles reported!")
+            logger.debug(f"Processed variant was removed, too many alternative alleles reported (ALT={splitted_line[4]})!")
             continue
         else:
             ref_length = len(splitted_line[3])
@@ -49,7 +49,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
 
             if (ref_length == 1) and (alt_length == 1):
                 outfile_snps.write(line)
-            elif (ref_length > 1) or (alt_length > 1):
+            elif (ref_length > 1 and alt_length == 1) or (alt_length > 1 and ref_length == 1):
                 indel_ID += 1
                 if splitted_line[7].endswith("\n"):
                     splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID) + "\n"

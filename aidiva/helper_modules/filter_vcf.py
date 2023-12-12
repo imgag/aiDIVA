@@ -15,6 +15,9 @@ CODING_VARIANTS = ["splice_acceptor_variant",
                    "missense_variant",
                    "protein_altering_variant",
                    "splice_region_variant",
+                   "splice_donor_5th_base_variant",
+                   "splice_donor_region_variant",
+                   "splice_polypyrimidine_tract_variant",
                    "incomplete_terminal_codon_variant",
                    "start_retained_variant",
                    "stop_retained_variant",
@@ -103,9 +106,12 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name):
                 consequences += consequence.split("&")
 
             # check if variant is coding and write to outfile
-            if any(term for term in CODING_VARIANTS if term in consequences):
-                splitted_line[7] = "CODING_FILTERED=TRUE"
-                outfile.write("\t".join(splitted_line))
+            for term in CODING_VARIANTS:
+                if term in consequences:
+                    splitted_line[7] = "CODING_FILTERED=TRUE"
+                    outfile.write(str("\t".join(splitted_line) + "\n"))
+                    break
+
         else:
             logger.error("Annotation field missing!")
             logger.warn("Variant filtering will be skipped!")
