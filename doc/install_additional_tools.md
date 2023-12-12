@@ -1,5 +1,5 @@
 # Installation Of Additional Tools
-This document provides links and instructions to download and install the necessary third party tools that are used in AIdiva.
+This document provides links and instructions to download and install the necessary third party tools that are used in aiDIVA.
 
 The folder of each respective tool can be moved to another place after the installation, they should be self contained.
 
