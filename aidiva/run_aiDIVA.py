@@ -13,7 +13,7 @@ import yaml
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description = "AIdiva -- Augmented Intelligence Disease Variant Analysis")
+    parser = argparse.ArgumentParser(description = "aiDIVA -- augmented intelligence-based Disease Variant Analysis")
     parser.add_argument("--snp_vcf", type=str, dest="snp_vcf", metavar="snp.vcf", required=True, help="VCF file with the annotated SNP variants [required]")
     parser.add_argument("--indel_vcf", type=str, dest="indel_vcf", metavar="indel.vcf", required=True, help="VCF file with the annotated (only basic annotation) InDel variants [required]")
     parser.add_argument("--expanded_indel_vcf", type=str, dest="expanded_indel_vcf", metavar="expanded_indel.vcf", required=True, help="VCF file with the annotated expanded InDel variants [required]")
@@ -135,15 +135,18 @@ if __name__=="__main__":
                             level=log_level)
     logger = logging.getLogger()
 
-    logger.info("Running AIdiva on annotated data")
+    logger.info("Running aiDIVA on already annotated data")
     logger.info("Start program")
     logger.info(f"Working directory: {working_directory}")
 
     # load SNP ML model
-    scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
+    #scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
     
     # load InDel ML model
-    scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
+    #scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
+
+    # load ML model
+    scoring_model = configuration["Analysis-Input"]["scoring-model"]
 
     # load internal parameters
     internal_parameter_dict = configuration["Internal-Parameters"]
@@ -166,9 +169,6 @@ if __name__=="__main__":
         input_data_indel = pd.DataFrame()
         input_data_expanded_indel = pd.DataFrame()
 
-    #logger.debug(f"Condition-Check: {input_data_snp.dropna(how='all').empty}, {input_data_indel.dropna(how='all').empty}, {input_data_expanded_indel.dropna(how='all').empty}")
-    #logger.debug(f"Condition: {(not input_data_snp.dropna(how='all').empty) or ((not input_data_indel.dropna(how='all').empty) and (not input_data_expanded_indel.dropna(how='all').empty))}")
-
     if (not input_data_snp.dropna(how='all').empty) or ((not input_data_indel.dropna(how='all').empty) and (not input_data_expanded_indel.dropna(how='all').empty)):
         if ((not input_data_indel.empty) and (not input_data_expanded_indel.empty)):
             logger.info("Combine InDel variants ...")
@@ -182,14 +182,14 @@ if __name__=="__main__":
         logger.info("Score variants ...")
         
         if not input_data_snp.dropna(how='all').empty:
-            predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp, allele_frequency_list, feature_list, num_cores)
+            predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model, input_data_snp, allele_frequency_list, feature_list, num_cores)
         
         else:
             logger.warn("No SNP variants, skip SNP prediction!")
             predicted_data_snp = pd.DataFrame()
 
         if not input_data_combined_indel.dropna(how='all').empty:
-            predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_combined_indel, allele_frequency_list, feature_list, num_cores)
+            predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model, input_data_combined_indel, allele_frequency_list, feature_list, num_cores)
         
         else:
             logger.warn("No InDel variants, skip InDel prediction!")
@@ -214,7 +214,6 @@ if __name__=="__main__":
         logger.info("Prioritize variants and finalize score ...")
         prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
 
-        ## TODO: create additional output files according to the inheritance information (only filtered data)
         if only_top_results:
             prioritized_data[prioritized_data["FILTER_PASSED"] == 1].head(n=25).to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
             logger.info("Only 25 best variants are reported as result!")

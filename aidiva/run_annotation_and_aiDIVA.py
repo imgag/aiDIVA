@@ -17,7 +17,7 @@ import yaml
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description = "AIdiva -- Augmented Intelligence Disease Variant Analysis")
+    parser = argparse.ArgumentParser(description = "aiDIVA -- augmented intelligence-based Disease Variant Analysis")
     parser.add_argument("--vcf", type=str, dest="vcf", metavar="input.vcf(.gz)", required=True, help="VCF file with the variants to analyze [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for AIdiva [required]")
     parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="/output_path/aidiva_result", required=True, help="Prefix that is used to save the results [required]")
@@ -144,15 +144,18 @@ if __name__=="__main__":
                             level=log_level)
     logger = logging.getLogger()
 
-    logger.info("Running annotation and AIdiva")
+    logger.info("Running annotation and aiDIVA")
     logger.info("Start program")
     logger.info(f"Working directory: {working_directory}")
 
     # load SNP ML model
-    scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
+    #scoring_model_snp = configuration["Analysis-Input"]["scoring-model-snp"]
     
     # load InDel ML model
-    scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
+    #scoring_model_indel = configuration["Analysis-Input"]["scoring-model-indel"]
+
+    # load ML model
+    scoring_model = configuration["Analysis-Input"]["scoring-model"]
 
     annotation_dict = configuration["Annotation-Resources"]
     prioritization_information_dict = configuration["Analysis-Input"]["prioritization-information"]
@@ -222,14 +225,14 @@ if __name__=="__main__":
         logger.info("Score variants...")
 
         if not input_data_snp_annotated.dropna(how='all').empty:
-            predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp_annotated, allele_frequency_list, feature_list, num_cores)
+            predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model, input_data_snp_annotated, allele_frequency_list, feature_list, num_cores)
 
         else:
             logger.warn("No SNP variants, skip SNP prediction!")
             predicted_data_snp = pd.DataFrame()
         
         if not input_data_indel_combined_annotated.dropna(how='all').empty:
-            predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_indel_combined_annotated, allele_frequency_list, feature_list, num_cores)
+            predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model, input_data_indel_combined_annotated, allele_frequency_list, feature_list, num_cores)
 
         else:
             logger.warn("No InDel variants, skip InDel prediction!")
@@ -254,7 +257,6 @@ if __name__=="__main__":
         logger.info("Filter variants and finalize score...")
         prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
 
-        ## TODO: create additional output files according to the inheritance information (only filtered data)
         if only_top_results:
             prioritized_data[prioritized_data["FILTER_PASSED"] == 1].head(n=25).to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
             logger.info("Only 25 best variants are reported as result!")
@@ -264,7 +266,6 @@ if __name__=="__main__":
                 write_result.write_result_vcf(prioritized_data, str(output_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
                 write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
 
-            #prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"}) # not needed anymore
             prioritized_data.to_csv(str(output_filename + "_aidiva_result.tsv"), sep="\t", index=False)
             prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
 
