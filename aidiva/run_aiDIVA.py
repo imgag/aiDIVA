@@ -27,7 +27,7 @@ if __name__=="__main__":
     parser.add_argument("--skip_db_check", dest="skip_db_check", action="store_true", required=False, help="Flag to skip database (ClinVar, HGMD) lookup")
     parser.add_argument("--only_top_results", dest="only_top_results", action="store_true", required=False, help="Report only the top 25 variants as result")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use (default: 1)")
-    parser.add_argument("--log_path", type=str, dest="log_path", metavar="/output_path/logs/", required=False, help="Path where the log file should be saved, if not specified the log file is saved in the working directory")
+    parser.add_argument("--log_file", type=str, dest="log_file", metavar="/tmp/aidiva_workdir/sample_id_aidiva.log", required=False, help="Custom log file, if not specified the log file is saved in the working directory")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO] (default: INFO)")
     parser.add_argument("--save_as_vcf", dest="save_as_vcf", action="store_true", required=False, help="Flag to create additional result files in VCF format.")
     args = parser.parse_args()
@@ -121,14 +121,15 @@ if __name__=="__main__":
         log_level = logging.INFO
         log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-    if args.log_path is not None:
-        log_path = args.log_path
+    if args.log_file is not None:
+        log_file = args.log_file
     else:
-        log_path = working_directory
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        log_file = str(working_directory + "/" + "aidiva_" + timestamp + ".log")
 
     # set up logger
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    logging.basicConfig(filename=str(log_path + "/" + "aidiva_" + timestamp + ".log"),
+    
+    logging.basicConfig(filename=log_file,
                             filemode="a",
                             format=log_format,
                             datefmt="%H:%M:%S",
