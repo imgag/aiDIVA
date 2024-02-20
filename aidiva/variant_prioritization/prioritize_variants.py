@@ -279,8 +279,13 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
 
 
 def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, variant_data):
-    variant_data = check_inheritance(variant_data, family_type, family)
-    
+    genotype_column = [column for column in variant_data.columns if column.startswith("GT.")]
+
+    if genotype_column:
+        variant_data = check_inheritance(variant_data, family_type, family)
+    else:
+        logger.info(f"Skip inheritance check!")
+
     variant_data["MISSING_FEATURE_PERCENTAGE"] = variant_data.apply(lambda variant: pd.Series(get_feature_completeness(variant, feature_list)), axis=1)
     variant_data["POLYPHEN_SIFT_OPPOSED"] = variant_data.apply(lambda variant: pd.Series(compare_polyphen_and_sift_prediction(variant)), axis=1)
     
@@ -292,7 +297,7 @@ def parallelized_variant_processing(skip_db_check, transcript_dict, family, fami
         variant_data[["VARIANT_DB_SCORE", "AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(check_databases_for_pathogenicity_classification(variant)), axis=1)
 
     else:
-        logger.debug(f"Skip variant pathogenicity lookup in existing databases (ClinVar, HGMD).")
+        logger.info(f"Skip variant pathogenicity lookup in existing databases (ClinVar, HGMD)!")
 
     variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information)), axis=1)
     variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query, reference)), axis=1)
