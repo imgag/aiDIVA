@@ -1,4 +1,8 @@
+<<<<<<< HEAD:data/aiDIVA_example_configuration_with_annotation_grch38.yaml
 ## aiDIVA -- Augmented Intelligence Disease Variant Analysis
+=======
+## aiDIVA -- augmented intelligence-based Disease Variant Analysis
+>>>>>>> master:data/aiDIVA_example_configuration_with_annotation.yaml
 # Configuration file specifiying all the parameters that are needed to run aiDIVA in the different modes
 # if you modify the key names make sure to also update them in the run_aiDIVA.py script
 ---
@@ -10,10 +14,9 @@ Analysis-Input:
     # instead of GRCh38 you can also use hg38 the differences between the two should not matter here
     ref-path: <full-path-to-reference>/GRCh38.fa
 
-    # trained scoring models used to predict the pathogenicity score
+    # trained scoring model (random forest) used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: <full-path-to-model>/rf_model_snp.pkl
-    scoring-model-indel: <full-path-to-model>/rf_model_indel.pkl
+    scoring-model: <full-path-to-model>/rf_model_combined.pkl
 
     prioritization-information:
         # Identifier to get the score from the annotated file
@@ -24,22 +27,15 @@ Analysis-Input:
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these)
-    # NOTE: currently not used, we use directly the MAX_AF annotation from VEP
     allele-frequency-list:
         - gnomAD_AFR_AF
-        - gnomAD_ASJ_AF
+        - gnomAD_AMR_AF
         - gnomAD_EAS_AF
-        - gnomAD_FIN_AF
         - gnomAD_NFE_AF
-        - gnomAD_OTH_AF
         - gnomAD_SAS_AF
-        - AA_AF
-        - EA_AF
-        - AFR_AF
-        - AMR_AF
-        - EAS_AF
-        - EUR_AF
-        - SAS_AF
+        #- gnomAD_ASJ_AF
+        #- gnomAD_FIN_AF
+        #- gnomAD_OTH_AF
 
     # List containing the names of the features used for the model training
     # the exact order of the features is crucial (make sure to have the exact same order as in the training step)
@@ -62,60 +58,69 @@ Model-Features:
         - oe_lof
         - homAF
         - CAPICE
+        - ALPHA_MISSENSE_SCORE
+        - HIGH_IMPACT
+        - IS_INDEL
 
 
 Annotation-Resources:
     # VEP: path to the VEP executable
-    vep: <full-path-to-folder>/ensembl-vep-release-103.1/vep
+    vep: <full-path-to-folder>/ensembl-vep-release-109.3/
 
-    # Cache directory and plugin directory
-    vep-cache: <full-path-to-folder>/ensembl-vep-103/cache
+    # path to the direcrory where the additional perl libraries are installed during the installation step
+    vep-cpan: <full-path-to-folder>/perl_cpan/
+
+    # VEP Plugin direcrory
+    vep-plugin-path: <full-path-to-folder>/vep_plugins/
+
+    # VEP Cache directory
+    vep-cache: <full-path-to-folder>/ensembl-vep-109/
 
     # ngs-bits install path
-    ngs-bits: <full-path-to-folder>/ngs-bits/
+    ngs-bits: <full-path-to-folder>/ngs-bits-2023_06/
 
     # low-confidence filter file
-    low-confidence: <full-path-to-file>/grch38_low_conf_regions.bed
+    low-confidence: <full-path-to-file>/grch38_low_conf_region.bed
 
     # BED like files here the key of the dictionary is used as the name to present the feature in the annotated file
     bed-files:
-        simpleRepeat: <full-path-to-file>/grch38_simpleRepeat.bed
-        segmentDuplication: <full-path-to-file>/grch38_genomicSuperDups.bed
-        oe_lof: <full-path-to-file>/gnomAD_OE_sorted.bed
-        repeatMasker: <full-path-to-file>/grch37_repeatmasker.bed
-        
-        # OPTIONAL: only used if DB check is not skipped
-        # NOTE: currently not implemented
-        # NOTE: the following annotation needs a valid license
-        omim: <full-path-to-file>/omim.bed
+        simpleRepeat: <full-path-to-file>/hg38_simpleRepeat.bed
+        segmentDuplication: <full-path-to-file>/hg38_genomicSuperDups.bed
+        oe_lof: <full-path-to-file>/gnomAD_OE_grch38_sorted.bed
+        repeatMasker: <full-path-to-file>/RepeatMasker_GRCh38.bed
+
+    plugin-files:
+        AlphaMissense: <full-path-to-file>/AlphaMissense_hg38.tsv.gz
 
     # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
     vcf-files:
-        EIGEN_PHRED: <full-path-to-file>/grch38_eigen_phred_coding.vcf.gz
-        CONDEL: <full-path-to-file>/grch38_fannsDB_Condel.vcf.gz
-        FATHMM_XF: <full-path-to-file>/grch38_fathmm_xf_coding.vcf.gz
-        MutationAssessor: <full-path-to-file>/grch38_precomputed_MutationAssessor.vcf.gz
-        gnomAD: <full-path-to-file>/grch38_gnomAD_genomes_r211.vcf.gz
-        CADD: <full-path-to-file>/grch38_CADD_snvs_v16.vcf.gz
-        dbscSNV: <full-path-to-file>/grch38_dbscSNV_scores.vcf.gz
-        CAPICE: <full-path-to-file>/capice_v1_grch38_snvs.vcf.gz
-        REVEL: <full-path-to-file>/grch38_revel_v13.vcf.gz
-        
+        EIGEN_PHRED: <full-path-to-file>/grch38liftOver_precomputed_Eigen-phred_coding_chrom1-22.vcf.gz
+        CONDEL: <full-path-to-file>/grch38liftOver_precomputed_Condel.vcf.gz
+        FATHMM_XF: <full-path-to-file>/hg38_fathmm_xf_coding.vcf.gz
+        MutationAssessor: <full-path-to-file>/grch38liftOver_precomputed_MutationAssessor.vcf.gz
+        gnomAD: <full-path-to-file>/gnomAD_genome_v3.1.2_GRCh38.vcf.gz
+        CADD: <full-path-to-file>/CADD_SNVs_1.6_GRCh38.vcf.gz
+        dbscSNV: <full-path-to-file>/dbscSNV1.1_GRCh38.vcf.gz
+        CAPICE: <full-path-to-file>/grch38liftOver_capice_v1_snvs.vcf.gz
+        REVEL: <full-path-to-file>/REVEL_1.3.vcf.gz
+        SpliceAI-SNV: <full-path-to-file>/spliceai_scores.masked.snv.hg38.vcf.gz
+        SpliceAI-InDel: <full-path-to-file>/spliceai_scores.masked.indel.hg38.vcf.gz
+
         # OPTIONAL: only used if DB check is not skipped
-        clinvar: <full-path-to-file>/grch38_clinvar.vcf.gz
-        
+        clinvar: <full-path-to-file>/clinvar_GRCh38.vcf.gz
+
         # OPTIONAL: only used if DB check is not skipped
         # NOTE: the following annotation needs a valid license
         hgmd: <full-path-to-file>/HGMD.vcf.gz
 
     # Bigwig files the key of the dictionary is used as the name to present the feature in the annotated file
     bigwig-files:
-        phastCons_mammal: <full-path-to-file>/primates.phastCons46way.bw
-        phastCons_primate: <full-path-to-file>/placentalMammals.phastCons46way.bw
-        phastCons_vertebrate: <full-path-to-file>/vertebrate.phastCons46way.bw
-        phyloP_mammal: <full-path-to-file>/primates.phyloP46way.bw
-        phyloP_primate: <full-path-to-file>/placentalMammals.phyloP46way.bw
-        phyloP_vertebrate: <full-path-to-file>/vertebrate.phyloP46way.bw
+        phastCons_mammal: <full-path-to-file>/hg38_phastCons17way_primate.bw
+        phastCons_primate: <full-path-to-file>/hg38_phastCons30way_mammal.bw
+        phastCons_vertebrate: <full-path-to-file>/hg38_phastCons100way_vertebrate.bw
+        phyloP_mammal: <full-path-to-file>/hg38_phyloP17way_primate.bw
+        phyloP_primate: <full-path-to-file>/hg38_phyloP30way_mammal.bw
+        phyloP_vertebrate: <full-path-to-file>/hg38_phyloP100way_vertebrate.bw
 
 
 # DO NOT CHANGE THE FOLLOWING IF YOU DON'T KNOW WHAT YOU DO
