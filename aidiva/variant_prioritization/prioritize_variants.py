@@ -126,7 +126,7 @@ def parse_ped_file(family_file):
 
         else:
             logger.error("The specified family file %s is not a valid file" % (family_file))
-            logger.warn("Inheritance assessment will be skipped!")
+            logger.warning("Inheritance assessment will be skipped!")
 
     return family_dict
 
@@ -153,7 +153,7 @@ def parse_hpo_list(hpo_list_file):
             #logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
 
     else:
-        logger.warn("HPO score finalization will be skipped!")
+        logger.warning("HPO score finalization will be skipped!")
     
     return list(hpo_query)
 
@@ -176,7 +176,7 @@ def parse_gene_list(gene_exclusion_file):
 
         else:
             logger.error("The specified gene exclusion list %s is not a valid file" % (gene_exclusion_file))
-            logger.warn("No genes will be excluded during filtering!")
+            logger.warning("No genes will be excluded during filtering!")
 
     return genes2exclude
 
@@ -279,24 +279,17 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
 
 
 def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, variant_data):
-<<<<<<< HEAD
-    variant_data = check_inheritance(variant_data, family_type, family)
-    
-    variant_data["MISSING_FEATURE_PERCENTAGE"] = variant_data.apply(lambda variant: pd.Series(get_feature_completeness(variant, feature_list)), axis=1)
-    variant_data["POLYPHEN_SIFT_OPPOSED"] = variant_data.apply(lambda variant: pd.Series(compare_polyphen_and_sift_prediction(variant)), axis=1)
-    
-=======
     genotype_column = [column for column in variant_data.columns if column.startswith("GT.")]
 
     if genotype_column:
         variant_data = check_inheritance(variant_data, family_type, family)
+
     else:
         logger.info(f"Skip inheritance check!")
 
     variant_data["MISSING_FEATURE_PERCENTAGE"] = variant_data.apply(lambda variant: pd.Series(get_feature_completeness(variant, feature_list)), axis=1)
     variant_data["POLYPHEN_SIFT_OPPOSED"] = variant_data.apply(lambda variant: pd.Series(compare_polyphen_and_sift_prediction(variant)), axis=1)
     
->>>>>>> master
     logger.debug("Investigate Transcript CDS region!")
     variant_data[["CDS_START_PERCENTAGE", "PREDICTED_AIDIVA_SCORE", "AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(investigate_transcript_cds_position(variant, transcript_dict)), axis=1)
     
@@ -305,11 +298,7 @@ def parallelized_variant_processing(skip_db_check, transcript_dict, family, fami
         variant_data[["VARIANT_DB_SCORE", "AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(check_databases_for_pathogenicity_classification(variant)), axis=1)
 
     else:
-<<<<<<< HEAD
-        logger.debug(f"Skip variant pathogenicity lookup in existing databases (ClinVar, HGMD).")
-=======
         logger.info(f"Skip variant pathogenicity lookup in existing databases (ClinVar, HGMD)!")
->>>>>>> master
 
     variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information)), axis=1)
     variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query, reference)), axis=1)
@@ -327,6 +316,7 @@ def investigate_transcript_cds_position(variant, transcript_dict):
 
         if "-" in str(variant["CDS_position"]):
             cds_start = variant["CDS_position"].split("-")[0]
+
         else:
             cds_start = variant["CDS_position"]
 
@@ -339,14 +329,19 @@ def investigate_transcript_cds_position(variant, transcript_dict):
 
                     if 0.95 <= start_percentage < 0.96:
                         adjusted_score = float(predicted_score) - 0.01
+
                     elif 0.96 <= start_percentage < 0.97:
                         adjusted_score = float(predicted_score) - 0.02
+
                     elif 0.97 <= start_percentage < 0.98:
                         adjusted_score = float(predicted_score) - 0.03
+
                     elif 0.98 <= start_percentage < 0.99:
                         adjusted_score = float(predicted_score) - 0.04
+
                     elif 0.99 <= start_percentage <= 1:
                         adjusted_score = float(predicted_score) - 0.05
+
                     else:
                         adjusted_score = predicted_score
 
@@ -377,11 +372,14 @@ def check_databases_for_pathogenicity_classification(variant):
     clinvar_classification = str(variant["CLINVAR_DETAILS"]).split("%")[0]
     if "(replaced" in clinvar_classification:
         clinvar_classification = clinvar_classification.split("(replaced")[0]
+
     elif "/" in clinvar_classification:
         if clinvar_classification.lower() == "benign/likely_benign" or clinvar_classification.lower() == "likely_benign/benign":
             clinvar_classification  = "likely_benign"
+
         elif clinvar_classification.lower() == "pathogenic/likely_pathogenic" or clinvar_classification.lower() == "likely_pathogenic/pathogenic":
             clinvar_classification = "likely_pathogenic"
+
         else:
             logger.debug(f"Found unknown ClinVar classification {clinvar_classification}")
 
@@ -389,33 +387,44 @@ def check_databases_for_pathogenicity_classification(variant):
 
     if clinvar_classification.lower() == "benign":
         clinvar_score = 0.0
+
     elif clinvar_classification.lower() == "likely_benign":
         clinvar_score = 0.25
+
     elif clinvar_classification.lower() == "uncertain_significance":
         clinvar_score = 0.5
+
     elif clinvar_classification.lower() == "likely_pathogenic":
         clinvar_score = 0.75
+
     elif clinvar_classification.lower() == "pathogenic":
         clinvar_score = 1.0
+
     else:
         # ignore missing database scores (if both scores missing use unmodified AIDIVA_SCORE)
         clinvar_score = np.nan
-    
+
     if hgmd_classification == "DM":
         hgmd_score = 1.0
         #if float(variant["HGMD_RANKSCORE"]) > 0.5:
         #    hgmd_score = 1.0
+
     elif hgmd_classification == "DM?":
         hgmd_score = 0.75
+
     #elif hgmd_classification == "DP":
     #    hgmd_score = 0.5
+
     #elif hgmd_classification == "FP":
     #    hgmd_score = 0.5
+
     #elif hgmd_classification == "DFP":
     #    hgmd_score = 0.5
+
     # completely ignore removed entries database entries
     elif hgmd_classification == "R":
         hgmd_score = np.nan
+
     else:
         # ignore missing database scores (if both scores missing use unmodified AIDIVA_SCORE)
         hgmd_score = np.nan
@@ -423,24 +432,29 @@ def check_databases_for_pathogenicity_classification(variant):
 
     # log a warning message if hgmd score and clinvar_score are both not missing but differ
     if (hgmd_score != clinvar_score) and not (np.isnan(hgmd_score) or np.isnan(clinvar_score)):
-        logger.warn(f"The scores of the used databases (ClinVar, HGMD) are different: {clinvar_score}, {hgmd_score} (Variant: {variant['#CHROM']}:{variant['POS']}_{variant['REF']}_{variant['ALT']}) \n If the HGMD database was used during the annotation you may want to further investigate this matter, otherwise you can ignore this warning since we just use the predicted value as default value if the entry is missing.")
+        logger.warning(f"The scores of the used databases (ClinVar, HGMD) are different: {clinvar_score}, {hgmd_score} (Variant: {variant['#CHROM']}:{variant['POS']}_{variant['REF']}_{variant['ALT']}) \n If the HGMD database was used during the annotation you may want to further investigate this matter, otherwise you can ignore this warning since we just use the predicted value as default value if the entry is missing.")
 
     if np.isnan(clinvar_score) and not np.isnan(hgmd_score):
         database_score = hgmd_score
+
     elif np.isnan(hgmd_score) and not np.isnan(clinvar_score):
         database_score = clinvar_score
+
     elif not np.isnan(hgmd_score) and not np.isnan(clinvar_score):
         database_score = (hgmd_score + clinvar_score) / 2
+
     else:
         database_score = np.nan
-    
+
     if not np.isnan(float(variant["AIDIVA_SCORE"])):
         if not np.isnan(database_score):
             # update the predicted score with known information from the databases
             improved_score = 0.8 * float(variant["AIDIVA_SCORE"]) + 0.2 * database_score
+
         else:
             # use unmodified AIDIVA_SCORE if no database entries were found
             improved_score = float(variant["AIDIVA_SCORE"])
+
     else:
         improved_score = np.nan
 
@@ -449,7 +463,6 @@ def check_databases_for_pathogenicity_classification(variant):
 
 def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information):
     if HPO_query:
-        #if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["rf_score"]) == "nan") or (str(variant["rf_score"]) == "")) and ((str(variant["ada_score"]) == "nan") or (str(variant["ada_score"]) == "")):
         if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["SpliceAI"]) == "nan") or (str(variant["SpliceAI"]) == "")):
             final_score = np.nan
             hpo_relatedness = np.nan
@@ -457,22 +470,13 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
 
         else:
             if np.isnan(variant["AIDIVA_SCORE"]):
-                # if both scores are present use maximum to benefit of the strengths of each model
-                #if ((str(variant["rf_score"]) != "nan") and (str(variant["rf_score"]) != "")) and ((str(variant["ada_score"]) != "nan") and (str(variant["ada_score"]) != "")):
-                #    pathogenictiy_prediction = max([float(variant["rf_score"]), float(variant["ada_score"])], default=np.nan)
-                #elif ((str(variant["rf_score"]) != "") and (str(variant["rf_score"]) != "nan")) and ((str(variant["ada_score"]) == "") or (str(variant["ada_score"]) == "nan")):
-                #    pathogenictiy_prediction = float(variant["rf_score"])
-                #elif ((str(variant["ada_score"]) != "") and (str(variant["ada_score"]) != "nan")) and ((str(variant["rf_score"]) == "") or (str(variant["rf_score"]) == "nan")):
-                #    pathogenictiy_prediction = float(variant["ada_score"])
-                #else:
-                #    pathogenictiy_prediction = np.nan
-                
                 if ((str(variant["SpliceAI"]) != "nan") and (str(variant["SpliceAI"]) != "")):
                     pathogenictiy_prediction = float(variant["SpliceAI"])
+
                 else:
                     pathogenictiy_prediction = np.nan
-                
-                logger.debug("Using SpliceAI prediction instead of AIdiva prediction for splicing variant!")
+
+                logger.debug("Using SpliceAI prediction instead of aiDIVA prediction for splicing variant!")
 
             else:
                 pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])
@@ -485,6 +489,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
 
             if variant_gene in gene_2_interacting.keys():
                 interacting_genes = [gene_interaction["interacting_gene"] for gene_interaction in gene_2_interacting[variant_gene]]
+
             else:
                 interacting_genes = []
 
@@ -535,26 +540,12 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
 
     else:
         if np.isnan(variant["AIDIVA_SCORE"]):
-            #if ((str(variant["rf_score"]) == "") or (str(variant["rf_score"]) == "nan")) and ((str(variant["ada_score"]) == "") or (str(variant["ada_score"]) == "nan")):
             if ((str(variant["SpliceAI"]) == "") or (str(variant["SpliceAI"]) == "nan")):
                 pathogenictiy_prediction = np.nan
 
             else:
-                #if (str(variant["rf_score"]) != "") and (str(variant["rf_score"]) != "nan"):
-                #    rf_score = float(variant["rf_score"])
-
-                #else:
-                #    rf_score = np.nan
-                
-                #if (str(variant["ada_score"]) != "") and (str(variant["ada_score"]) != "nan"):
-                #    ada_score = float(variant["ada_score"])
-
-                #else:
-                #    ada_score = np.nan
-
-                #pathogenictiy_prediction = max([rf_score, ada_score], default=np.nan)
                 pathogenictiy_prediction = float(variant["SpliceAI"])
-                logger.debug("Using SpliceAI prediction instead of AIdiva prediction for splicing variant!")
+                logger.debug("Using SpliceAI prediction instead of aiDIVA prediction for splicing variant!")
 
         else:
             pathogenictiy_prediction = float(variant["AIDIVA_SCORE"])
@@ -576,6 +567,7 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
 
         for group in variant_data_grouped:
             check_compound_single(group, variant_columns)
+
         variant_data = pd.concat(variant_data_grouped)
 
     elif family_type == "TRIO":
@@ -597,19 +589,23 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
             for name in family.keys():
                 if family[name] == 1:
                     affected_child = name
+
                 elif family[name] == 0:
                     if not parent_1:
                         parent_1 = name
                         continue
+
                     elif not parent_2:
                         parent_2 = name
                         continue
+
                     else:
                         logger.error("There was a problem processing the loaded PED file")
 
             if  affected_child and parent_1 and parent_2:
                 for group in variant_data_grouped:
                     check_compound(group, affected_child, parent_1, parent_2)
+
             else:
                 logger.error(f"Something went wrong while checking the TRIO for compound heterozygosity!")
 
@@ -617,8 +613,8 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
 
         else:
             logger.error("If family type (TRIO) is used a proper PED file defining the family relations is required!")
-            logger.warn("Inheritance assessment will be skipped!")
-        
+            logger.warning("Inheritance assessment will be skipped!")
+
     elif (family_type == "MULTI") and (family is not None):
         if family is not None:
             variant_data["DOMINANT"] = variant_data.apply(lambda variant: check_dominant(variant, family), axis=1)
@@ -627,11 +623,11 @@ def check_inheritance(variant_data, family_type="SINGLE", family=None):
 
         else:
             logger.error("If family type (MULTI) is used a proper PED file defining the family relations (if known) is required!")
-            logger.warn("Inheritance assessment will be skipped!")
-        
+            logger.warning("Inheritance assessment will be skipped!")
+
     else:
         logger.error("Unsupported family type (%s) was given!" % family_type)
-        logger.warn("Inheritance assessment will be skipped!")
+        logger.warning("Inheritance assessment will be skipped!")
 
     variant_columns = variant_data.columns
     variant_data["INHERITANCE"] = variant_data.apply(lambda variant: add_inheritance_mode(variant, variant_columns), axis=1)
@@ -736,12 +732,14 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
 
     try:
         seg_dup = float(variant[duplication_identifier])
+
     except Exception as e:
         logger.debug("Use 0.0 for missing segment duplication entries!")
         seg_dup = 0.0
     
     try:
         maf = float(variant["MAX_AF"])
+
     except Exception as e:
         logger.debug("Allele frequency entry could not be identified, use 0.0 instead!")
         maf = 0.0
@@ -774,29 +772,31 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
         filter_comment = "tandem repeat"
 
         return filter_passed, filter_comment
-    
+
     # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
     if (seg_dup > 0) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         filter_passed = 0 # segmental duplication
         filter_comment = "segmental duplication"
 
         return filter_passed, filter_comment
-    
+
     # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
     if ((len(variant["REF"]) > 1 or len(variant["ALT"]) > 1)) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         # make sure to use the correct internal chromsome notation (with chr)
         if "chr" in str(variant["#CHROM"]):
             chrom_id = str(variant["#CHROM"])
+
         else:
             chrom_id = "chr" + str(variant["#CHROM"])
-        
+
         # Get sequence context (vicinity) of a variant for homopolymer check (5 bases up- and down-stream)
         # Get fewer bases when variant is at the start or end of the sequence
         if "chr" in str(variant["#CHROM"]):
             chrom_id = str(variant["#CHROM"])
+
         else:
             chrom_id = "chr" + str(variant["#CHROM"])
-        
+
         num_bases = 5
         pos_start = max(int(variant["POS"]) - (num_bases + 1), 1)
         pos_end = min(int(variant["POS"]) + num_bases, in_fasta.get_reference_length(chrom_id))
@@ -804,9 +804,10 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
         try:
             sequence_context = in_fasta.fetch(chrom_id, pos_start, pos_end)
             sequence_context = sequence_context.upper()
+
         except FileNotFoundError:
             sequence_context = '.'
-        
+
         homopolymer_flag, low_complexity_flag = homopolymer_filter(sequence_context)
 
         if low_complexity_flag and homopolymer_flag:
@@ -934,6 +935,7 @@ def check_denovo(variant, family):
         # sample info complete?
         if name in check_samples:
             check_samples[name] = 1
+
         else:
             logger.debug(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
 
@@ -965,7 +967,7 @@ def check_denovo(variant, family):
         else:
             # reject missing genotype here or beforehand
             pass
-        
+
     for vals in check_samples.values():
        if vals == 0:
             judgement = 0
@@ -987,6 +989,7 @@ def check_dominant(variant, family):
 
         if name in check_samples:
             check_samples[name] = 1
+
         else:
             logger.debug(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
 
@@ -1020,7 +1023,7 @@ def check_dominant(variant, family):
         elif zygosity == "1/1" and family[name] == 0:
             judgement = 0
             break
-        
+
         else:
             # reject missing genotype here or beforehand
             pass
@@ -1056,6 +1059,7 @@ def check_recessive(variant, family, family_type):
 
         if name in check_samples:
             check_samples[name] = 1
+
         else:
             logger.debug(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
 
@@ -1092,7 +1096,7 @@ def check_recessive(variant, family, family_type):
         else:
             # reject missing genotype here or beforehand
             pass
-        
+
     for vals in check_samples.values():
         if vals == 0:
             judgement = 0
@@ -1110,7 +1114,7 @@ def check_recessive_single(variant, variant_columns):
     # recessive variants have to be homozygous in affected samples
     if (variant_genotype == "1/1"):
         is_recessive = 1
-    
+
     return is_recessive
 
 
@@ -1130,6 +1134,7 @@ def check_xlinked(variant, family):
 
         if name in check_samples:
             check_samples[name] = 1
+
         else:
             logger.debug(f"It seems that your pedigree is incomplete. The following sample: {name} could not be found in the pedigree!")
 
@@ -1164,7 +1169,7 @@ def check_xlinked(variant, family):
         else:
             # reject missing genotype here or beforehand
             pass
-        
+
     # sanity check
     het_checker = 0
     hom_checker = 0
@@ -1173,13 +1178,14 @@ def check_xlinked(variant, family):
         # mother
         if values == "0/1":
             het_checker = 1
-        
+
         # father
         if values == "0/0":
             hom_checker = 1
 
     if het_checker == 1 and hom_checker == 1:
         judgement = 1
+
     else:
         judgement = 0
 
@@ -1199,14 +1205,52 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "Filter variants and finalize the AIDIVA_SCORE based on the given HPO terms (if this information is present)")
     parser.add_argument("--in_file", type=str, dest="in_file", required=True, help="Tab separated input annotated and scored file [required]")
     parser.add_argument("--out_file", type=str, dest="out_filename", required=True, help="Name to save the results [required]")
-    parser.add_argument("--family", type=str, dest="family", required=False, help="Tab separated list of samples annotated with affection status. [required]")
-    parser.add_argument("--family_type", type=str, choices=["TRIO", "FAMILY", "SINGLE"], dest="family_type", required=False, help="Choose if the data you provide is a trio or a larger family [required]")
+    parser.add_argument("--family", type=str, dest="family", required=False, help="Tab separated list of samples annotated with affection status.")
+    parser.add_argument("--family_type", type=str, choices=["TRIO", "FAMILY", "SINGLE"], dest="family_type", required=False, help="Choose if the data you provide is a trio or a larger family")
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion_list", required=False, help="List of genes that should be excluded in the prioritization")
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", default=None, required=False, help="List of HPO terms that are observed in the patient. These terms are used to adjust the AIDIVA_SCORE\n")
-    parser.add_argument("--hpo_resources", type=str, dest="hpo_resources", default="../../data/", required=True, help="Folder where the HPO resources (HPO_graph,...) are found\n")
+    #parser.add_argument("--hpo_resources", type=str, dest="hpo_resources", default="../../data/", required=True, help="Folder where the HPO resources (HPO_graph,...) are found\n")
+    parser.add_argument("--genome_build", type=str, dest="genome_build", default="GRCh38", required=True, help="Version of the genome build to use [GRCh37, GRCH38]\n")
+    parser.add_argument("--feature_list", type=str, dest="feature_list", required=True, help="Feature list used in the AIDIVA_SCORE prediction.\n")
+    parser.add_argument("--reference", type=str, dest="reference", required=True, help="Path to the refernce genome.\n")
+    parser.add_argument("--skip_db_check", action="store_true", required=False, help="Skip db check.\n")
+    parser.add_argument("--threads", type=str, dest="threads", default=1, required=False, help="Number of threads to use.\n")
     args = parser.parse_args()
 
     input_data = pd.read_csv(args.in_file, sep="\t", low_memory=False)
 
-    prioritized_variants = prioritize_variants(input_data, args.hpo_resources, args.family, args.family_type, args.hpo_list, args.gene_exclusion_list, args.low_conf_region)
+    if args.family:
+        family_file = args.family
+
+    else:
+        family_file = None
+
+    if args.family_type and args.family_file is not None:
+        family_type = args.family_type
+
+    else:
+        family_type="SINGLE"
+
+    if args.genome_build:
+        genome_build = args.genome_build
+
+    else:
+        genome_build = "GRCh38"
+
+    internal_parameter_dict = {"gene2hpo-mapping": "../../data/hpo_resources/gene2hpo.json",
+                               "gene2interacting-mapping": "../../data/hpo_resources/gene2interacting.json",
+                               "transcript2length-mapping": "../../data/hpo_resources/grch38transcript2length.json",
+                               "hgnc2gene-mapping": "../../data/hpo_resources/hgnc2gene.json",
+                               "hpo-graph": "../../data/hpo_resources/hpo_graph.gexf",
+                               "hpo2replacement-mapping": "../../data/hpo_resources/hpo2replacement.json"}
+
+    if args.threads:
+        num_threads = int(args.threads)
+
+    else:
+        num_threads = 1
+
+    feature_list = args.feature_list.split(",")
+
+    prioritized_variants = prioritize_variants(input_data, internal_parameter_dict, args.reference, num_threads, genome_build, feature_list, args.skip_db_check, family_file, family_type, args.hpo_list, args.gene_exclusion_list)
     prioritized_variants.to_csv(args.out_filename, sep="\t", index=False)

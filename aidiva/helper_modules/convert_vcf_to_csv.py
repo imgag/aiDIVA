@@ -77,11 +77,11 @@ USED_INFO_FIELDS = ["INDEL_ID",
                     "RF_SCORE",
                     "SpliceAI",
                     "oe_lof",
+                    "oe_mis",
+                    "oe_syn",
                     "SegDup",
                     "SimpleRepeats",
                     "CLINVAR_DETAILS",
-                    #"DETAILS",
-                    #"CLASS",
                     "HGMD_CLASS",
                     "HGMD_RANKSCORE",
                     "OMIM",
@@ -103,10 +103,12 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
         for line in tmp:
             if line.strip().startswith("##"):
                 comment_lines.append(line.strip())
-            if line.strip().startswith("#CHROM"):
+
+            elif line.strip().startswith("#CHROM"):
                 header_line = line.strip()
                 comment_lines.append(header_line)
                 break # now the variant entries are coming
+
             else:
                 continue
 
@@ -115,8 +117,6 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
 
         vcf_header = header_line.strip().split("\t")
         vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment="#", low_memory=False)
-
-    #vcf_as_dataframe = vcf_as_dataframe.rename(columns={"#CHROM": "CHROM"})
 
     return comment_lines, vcf_as_dataframe
 
@@ -171,6 +171,8 @@ def extract_columns(cell, process_indel):
     spliceAI = np.nan
     spliceAI_raw = []
     oe_lof = np.nan
+    oe_mis = np.nan
+    oe_syn = np.nan
     simpleRepeat = ""
     clinvar_details = ""
     hgmd_class = ""
@@ -178,9 +180,6 @@ def extract_columns(cell, process_indel):
     omim_details = ""
     annotation = ""
     repeat_masker = ""
-
-    #details = ""
-    #class_orig = ""
 
     for field in info_fields:
         field_splitted = field.split("=")
@@ -202,132 +201,154 @@ def extract_columns(cell, process_indel):
                 elif field_splitted[0] == "FATHMM_XF":
                     if "&" in field_splitted[1]:
                         fathmm_xf = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         fathmm_xf = float(field_splitted[1])
 
                 elif field_splitted[0] == "CONDEL":
                     if "&" in field_splitted[1]:
                         condel = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         condel = float(field_splitted[1])
 
                 elif field_splitted[0] == "EIGEN_PHRED":
                     if "&" in field_splitted[1]:
                         eigen_phred = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         eigen_phred = float(field_splitted[1])
 
                 elif field_splitted[0] == "MutationAssessor":
                     if "&" in field_splitted[1]:
                         mutation_assessor = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         mutation_assessor = float(field_splitted[1])
 
                 elif field_splitted[0] == "REVEL":
                     if "&" in field_splitted[1]:
                         revel = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         revel = float(field_splitted[1])
 
                 elif field_splitted[0] == "phyloP_primate":
                     if "&" in field_splitted[1]:
                         phyloP_primate = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         phyloP_primate = float(field_splitted[1])
 
                 elif field_splitted[0] == "phyloP_mammal":
                     if "&" in field_splitted[1]:
                         phyloP_mammal = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         phyloP_mammal = float(field_splitted[1])
 
                 elif field_splitted[0] == "phyloP_vertebrate":
                     if "&" in field_splitted[1]:
                         phyloP_vertebrate = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         phyloP_vertebrate = float(field_splitted[1])
 
                 elif field_splitted[0] == "phastCons_primate":
                     if "&" in field_splitted[1]:
                         phastCons_primate = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         phastCons_primate = float(field_splitted[1])
 
                 elif field_splitted[0] == "phastCons_mammal":
                     if "&" in field_splitted[1]:
                         phastCons_mammal = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         phastCons_mammal = float(field_splitted[1])
 
                 elif field_splitted[0] == "phastCons_vertebrate":
                     if "&" in field_splitted[1]:
                         phastCons_vertebrate = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         phastCons_vertebrate = float(field_splitted[1])
 
                 elif field_splitted[0] == "gnomAD_Hom":
                     if "&" in field_splitted[1]:
                         gnomAD_hom = float(field_splitted[1].split("&")[0])
+
                     else:
                         gnomAD_hom = float(field_splitted[1])
 
                 elif field_splitted[0] == "gnomAD_AN":
                     if "&" in field_splitted[1]:
                         gnomAD_an = float(field_splitted[1].split("&")[0])
+
                     else:
                         gnomAD_an = float(field_splitted[1])
 
                 elif field_splitted[0] == "gnomAD_AFR_AF":
                     if "&" in field_splitted[1]:
                         gnomAD_afr_af = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         gnomAD_afr_af = float(field_splitted[1])
 
                 elif field_splitted[0] == "gnomAD_AMR_AF":
                     if "&" in field_splitted[1]:
                         gnomAD_amr_af = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         gnomAD_amr_af = float(field_splitted[1])
 
                 elif field_splitted[0] == "gnomAD_EAS_AF":
                     if "&" in field_splitted[1]:
                         gnomAD_eas_af = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         gnomAD_eas_af = float(field_splitted[1])
 
                 elif field_splitted[0] == "gnomAD_NFE_AF":
                     if "&" in field_splitted[1]:
                         gnomAD_nfe_af = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         gnomAD_nfe_af = float(field_splitted[1])
 
                 elif field_splitted[0] == "gnomAD_SAS_AF":
                     if "&" in field_splitted[1]:
                         gnomAD_sas_af = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         gnomAD_sas_af = float(field_splitted[1])
 
                 elif field_splitted[0] == "CAPICE":
                     if "&" in field_splitted[1]:
                         capice = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         capice = float(field_splitted[1])
 
                 elif field_splitted[0] == "CADD":
                     if "&" in field_splitted[1]:
                         cadd = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         cadd = float(field_splitted[1])
 
                 elif field_splitted[0] == "ADA_SCORE":
                     if "&" in field_splitted[1]:
                         ada = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         ada = float(field_splitted[1])
 
                 elif field_splitted[0] == "RF_SCORE":
                     if "&" in field_splitted[1]:
                         rf = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         rf = float(field_splitted[1])
 
@@ -338,6 +359,12 @@ def extract_columns(cell, process_indel):
                 elif field_splitted[0] == "oe_lof":
                     oe_lof = min([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
 
+                elif field_splitted[0] == "oe_mis":
+                    oe_mis = min([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
+
+                elif field_splitted[0] == "oe_syn":
+                    oe_syn = min([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                 elif field_splitted[0] == "SegDup":
                     segDup = max([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
 
@@ -347,18 +374,13 @@ def extract_columns(cell, process_indel):
                 elif field_splitted[0] == "CLINVAR_DETAILS":
                     clinvar_details = field_splitted[1]
 
-                #elif field_splitted[0] == "DETAILS":
-                #    details = field_splitted[1]
-
-                #elif field_splitted[0] == "CLASS":
-                #    class_orig = field_splitted[1]
-
                 elif field_splitted[0] == "HGMD_CLASS":
                     hgmd_class = field_splitted[1]
 
                 elif field_splitted[0] == "HGMD_RANKSCORE":
                     if "&" in field_splitted[1]:
                         hgmd_rankscore = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
+
                     else:
                         hgmd_rankscore = float(field_splitted[1])
 
@@ -383,10 +405,10 @@ def extract_columns(cell, process_indel):
     max_af = max([gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af], default=np.nan)
 
     if process_indel:
-        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig] #, abb_score]
+        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, oe_mis, oe_syn, segDup, simpleRepeat, ada, rf, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig] #, abb_score]
 
     else:
-        extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, segDup, simpleRepeat, ada, rf, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig, abb_score]
+        extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, oe_mis, oe_syn, segDup, simpleRepeat, ada, rf, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig, abb_score]
 
     return extracted_columns
 
@@ -395,16 +417,37 @@ def extract_vep_annotation(cell, annotation_header):
     annotation_fields = str(cell["CSQ"]).split(",")
     new_cols = []
 
-    # choose the most severe annotation variant
-    # if new consequence terms were added to the database that are not yet handled from aiDIVA use default consequence "unknown" with lowest severity value
+    # TODO: add as parameter if it works
+    canonical_transcripts = []
+    transcript_file_path = "/mnt/storage2/users/ahboced1/phd_project/mane_grch38_v13_transcript_ids.txt"
+
+    with open(transcript_file_path, "r") as transcript_file:
+        for line in transcript_file:
+            if line.startswith("#"):
+                continue
+
+            else:
+                canonical_transcripts.append(line.strip())
+
     if (len(annotation_fields) >= 1) and (annotation_fields[0] != ""):
-        consequences = [min([VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in field.split("|")[annotation_header.index("Consequence")].split("&")]) for field in annotation_fields]
-        target_index = min(enumerate(consequences), key=itemgetter(1))[0]
-        new_cols = annotation_fields[target_index].strip().split("|")
+    
+        for annotation in annotation_fields:
+            transcript_index = annotation_header.index("Feature")
+
+            if annotation.split("|")[transcript_index] in canonical_transcripts:
+                new_cols = annotation.split("|")
+                break
+
+        if new_cols == []:
+            # choose the most severe annotation variant
+            # if new consequence terms were added to the database that are not yet handled from aiDIVA use default consequence "unknown" with lowest severity value
+            consequences = [min([VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in field.split("|")[annotation_header.index("Consequence")].split("&")]) for field in annotation_fields]
+            target_index = min(enumerate(consequences), key=itemgetter(1))[0]
+            new_cols = annotation_fields[target_index].strip().split("|")
 
     else:
         # can happen with the expanded InDels
-        logger.warn("Empty VEP annotation!")
+        logger.warning("Empty VEP annotation!")
 
     return new_cols
 
@@ -422,18 +465,23 @@ def extract_sample_information(row, sample, sample_header=None):
                 splitted_sample_information = sample_dict[sample_id].split("|")
                 if splitted_sample_information[0] == "wt":
                     sample_information.append("0/0")
+
                 elif splitted_sample_information[0] == "hom":
                     sample_information.append("1/1")
+
                 elif splitted_sample_information[0] == "het":
                     sample_information.append("0/1")
+
                 else:
                     logger.warning("Genotype not recognized! (%s)" % (splitted_sample_information[0]))
 
                 sample_information.append(splitted_sample_information[1])
                 sample_information.append(splitted_sample_information[2])
                 sample_information.append(sample_id + "=" + sample_dict[sample_id])
+
         else:
             logger.error("Format is MULTI but no sample_header is given!")
+
     else:
         format_entries = str(row["FORMAT"]).strip().split(":")
         sample_fields = str(row[sample + ".full"]).strip().split(":")
@@ -445,23 +493,27 @@ def extract_sample_information(row, sample, sample_header=None):
 
         if "GT" in format_entries:
             sample_gt_information = sample_fields[format_entries.index("GT")]
+        
         else:
             sample_gt_information = "./."
 
         if "DP" in format_entries:
             sample_dp_information = sample_fields[format_entries.index("DP")]
+
         else:
             sample_dp_information = "."
 
         if "AD" in format_entries:
             sample_ref_information = sample_fields[format_entries.index("AD")].split(",")[0]
             sample_alt_information = sample_fields[format_entries.index("AD")].split(",")[1]
+
         else:
             sample_ref_information = "."
             sample_alt_information = "."
 
         if "GQ" in format_entries:
             sample_gq_information = sample_fields[format_entries.index("GQ")]
+
         else:
             sample_gq_information = "."
 
@@ -469,6 +521,7 @@ def extract_sample_information(row, sample, sample_header=None):
             divisor = (int(sample_ref_information) + int(sample_alt_information))
             if divisor == 0:
                 sample_af_information = 0
+
             else:
                 sample_af_information = (int(sample_alt_information) / divisor)
 
@@ -568,28 +621,22 @@ def convert_variant_representation(row):
 
 
 def add_INFO_fields_to_dataframe(process_indel, expanded_indel, vcf_as_dataframe):
-    indel_annotation_columns = ["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
-    snp_annotation_columns = ["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
+    indel_annotation_columns = ["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "oe_mis", "oe_syn", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
+    snp_annotation_columns = ["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "oe_mis", "oe_syn", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
 
     if process_indel:
         if not expanded_indel:
             vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
             vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
             vcf_as_dataframe["IS_INDEL"] = 1
-            #vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
-            #vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
 
         else:
             vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
-            #vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
-            #vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
 
     else:
         vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
         vcf_as_dataframe[snp_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
         vcf_as_dataframe["IS_INDEL"] = 0
-        #vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
-        #vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
 
@@ -620,6 +667,7 @@ def specify_impact_class(row):
     
     if variant_impact == "HIGH":
         return 1
+
     else:
         return 0
 
@@ -645,6 +693,7 @@ def add_sample_information_to_dataframe(sample_ids, sample_header, vcf_as_datafr
                 sample_header_multi.append("DP." + sample_id)
                 sample_header_multi.append("ALT." + sample_id)
                 sample_header_multi.append(sample_id + ".full")
+
             vcf_as_dataframe[sample_header_multi] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample, sample_header)), axis=1)
 
         else:

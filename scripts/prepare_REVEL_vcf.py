@@ -24,7 +24,9 @@ with open(outfile_grch37, "w") as grch37_writer, open(outfile_grch38, "w") as gr
             grch37_writer.write(f"{row['chr']}\t{row['hg19_pos']}\t.\t{row['ref']}\t{row['alt']}\t.\t.\tREVEL={str(row['REVEL'])}\n")
             if row["grch38_pos"] != ".":
                 grch38_writer.write(f"{row['chr']}\t{row['grch38_pos']}\t.\t{row['ref']}\t{row['alt']}\t.\t.\tREVEL={str(row['REVEL'])}\n")
+
             else:
                 print("WARNING: Skip GRCh38 missing REVEL score!")
+
         else:
             print("WARNING: Skip missing REVEL score!")

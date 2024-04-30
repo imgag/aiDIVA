@@ -16,5 +16,6 @@ with open(outfile, "w") as writer:
     for row in reader:
         if str(row["CONDEL"]) != "":
             writer.write(f"{row['CHR']}\t{row['START']}\t.\t{row['REF']}\t{row['ALT']}\t.\t.\tEIGEN_PHRED={str(row['CONDEL'])}\n")
+
         else:
             print("WARNING: Skip missing Condel score!")

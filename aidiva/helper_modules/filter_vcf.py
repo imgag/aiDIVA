@@ -31,8 +31,10 @@ logger = logging.getLogger(__name__)
 def filter_coding_variants(filepath, filepath_out, annotation_field_name):
     if filepath.endswith(".gz"):
         vcf_file_to_reformat = gzip.open(filepath, "rt")
+
     else:
         vcf_file_to_reformat = open(filepath, "r")
+
     outfile = open(filepath_out, "w")
     consequence_index = 0
 
@@ -43,32 +45,40 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name):
 
     # extract header from vcf file
     for line in tmp:
-        splitted_line = line.split("\t")
+        splitted_line = line.replace("\n", "").split("\t")
         if line.strip().startswith("##"):
             if line.strip().startswith("##fileformat="):
                 outfile.write(line)
                 continue
+
             elif line.strip().startswith("##filedate="):
                 outfile.write(line)
                 continue
+
             elif line.strip().startswith("##source="):
                 outfile.write(line)
                 continue
+
             elif line.strip().startswith("##reference="):
                 outfile.write(line)
                 continue
+
             elif line.strip().startswith("##contig="):
                 outfile.write(line)
                 continue
+
             elif line.strip().startswith("##FORMAT="):
                 outfile.write(line)
                 continue
+
             elif line.strip().startswith("##FILTER="):
                 outfile.write(line)
                 continue
+
             elif line.strip().startswith("##ANALYSISTYPE="):
                 outfile.write(line)
                 continue
+
             elif line.strip().startswith("##SAMPLE="):
                 outfile.write(line)
                 continue
@@ -79,7 +89,9 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name):
                     if annotation_header[i] == "Consequence":
                         consequence_index = i
                         break
+
                 continue
+
             continue
 
         if line.strip().startswith("#CHROM"):

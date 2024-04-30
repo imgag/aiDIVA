@@ -12,8 +12,10 @@ logger = logging.getLogger(__name__)
 def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel):
     if filepath.endswith(".gz"):
         vcf_file_to_reformat = gzip.open(filepath, "rt")
+
     else:
         vcf_file_to_reformat = open(filepath, "r")
+
     outfile_snps = open(filepath_snp, "w")
     outfile_indel = open(filepath_indel, "w")
 
@@ -30,7 +32,8 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
             outfile_snps.write(line)
             outfile_indel.write(line)
             continue
-        if line.strip().startswith("#CHROM"):
+
+        elif line.strip().startswith("#CHROM"):
             outfile_snps.write(line)
             outfile_indel.write(line)
             continue
@@ -43,19 +46,24 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
         if "," in splitted_line[4]:
             logger.debug(f"Processed variant was removed, too many alternative alleles reported (ALT={splitted_line[4]})!")
             continue
+
         else:
             ref_length = len(splitted_line[3])
             alt_length = max([len(alt) for alt in splitted_line[4].split(",")])
 
             if (ref_length == 1) and (alt_length == 1):
                 outfile_snps.write(line)
+
             elif (ref_length > 1 and alt_length == 1) or (alt_length > 1 and ref_length == 1):
                 indel_ID += 1
                 if splitted_line[7].endswith("\n"):
                     splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID) + "\n"
+
                 else:
                     splitted_line[7] = splitted_line[7].replace("\n", "") + ";INDEL_ID=" + str(indel_ID)
+
                 outfile_indel.write("\t".join(splitted_line))
+
             else:
                 logger.critical("Something bad happened!")
 
