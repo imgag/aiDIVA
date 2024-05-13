@@ -174,16 +174,18 @@ if __name__=="__main__":
     assembly_build = configuration["Assembly-Build"]
     ref_path = configuration["Analysis-Input"]["ref-path"]
 
+    transcript_path = configuration["Canonical-Transcripts"]
+
     # convert splitted input data to vcf and annotate
     if snp_vcf is not None:
-        input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False, False, num_cores)
+        input_data_snp = convert_vcf.convert_vcf_to_pandas_dataframe(snp_vcf, False, False, transcript_path, num_cores)
 
     else:
         input_data_snp = pd.DataFrame()
 
     if indel_vcf is not None and expanded_indel_vcf is not None:
-        input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True, False, num_cores)
-        input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True, True, num_cores)
+        input_data_indel = convert_vcf.convert_vcf_to_pandas_dataframe(indel_vcf, True, False, transcript_path, num_cores)
+        input_data_expanded_indel = convert_vcf.convert_vcf_to_pandas_dataframe(expanded_indel_vcf, True, True, transcript_path, num_cores)
 
     else:
         input_data_indel = pd.DataFrame()
@@ -236,6 +238,7 @@ if __name__=="__main__":
         # prioritize and filter variants
         logger.info("Prioritize variants and finalize score ...")
         prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
+        prioritized_data["AIDIVA_RANK"] = prioritized_data["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
 
         ## TODO: create additional output files according to the inheritance information (only filtered data)
         if only_top_results:

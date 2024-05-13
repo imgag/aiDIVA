@@ -184,6 +184,8 @@ if __name__=="__main__":
 
     ref_path = configuration["Analysis-Input"]["ref-path"]
 
+    transcript_path = configuration["Canonical-Transcripts"]
+
     # convert splitted input data to vcf and annotate
     input_file = os.path.splitext(input_vcf)[0]
     input_filename = os.path.basename(input_file)
@@ -224,9 +226,9 @@ if __name__=="__main__":
     annotate.filter_regions(str(working_directory + "/" + input_filename + "_indel_vep_annotated_bed.vcf"), str(working_directory + "/" + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), annotation_dict)
 
     # convert annotated vcfs back to pandas dataframes
-    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), False, False, num_cores)
-    input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), True, False, num_cores)
-    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), True, True, num_cores)
+    input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_snp_vep_annotated_bed_bw_filtered.vcf"), False, False, transcript_path, num_cores)
+    input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_indel_vep_annotated_bed_filtered.vcf"), True, False, transcript_path, num_cores)
+    input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(working_directory + "/" + input_filename + "_indel_expanded_vep_annotated_bw.vcf"), True, True, transcript_path, num_cores)
 
     if (not input_data_snp_annotated.dropna(how='all').empty) or ((not input_data_indel_annotated.dropna(how='all').empty) and (not input_data_indel_expanded_annotated.dropna(how='all').empty)):
         if ((not input_data_indel_annotated.empty) and (not input_data_indel_expanded_annotated.empty)):
@@ -242,14 +244,14 @@ if __name__=="__main__":
         logger.info("Score variants...")
 
         if not input_data_snp_annotated.dropna(how='all').empty:
-            predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model_snp, input_data_snp_annotated, allele_frequency_list, feature_list, num_cores)
+            predicted_data_snp = predict.perform_pathogenicity_score_prediction(scoring_model, input_data_snp_annotated, allele_frequency_list, feature_list, num_cores)
 
         else:
             logger.warning("No SNV variants, skip SNV prediction!")
             predicted_data_snp = pd.DataFrame()
 
         if not input_data_indel_combined_annotated.dropna(how='all').empty:
-            predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model_indel, input_data_indel_combined_annotated, allele_frequency_list, feature_list, num_cores)
+            predicted_data_indel = predict.perform_pathogenicity_score_prediction(scoring_model, input_data_indel_combined_annotated, allele_frequency_list, feature_list, num_cores)
 
         else:
             logger.warning("No InDel variants, skip InDel prediction!")
@@ -273,6 +275,7 @@ if __name__=="__main__":
         # prioritize and filter variants
         logger.info("Filter variants and finalize score...")
         prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
+        prioritized_data["AIDIVA_RANK"] = prioritized_data["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
 
         ## TODO: create additional output files according to the inheritance information (only filtered data)
         if only_top_results:

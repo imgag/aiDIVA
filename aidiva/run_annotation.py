@@ -138,6 +138,8 @@ if __name__=="__main__":
 
     feature_list = configuration["Model-Features"]["feature-list"]
 
+    transcript_path = configuration["Canonical-Transcripts"]
+
     # convert splitted input data to vcf and annotate
     input_file = os.path.splitext(input_vcf)[0]
     input_filename = os.path.basename(input_file)
@@ -180,9 +182,9 @@ if __name__=="__main__":
 
     if output_table:
         # Convert annotated VCF files to pandas dataframes
-        input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(output_folder + "/" + input_filename + "_snp_annotated.vcf"), False, False, num_cores)
-        input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(output_folder + "/" + input_filename + "_indel_annotated.vcf"), True, False, num_cores)
-        input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(output_folder + "/" + input_filename + "_indelExpanded_annotated.vcf"), True, True, num_cores)
+        input_data_snp_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(output_folder + "/" + input_filename + "_snp_annotated.vcf"), False, False, transcript_path, num_cores)
+        input_data_indel_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(output_folder + "/" + input_filename + "_indel_annotated.vcf"), True, False, transcript_path, num_cores)
+        input_data_indel_expanded_annotated = convert_vcf.convert_vcf_to_pandas_dataframe(str(output_folder + "/" + input_filename + "_indelExpanded_annotated.vcf"), True, True, transcript_path, num_cores)
 
         # Combine InDel variants
         input_data_indel_combined_annotated = combine_expanded_indels.parallelized_indel_combination(input_data_indel_annotated, input_data_indel_expanded_annotated, feature_list, num_cores)

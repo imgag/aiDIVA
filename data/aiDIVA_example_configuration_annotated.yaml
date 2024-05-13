@@ -1,8 +1,9 @@
-## aiDIVA -- Augmented Intelligence Disease Variant Analysis
+## aiDIVA -- augmented intelligence-based disease variant analysis
 # Configuration file specifiying all the parameters that are needed to run aiDIVA in the different modes
 # if you modify the key names make sure to also update them in the run_aiDIVA.py script
 ---
 Assembly-Build: GRCh37
+Canonical-Transcripts: "/mnt/storage2/users/ahboced1/phd_project/mane_grch37_v13_transcript_ids.txt"
 
 
 Analysis-Input:

@@ -2,6 +2,7 @@ import argparse
 import logging
 import multiprocessing as mp
 import numpy as np
+import os
 import pandas as pd
 import tempfile
 
@@ -413,30 +414,21 @@ def extract_columns(cell, process_indel):
     return extracted_columns
 
 
-def extract_vep_annotation(cell, annotation_header):
+def extract_vep_annotation(cell, annotation_header, canonical_transcripts=[]):
     annotation_fields = str(cell["CSQ"]).split(",")
     new_cols = []
 
-    # TODO: add as parameter if it works
-    canonical_transcripts = []
-    transcript_file_path = "/mnt/storage2/users/ahboced1/phd_project/mane_grch38_v13_transcript_ids.txt"
-
-    with open(transcript_file_path, "r") as transcript_file:
-        for line in transcript_file:
-            if line.startswith("#"):
-                continue
-
-            else:
-                canonical_transcripts.append(line.strip())
+    
 
     if (len(annotation_fields) >= 1) and (annotation_fields[0] != ""):
     
-        for annotation in annotation_fields:
-            transcript_index = annotation_header.index("Feature")
+        if canonical_transcripts:
+            for annotation in annotation_fields:
+                transcript_index = annotation_header.index("Feature")
 
-            if annotation.split("|")[transcript_index] in canonical_transcripts:
-                new_cols = annotation.split("|")
-                break
+                if annotation.split("|")[transcript_index] in canonical_transcripts:
+                    new_cols = annotation.split("|")
+                    break
 
         if new_cols == []:
             # choose the most severe annotation variant
@@ -672,8 +664,8 @@ def specify_impact_class(row):
         return 0
 
 
-def add_VEP_annotation_to_dataframe(annotation_header, vcf_as_dataframe):
-    vcf_as_dataframe[annotation_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header)), axis=1)
+def add_VEP_annotation_to_dataframe(annotation_header, canonical_transcripts, vcf_as_dataframe):
+    vcf_as_dataframe[annotation_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header, canonical_transcripts)), axis=1)
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
     vcf_as_dataframe = vcf_as_dataframe.rename(columns={"am_class": "ALPHA_MISSENSE_CLASS"})
     vcf_as_dataframe = vcf_as_dataframe.rename(columns={"am_pathogenicity": "ALPHA_MISSENSE_SCORE"})
@@ -707,10 +699,21 @@ def add_sample_information_to_dataframe(sample_ids, sample_header, vcf_as_datafr
     return vcf_as_dataframe
 
 
-def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, num_cores):
+def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, transcript_file_path, num_cores):
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 
     logger.debug("Convert VCF file")
+
+    canonical_transcripts = []
+
+    if os.path.isfile(transcript_file_path):
+        with open(transcript_file_path, "r") as transcript_file:
+            for line in transcript_file:
+                if line.startswith("#"):
+                    continue
+
+                else:
+                    canonical_transcripts.append(line.strip())
 
     sample_ids = []
     # FORMAT column has index 8 (counted from 0) and sample columns follow afterwards (sample names are unique)
@@ -725,7 +728,7 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, n
 
     if not vcf_as_dataframe.empty:
         vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_INFO_fields_to_dataframe, process_indel, expanded_indel), num_cores)
-        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_VEP_annotation_to_dataframe, annotation_header), num_cores)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_VEP_annotation_to_dataframe, annotation_header, canonical_transcripts), num_cores)
 
         if len(vcf_as_dataframe.columns) > 8:
             if "FORMAT" in vcf_as_dataframe.columns:
@@ -777,6 +780,7 @@ if __name__ == "__main__":
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the converted VCF file\n")
     parser.add_argument("--indel", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of indel variants or not.\n")
     parser.add_argument("--expanded", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of expanded indel variants.\n")
+    parser.add_argument("--transcript_ids", type=str, dest="transcript_ids", metavar="mane_v13_transcripts_ids.txt", required=True, help="File specifying the ensembl transcripts that should be used (e.g. MANE-SELECT).\n")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use.")
     args = parser.parse_args()
 
@@ -786,5 +790,8 @@ if __name__ == "__main__":
     else:
         num_cores = 1
 
-    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.expanded, num_cores)
+    # TODO: add as parameter if it works
+    #transcript_file_path = "/mnt/storage2/users/ahboced1/phd_project/mane_grch38_v13_transcript_ids.txt"
+
+    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.expanded, args.transcript_ids, num_cores)
     write_vcf_to_csv(vcf_as_dataframe, args.out_data)

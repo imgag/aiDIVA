@@ -1,12 +1,9 @@
-<<<<<<< HEAD:data/aiDIVA_example_configuration_with_annotation_grch38.yaml
-## aiDIVA -- Augmented Intelligence Disease Variant Analysis
-=======
-## aiDIVA -- augmented intelligence-based Disease Variant Analysis
->>>>>>> master:data/aiDIVA_example_configuration_with_annotation.yaml
+## aiDIVA -- augmented intelligence-based disease variant analysis
 # Configuration file specifiying all the parameters that are needed to run aiDIVA in the different modes
 # if you modify the key names make sure to also update them in the run_aiDIVA.py script
 ---
 Assembly-Build: GRCh38
+Canonical-Transcripts: "/mnt/storage2/users/ahboced1/phd_project/mane_grch38_v13_transcript_ids.txt"
 
 
 Analysis-Input:
@@ -86,7 +83,9 @@ Annotation-Resources:
     bed-files:
         simpleRepeat: <full-path-to-file>/hg38_simpleRepeat.bed
         segmentDuplication: <full-path-to-file>/hg38_genomicSuperDups.bed
-        oe_lof: <full-path-to-file>/gnomAD_OE_grch38_sorted.bed
+        oe_lof: <full-path-to-file>/gnomAD_oe_lof_grch38_sorted.bed
+        oe_mis: <full-path-to-file>/gnomAD_oe_mis_grch38_sorted.bed
+        oe_syn: <full-path-to-file>/gnomAD_oe_syn_grch38_sorted.bed
         repeatMasker: <full-path-to-file>/RepeatMasker_GRCh38.bed
 
     plugin-files:
