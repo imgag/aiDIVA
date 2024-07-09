@@ -97,11 +97,12 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
 
     with open(filepath, "r") as vcf_file_to_reformat, tempfile.NamedTemporaryFile(mode="w+") as tmp:
         # make sure that there are no unwanted linebreaks in the variant entries
-        tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
-        tmp.seek(0)
+        ## TODO: remove regular expression, should not be needed anymore
+        #tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
+        #tmp.seek(0)
 
         # extract header from vcf file
-        for line in tmp:
+        for line in vcf_file_to_reformat:
             if line.strip().startswith("##"):
                 comment_lines.append(line.strip())
 
@@ -360,9 +361,11 @@ def extract_columns(cell, process_indel):
                 elif field_splitted[0] == "oe_lof":
                     oe_lof = min([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
 
+                ## currently not used
                 elif field_splitted[0] == "oe_mis":
                     oe_mis = min([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
 
+                ## currently not used
                 elif field_splitted[0] == "oe_syn":
                     oe_syn = min([float(value) for value in field_splitted[1].split("&")  if (value != "." and value != "nan" and value !="")], default=np.nan)
 

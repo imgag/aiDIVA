@@ -56,7 +56,14 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
 
     vep_command = f"{vep_command} -i " + input_vcf_file + " "
     vep_command = f"{vep_command} -o " + output_vcf_file + " "
-    #vep_command = f"{vep_command} --fork " + str(num_cores) + " "
+
+    # the developers of VEP recommend to use 4 threads
+    if num_cores >= 4:
+        vep_command = f"{vep_command} --fork 4 "
+
+    elif num_cores == 2:
+        vep_command = f"{vep_command} --fork 2 "
+
     vep_command = f"{vep_command} --format vcf" + " " # we need this to prevent vep from not working if the VCF file has no variant entries
     vep_command = f"{vep_command} --vcf" + " "
     vep_command = f"{vep_command} --no_stats" + " "
@@ -91,7 +98,14 @@ def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annota
     vep_command = f"{vep_command} -o {output_vcf_file}"
     vep_command = f"{vep_command} --fields Consequence"
     vep_command = f"{vep_command} --vcf_info_field CONS"
-    vep_command = f"{vep_command} --fork {num_cores}"
+
+    # the developers of VEP recommend to use 4 threads
+    if num_cores >= 4:
+        vep_command = f"{vep_command} --fork 4 "
+
+    elif num_cores == 2:
+        vep_command = f"{vep_command} --fork 2 "
+
     vep_command = f"{vep_command} --vcf"
     vep_command = f"{vep_command} --no_stats"
     vep_command = f"{vep_command} --force_overwrite"
@@ -154,26 +168,28 @@ def annotate_from_bed(input_vcf_file, output_vcf_file, annotation_dict, num_core
         tmp_segDup = tempfile.NamedTemporaryFile(mode="w+b", suffix="_segDup.vcf", delete=False)
         tmp_simpleRepeat = tempfile.NamedTemporaryFile(mode="w+b", suffix="_simpleRepeat.vcf", delete=False)
         tmp_oe_lof = tempfile.NamedTemporaryFile(mode="w+b", suffix="_oe_lof.vcf", delete=False)
-        tmp_oe_mis = tempfile.NamedTemporaryFile(mode="w+b", suffix="_oe_mis.vcf", delete=False)
-        tmp_oe_syn = tempfile.NamedTemporaryFile(mode="w+b", suffix="_oe_syn.vcf", delete=False)
+        #tmp_oe_mis = tempfile.NamedTemporaryFile(mode="w+b", suffix="_oe_mis.vcf", delete=False) ## currently not used
+        #tmp_oe_syn = tempfile.NamedTemporaryFile(mode="w+b", suffix="_oe_syn.vcf", delete=False) ## currently not used
         tmp_repeatmasker = tempfile.NamedTemporaryFile(mode="w+b", suffix="_repeatmasker.vcf", delete=False)
 
         # close temporary files to make them accessible
         tmp_segDup.close()
         tmp_simpleRepeat.close()
         tmp_oe_lof.close()
-        tmp_oe_mis.close()
-        tmp_oe_syn.close()
+        #tmp_oe_mis.close() ## currently not used
+        #tmp_oe_syn.close() ## currently not used
         tmp_repeatmasker.close()
 
         subprocess.run(f"{command} -bed {bed_annotation['segmentDuplication']} -name SegDup -sep '&' -in {input_vcf_file} -out {tmp_segDup.name} -threads {num_cores}", shell=True, check=True)
         subprocess.run(f"{command} -bed {bed_annotation['simpleRepeat']} -name SimpleRepeats -sep '&' -in {tmp_segDup.name} -out {tmp_simpleRepeat.name} -threads {num_cores}", shell=True, check=True)
         subprocess.run(f"{command} -bed {bed_annotation['oe_lof']} -name oe_lof -sep '&' -in {tmp_simpleRepeat.name} -out {tmp_oe_lof.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bed {bed_annotation['oe_mis']} -name oe_mis -sep '&' -in {tmp_oe_lof.name} -out {tmp_oe_mis.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bed {bed_annotation['oe_syn']} -name oe_syn -sep '&' -in {tmp_oe_mis.name} -out {tmp_oe_syn.name} -threads {num_cores}", shell=True, check=True)
+        
+        ## currently not used
+        #subprocess.run(f"{command} -bed {bed_annotation['oe_mis']} -name oe_mis -sep '&' -in {tmp_oe_lof.name} -out {tmp_oe_mis.name} -threads {num_cores}", shell=True, check=True)
+        #subprocess.run(f"{command} -bed {bed_annotation['oe_syn']} -name oe_syn -sep '&' -in {tmp_oe_mis.name} -out {tmp_oe_syn.name} -threads {num_cores}", shell=True, check=True)
 
         if os.path.isfile(f"{bed_annotation['omim']}"):
-            subprocess.run(f"{command} -bed {bed_annotation['repeatMasker']} -name REPEATMASKER -sep '&' -in {tmp_oe_syn.name} -out {tmp_repeatmasker.name} -threads {num_cores}", shell=True, check=True)
+            subprocess.run(f"{command} -bed {bed_annotation['repeatMasker']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {tmp_repeatmasker.name} -threads {num_cores}", shell=True, check=True)
             subprocess.run(f"{command} -bed {bed_annotation['omim']} -name OMIM -sep '&' -in {tmp_repeatmasker.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
 
         else:
@@ -185,8 +201,8 @@ def annotate_from_bed(input_vcf_file, output_vcf_file, annotation_dict, num_core
         os.remove(tmp_segDup.name)
         os.remove(tmp_simpleRepeat.name)
         os.remove(tmp_oe_lof.name)
-        os.remove(tmp_oe_mis.name)
-        os.remove(tmp_oe_syn.name)
+        #os.remove(tmp_oe_mis.name) ## currently not used
+        #os.remove(tmp_oe_syn.name) ## currently not used
         os.remove(tmp_repeatmasker.name)
 
 

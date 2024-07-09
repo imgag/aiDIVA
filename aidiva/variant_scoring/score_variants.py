@@ -27,8 +27,8 @@ MEAN_DICT = {"phastCons_mammal": 0.09691308336428194,
              "REVEL": 0.28019263637740743,
              "PolyPhen": 0.5169017014355943,
              "oe_lof": 0.53667483333333332,
-             "oe_mis": 0.8742450611581991,
-             "oe_syn": 1.0262797714053697,
+             "oe_mis": 0.8742450611581991, ## currently not used
+             "oe_syn": 1.0262797714053697, ## currently not used
              "CAPICE": 0.04487945928377704,
              "ALPHA_MISSENSE_SCORE": 0.4074365673385914}
 
@@ -41,8 +41,8 @@ MEDIAN_DICT = {"MutationAssessor": 1.87,
                "REVEL": 0.193,
                "PolyPhen": 0.547,
                "oe_lof": 0.48225,
-               "oe_mis": 0.87952,
-               "oe_syn": 1.004,
+               "oe_mis": 0.87952, ## currently not used
+               "oe_syn": 1.004, ## currently not used
                "CAPICE": 0.0006,
                "ALPHA_MISSENSE_SCORE": 0.2509}
 

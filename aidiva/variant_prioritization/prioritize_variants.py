@@ -718,7 +718,8 @@ def homopolymer_filter(sequence):
 
 
 def check_filters(variant, genes2exclude, HPO_query, reference):
-    variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
+    #variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
+    variant_genes = str(variant["SYMBOL"])
     genenames = set(variant_genes.split(";"))
 
     in_fasta = pysam.FastaFile(reference)
