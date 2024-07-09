@@ -16,5 +16,6 @@ with open(outfile, "w") as writer:
         # skip missing scores to keep the annotation file small
         if str(row["FATHMM_XF"]) != "":
             writer.write(f"{row['#CHROM']}\t{row['POS']}\t.\t{row['REF']}\t{row['ALT']}\t.\t.\FATHMM_XF={str(row['FATHMM_XF'])}\n")
+
         else:
             print("WARNING: Skip missing FathmmXF score!")

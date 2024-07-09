@@ -29,6 +29,7 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
         for line in rd:
             if line.startswith("#"):
                 pass
+
             else:
                 splitted_line = line.strip().split("\t")
                 # Format: HPO-id<tab>HPO label<tab>entrez-gene-id<tab>entrez-gene-symbol<tab>Additional Info from G-D source<tab>G-D source<tab>disease-ID for link
@@ -41,6 +42,7 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
 
     with open(gene2hpo_dict, "w") as gene2hpo_f:
         json.dump(gene_2_HPO, gene2hpo_f)
+
     logger.info(f"Gene to HPO mapping successfully generated and saved as {gene2hpo_dict}")
 
 
@@ -72,25 +74,31 @@ def create_hpo_graph(hpo_ontology, phenotype_hpoa, hpo_graph_file, hpo_replaceme
 
             elif line.startswith("is_a:"):
                 parents.append(line.strip().split("is_a: ")[1].split(" !")[0])
+
             elif line.startswith('is_obsolete:'):
                 obsolete =True
+
             elif line.startswith('replaced_by:'):
                 replacement = line.strip().split('replaced_by: ')[1]
                 obsolete =False
+
             elif line.startswith('alt_id:'):
                 alt = line.strip().split('alt_id: ')[1]
                 if hpo_term in alternatives.keys():
                     current_alternatives = alternatives[hpo_term]
                     current_alternatives.append(alt)
                     alternatives[hpo_term] = current_alternatives
+
                 else:
                     alternatives[hpo_term] = [alt]
+
             elif line.startswith('consider:'):
                 consider = line.strip().split('consider: ')[1]
                 if hpo_term in considerations.keys():
                     current_considerations = considerations[hpo_term]
                     current_considerations.append(consider)
                     considerations[hpo_term] = current_considerations
+
                 else:
                     considerations[hpo_term] = [consider]
 
@@ -99,7 +107,7 @@ def create_hpo_graph(hpo_ontology, phenotype_hpoa, hpo_graph_file, hpo_replaceme
             hpo_edges[hpo_term] = parents
             if replacement != "":
                 replacements[hpo_term] = replacement
-        
+
         hpo_edges["replacements"] = replacements
 
     logger.info("Generate HPO graph...")
@@ -116,17 +124,6 @@ def create_hpo_graph(hpo_ontology, phenotype_hpoa, hpo_graph_file, hpo_replaceme
         counts_dict[hpo_term] = count_value
         total_counts += count_value
 
-    #total_counts = 0
-    #with open(hpo_counts, "r") as count_file:
-    #    for line in count_file:
-    #        if line.startswith("HPO-ID"):
-    #            continue
-    #        splitted_line = line.strip().split("\t")
-    #        hpo_term = splitted_line[0]
-    #        count = int(splitted_line[1])
-    #        counts_dict[hpo_term] = count
-    #        total_counts += count
-
     # get replacements of obsolete nodes
     replacements = dict(hpo_edges.get("replacements", []))
 
@@ -139,40 +136,49 @@ def create_hpo_graph(hpo_ontology, phenotype_hpoa, hpo_graph_file, hpo_replaceme
     hpo_replacement_information = {"alternatives": alternatives, "considerations": considerations, "replacements": replacements}
 
     # TODO: remove support for networkx v1.x and get rid of the duplicated if-else conditions (networkx v2.x and v3.x use the same syntax for the graphs)
-
     for node in hpo_edges.keys():
         hpo_graph.add_node(node)
         if str(nx.__version__).startswith("1."):
             hpo_graph.node[node]["count"] = 0.0
+
         elif str(nx.__version__).startswith("2."):
             hpo_graph.nodes[node]["count"] = 0.0
+
         elif str(nx.__version__).startswith("3."):
             hpo_graph.nodes[node]["count"] = 0.0
+
         else:
             logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1, v2 or v3 installed!")
 
         ancestors = [(x,node) for x in hpo_edges[node]]
         hpo_graph.add_edges_from(ancestors)
+
         if node in replacements.keys():
             if str(nx.__version__).startswith("1."):
                 hpo_graph.node[node]['replaced_by'] = replacements[node]
                 hpo_graph.node[node]['IC'] = -math.log(1.0 / total_counts)
+
             elif str(nx.__version__).startswith("2."):
                 hpo_graph.nodes[node]['replaced_by'] = replacements[node]
                 hpo_graph.nodes[node]['IC'] = -math.log(1.0 / total_counts)
+
             elif str(nx.__version__).startswith("3."):
                 hpo_graph.nodes[node]["replaced_by"] = replacements[node]
                 hpo_graph.nodes[node]["IC"] = -math.log(1.0 /total_counts)
+
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1, v2 or v3 installed!")
 
     for node in hpo_graph.nodes():
         if str(nx.__version__).startswith("1."):
             hpo_graph.node[node]["count"] = 0.0
+
         elif str(nx.__version__).startswith("2."):
             hpo_graph.nodes[node]["count"] = 0.0
+
         elif str(nx.__version__).startswith("3."):
             hpo_graph.nodes[node]["count"] = 0.0
+
         else:
             logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1, v2 or v3 installed!")
 
@@ -180,53 +186,69 @@ def create_hpo_graph(hpo_ontology, phenotype_hpoa, hpo_graph_file, hpo_replaceme
     for node in counts_dict.keys():
         if str(nx.__version__).startswith("1."):
             hpo_graph.node[node]["count"] = counts_dict[node]
+
         elif str(nx.__version__).startswith("2."):
             hpo_graph.nodes[node]["count"] = counts_dict[node]
+
         elif str(nx.__version__).startswith("3."):
             hpo_graph.nodes[node]["count"] = counts_dict[node]
+
         else:
             logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1, v2 or v3 installed!")
 
     hpo_graph.nodes(data="count")
-    # now fill it with the actual value.
 
+    # now fill it with the actual value.
     for node in hpo_edges.keys():
         descendants = nx.descendants(hpo_graph,node)
         if str(nx.__version__).startswith("1."):
             count = hpo_graph.node[node]["count"]
+
         elif str(nx.__version__).startswith("2."):
             count = hpo_graph.nodes[node]["count"]
+
         elif str(nx.__version__).startswith("3."):
             count = hpo_graph.nodes[node]["count"]
+
         else:
             logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1, v2 or v3 installed!")
 
         for descendant in descendants:
             if str(nx.__version__).startswith("1."):
                 count += hpo_graph.node[descendant]["count"]
+
             elif str(nx.__version__).startswith("2."):
                 count += hpo_graph.nodes[descendant]["count"]
+
             elif str(nx.__version__).startswith("3."):
                 count += hpo_graph.nodes[descendant]["count"]
+
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1, v2 or v3 installed!")
 
         if count > 0 :
             if str(nx.__version__).startswith("1."):
                 hpo_graph.node[node]["IC"] =  -math.log(float(count) / total_counts)
+
             elif str(nx.__version__).startswith("2."):
                 hpo_graph.nodes[node]["IC"] =  -math.log(float(count) / total_counts)
+
             elif str(nx.__version__).startswith("3."):
                 hpo_graph.nodes[node]["IC"] =  -math.log(float(count) / total_counts)
+
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1, v2 or v3 installed!")
+
         else :
             if str(nx.__version__).startswith("1."):
                 hpo_graph.node[node]["IC"] = -math.log(1.0 / total_counts) # missing nodes, set as rare as possible
+
             elif str(nx.__version__).startswith("2."):
                 hpo_graph.nodes[node]["IC"] = -math.log(1.0 / total_counts) # missing nodes, set as rare as possible
+
             elif str(nx.__version__).startswith("3."):
                 hpo_graph.nodes[node]["IC"] = -math.log(1.0 / total_counts) # missing nodes, set as rare as possible
+
             else:
                 logger.error("There seems to be a problem with your installation of NetworkX, make sure that you have either v1, v2 or v3 installed!")
 
@@ -289,13 +311,16 @@ def create_gene2interacting_mapping(string_mapping, string_db_links, string_inte
             if ((protein_a in string2name.keys()) and (protein_b in string2name.keys())) and ((confidence_experimental >= 900) or (confidence_database >= 900)):
                 gene_name = string2name[protein_a]
                 interacting_gene = string2name[protein_b]
+
                 if gene_name in string_interaction_mapping.keys():
                     string_interaction_mapping[gene_name].append({"interacting_gene": interacting_gene, "confidence_experimental": confidence_experimental, "confidence_database": confidence_database})
+
                 else:
                     string_interaction_mapping[gene_name] = [{"interacting_gene": interacting_gene, "confidence_experimental": confidence_experimental, "confidence_database": confidence_database}]
     
     with open(string_interactions, "w") as string_interactions_f:
         json.dump(string_interaction_mapping, string_interactions_f)
+
     logger.info(f"Gene to interacting gene mapping successfully generated and saved as {string_interactions}")
 
 # this file can be obtained through ensembl biomart
@@ -308,6 +333,7 @@ def create_transcript_length_mapping(transcript_lengths, transcript_information)
         for line in transc:
             if line.startswith("Gene") or line.startswith("#"):
                 continue
+
             else:
                 # header:
                 # #Gene stable ID [TAB] Transcript stable ID [TAB] CDS Length [TAB] Transcript length (including UTRs and CDS) [TAB] Strand
@@ -320,11 +346,12 @@ def create_transcript_length_mapping(transcript_lengths, transcript_information)
     
     with open(transcript_lengths, "w") as transcript_lengths_f:
         json.dump(transcript_mapping, transcript_lengths_f)
+
     logger.info(f"Transcript to CDS length mapping successfully generated and saved as {transcript_lengths}")
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser("Script to generate the HPO resources needed in the prioritization step of AIdiva")
+    parser = argparse.ArgumentParser("Script to generate the HPO resources needed in the prioritization step of aiDIVA")
     parser.add_argument("--hpo_ontology", type=str, dest="hpo_ontology", metavar="hp.obo", required=False, help="File containing the HPO ontology\n")
     parser.add_argument("--gene_phenotype", type=str, dest="gene_phenotype", metavar="phenotype_to_genes.txt", required=False, help="File that contains information about the genes and the associated phenotypes\n")
     parser.add_argument("--gene_hpo", type=str, dest="gene_hpo", metavar="gene2hpo.json", required=False, help="File to save the generated gene2hpo_dict\n")
@@ -345,12 +372,12 @@ if __name__=="__main__":
 
     if args.hpo_ontology and args.phenotype_hpoa and args.hpo_graph and args.hpo_replacements:
         create_hpo_graph(args.hpo_ontology, args.phenotype_hpoa, args.hpo_graph, args.hpo_replacements)
-    
+
     if args.hgnc_symbols and args.hgnc_gene:
         create_gene2hgnc_mapping(args.hgnc_symbols, args.hgnc_gene)
-    
+
     if args.string_mapping and args.string_links and args.gene_interacting:
         create_gene2interacting_mapping(args.string_mapping, args.string_links, args.gene_interacting)
-    
+
     if args.transcript_information and args.transcript_length_mapping:
         create_transcript_length_mapping(args.transcript_length_mapping, args.transcript_information)

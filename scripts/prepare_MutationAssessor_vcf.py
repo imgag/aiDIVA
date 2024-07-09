@@ -17,5 +17,6 @@ with open(outfile, "w") as writer:
             # skip missing scores to keep the annotation file small
             if str(row["FI score"]) != "":
                 writer.write(f"{mutation[1]}\t{mutation[2]}\t.\t{mutation[3]}\t{mutation[4]}\t.\t.\tMutationAssessor={str(row['FI score'])}\n")
+
             else:
                 print("WARNING: Skip missing MutationAssessor score!")

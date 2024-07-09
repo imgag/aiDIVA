@@ -27,9 +27,10 @@ MEAN_DICT = {"phastCons_mammal": 0.09691308336428194,
              "REVEL": 0.28019263637740743,
              "PolyPhen": 0.5169017014355943,
              "oe_lof": 0.53667483333333332,
+             "oe_mis": 0.8742450611581991, ## currently not used
+             "oe_syn": 1.0262797714053697, ## currently not used
              "CAPICE": 0.04487945928377704,
              "ALPHA_MISSENSE_SCORE": 0.4074365673385914}
-             #"EVE_SCORE": 0.4866676824933756}
 
 MEDIAN_DICT = {"MutationAssessor": 1.87,
                "CONDEL": 0.4805749233199981,
@@ -40,9 +41,10 @@ MEDIAN_DICT = {"MutationAssessor": 1.87,
                "REVEL": 0.193,
                "PolyPhen": 0.547,
                "oe_lof": 0.48225,
+               "oe_mis": 0.87952, ## currently not used
+               "oe_syn": 1.004, ## currently not used
                "CAPICE": 0.0006,
                "ALPHA_MISSENSE_SCORE": 0.2509}
-               #"EVE_SCORE": 0.4946792317600748}
 
 SUPPORTED_CODING_VARIANTS = ["stop_gained",
                              "stop_lost",
@@ -66,7 +68,8 @@ SPLICE_VARIANTS = ["splice_acceptor_variant",
                    "splice_donor_region_variant",
                    "splice_polypyrimidine_tract_variant"]
 
-random_seed = 14038
+RANDOM_SEED = 14038
+
 logger = logging.getLogger(__name__)
 
 
@@ -87,9 +90,9 @@ def read_input_data(input_file):
 
 
 # make sure to use the same features, that were used for the training of the model
-# fill SegDup missing values with -> 0
-# fill ABB_SCORE missing values with -> 0
 # fill Allele Frequency missing values with -> 0
+# fill homAF missing values with -> 0
+# fill HIGH_IMPACT missing values with -> 0
 # fill missing values from other features with -> median or mean
 def prepare_input_data(feature_list, allele_frequency_list, input_data):
     for feature in feature_list:
@@ -106,39 +109,16 @@ def prepare_input_data(feature_list, allele_frequency_list, input_data):
         elif (feature == "IS_INDEL"):
             continue
 
-        #elif feature == "CAPICE":
-            # TODO: compute mean and median of CAPICE database
-            #input_data[feature] = input_data[feature].fillna(0.5)
-
         elif "SIFT" == feature:
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["SIFT"])
 
-        elif feature == "oe_lof":
+        elif feature == "oe_lof" or feature == "oe_mis" or feature == "oe_syn":
             input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != "") and (":" not in value) and ("-" not in value))], default=np.nan), axis=1)
-            input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["oe_lof"])
+            input_data[feature] = input_data[feature].fillna(MEDIAN_DICT[feature])
 
-        #elif feature == "REVEL":
-        #    if input_data["IMPACT"] == "HIGH":
-        #        input_data[feature] = input_data[feature].fillna(1.0)
-        #    else:
-        #        input_data[feature] = input_data[feature].fillna(1.0)
-
-        #elif feature == "EVE_SCORE":
-        #    if input_data["IMPACT"] == "HIGH":
-        #        input_data[feature] = input_data[feature].fillna(1.0)
-
-        #    else:
-        #        input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["EVE_SCORE"])
-
-        #elif feature == "ALPHA_MISSENSE_SCORE":
-        #    if input_data["IMPACT"] == "HIGH" and not "splice" in input_data["Consequence"]:
-        #        input_data[feature] = input_data[feature].fillna(1.0)
-
-        #    else:
-        #        input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["ALPHA_MISSENSE_SCORE"])
-
-        elif feature == "REVEL" or feature == "ALPHA_MISSENSE_SCORE": #or feature == "EVE_SCORE":
+        # REVEL and ALPHA_MISSENSE score only missense variants so for missing high impact variants we fill with 1 instead of median/mean value
+        elif feature == "REVEL" or feature == "ALPHA_MISSENSE_SCORE":
             input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != "") & (not ":" in value) & (not "-" in value))], default=np.nan), axis=1)
             input_data.loc[(~(input_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS))) & (input_data["IMPACT"] == "HIGH") & (input_data[feature].isna())), feature] = 1.0
             input_data[feature] = input_data[feature].fillna(MEDIAN_DICT[feature])
@@ -194,7 +174,7 @@ def parallelize_dataframe_processing(dataframe, function, num_cores):
     return dataframe
 
 
-def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequency_list, feature_list, num_cores):
+def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequency_list, feature_list, num_cores=1):
     rf_model = import_model(rf_model)
 
     # compute maximum Minor Allele Frequency (MAF) from population frequencies if MAX_AF not present
@@ -218,18 +198,12 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
 
     # set splicing donor/acceptor variants to NaN if not additionally a supported consequence is reported for the variant 
     # add filter for splice_region variants
-    # later in the pipeline the score from dbscSNV for splicing variants will be used
-    # TODO: change to use SpliceAI instead of dbscSNV for splice variants
-    #predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["rf_score"].isna()) | ~(predicted_data["ada_score"].isna()))), "AIDIVA_SCORE"] = np.nan
-    #predicted_data.loc[(~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"])) & (~(predicted_data["SpliceAI"].isna()))), "AIDIVA_SCORE"] = np.nan
-    #predicted_data.loc[(~(predicted_data["Consequence"].str.contains("|".join(SUPPORTED_CODING_VARIANTS))) & (~(predicted_data["SpliceAI"].isna()))), "AIDIVA_SCORE"] = np.nan
+    # later in the pipeline the score from SpliceAI for splicing variants will be used
     predicted_data.loc[(~(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SUPPORTED_CODING_VARIANTS))) & (predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS)))), "AIDIVA_SCORE"] = np.nan
-    #predicted_data.loc[((predicted_data["Consequence"].str.contains("splice")) & (~(predicted_data["SpliceAI"].isna()))), "AIDIVA_SCORE"] = np.nan
 
 
     # set synonymous variants to 0.0 if they are not at a splicing site
     # TODO check how to handle overlapping consequences
-    #predicted_data.loc[(predicted_data["Consequence"].str.contains("synonymous") & ~(predicted_data["Consequence"].str.contains("splice")) & ~(any(term for term in SUPPORTED_CODING_VARIANTS if term in predicted_data["Consequence"]))), "AIDIVA_SCORE"] = 0.0
     predicted_data.loc[(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SYNONYMOUS_VARIANTS)) & ~(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SUPPORTED_CODING_VARIANTS))) & ~(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS)))), "AIDIVA_SCORE"] = 0.0
 
     return predicted_data
@@ -242,6 +216,7 @@ if __name__=="__main__":
     parser.add_argument("--model", type=str, dest="model", metavar="model.pkl", required=True, help="Specifies the name of the trained model to import\n")
     parser.add_argument("--feature_list", type=str, dest="feature_list", metavar="feature1,feature2,feature3", required=True, help="Comma separated list of the features used to train the model\n")
     parser.add_argument("--allele_frequency_list", type=str, dest="allele_frequency_list", metavar="frequency1,frequecy2,frequency3", required=False, help="Comma separated list of allele frequency sources that should be used as basis to get the maximum allele frequency\n")
+    parser.add_argument("--threads", type=str, dest="threads", metavar="1", required=False, help="Number of threads to use.\n")
     args = parser.parse_args()
 
     input_data = read_input_data(args.in_data)
@@ -253,5 +228,11 @@ if __name__=="__main__":
     else:
         allele_frequency_list = []
 
-    predicted_data = perform_pathogenicity_score_prediction(args.model, input_data, allele_frequency_list, feature_list)
+    if args.threads:
+        num_threads = int(args.threads)
+
+    else:
+        num_threads = 1
+
+    predicted_data = perform_pathogenicity_score_prediction(args.model, input_data, allele_frequency_list, feature_list, num_threads)
     predicted_data.to_csv(args.out_data, index=False, sep="\t", na_rep="NA")

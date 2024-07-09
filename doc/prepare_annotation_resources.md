@@ -6,7 +6,7 @@ For some of the annotation sources there are no GRCh38/hg38 files available in t
 
 
 ## Reference Genome Assembly
-Note hg19 and GRCh37 differ in the mitochondrial DNA, but since mitchondrial variants are not supported by aiDIVA it should not matter which of the two assemblies is used as reference.
+Note hg19 and GRCh37 differ in the mitochondrial DNA, but since mitchondrial variants are not supported by AIdiva it does not matter which of the two assemblies is used as reference.
 
 GRCh37:
 <br>
@@ -32,9 +32,9 @@ samtools faidx hg38.fa.gz
 ```
 
 ## Annotation Databases
-INFO: Please be adviced that some of the annotation sources aiDIVA uses are only free for non-commercial and academic use!!!
+INFO: Please be adviced that some of the annotation sources aiDIVA uses are only free for non-commercial and academic use!
 
-If for some reason you choose to exclude one or more of the Annotation sources shown here you have to make sure to modify the source code accordingly. If an annotation source is used as a feature for the random forest and you exclude it in your analysis you have to train a new model before you can use aiDIVA.
+If for some reason you choose to exclude one or more of the Annotation sources shown here you have to make sure to modify the source code accordingly. If an annotation source is used as a feature for the random forest and you exclude it in your analysis you have to train a new model before you can use Aidiva.
 
 
 ### CADD
@@ -280,7 +280,7 @@ https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/vcf/genomes
 (https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/vcf/exomes/gnomad.exomes.r2.1.1.sites.vcf.bgz)
 \
 \
-From the complete gnomAD database we are only interested in a few entries from the VCF files, therefor we suggest to prepare the VCF and remove the unnecessary stuff from the gnomAD annotation VCF. The following code snippet uses the `prepare_gnomAD_vcf.py` script to reduce it to a minimal set of INFO entries that we need for the aiDIVA annotations:
+From the complete gnomAD database we are only interested in a few entries from the VCF files, therefor we suggest to prepare the VCF and remove the unnecessary stuff from the gnomAD annotation VCF. The following code snippet uses the `prepare_gnomAD_vcf.py` script to reduce it to a minimal set of INFO entries that we need for the AIdiva annotations:
 
 ```
 wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/vcf/exomes/gnomad.exomes.r2.1.1.sites.vcf.bgz
@@ -311,7 +311,12 @@ tabix -p vcf grch38_gnomAD_genomes_r211.vcf.gz
 
 
 ### \[optional\] HGMD (needs license)
-The possibility to use HGMD in aiDIVA is optional due to the fact that you need a license for it. If you choose to include HGMD in the aiDIVA analysis you can use the public/professional version of HGMD.
+The possibility to use HGMD in AIdiva is optional due to the fact that you need a license for it. If you choose to include HGMD in the AIdiva analysis you can use the public/professional version of HGMD.
+
+
+### \[optional\] OMIM (needs license)
+The possibility to use OMIM in AIdiva is optional due to the fact that you need a license for it.
+**Currently not implemented!**
 
 
 ### Low Confidence Regions

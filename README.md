@@ -18,7 +18,7 @@ The following additional libraries need to be installed in order to use the prog
 + scipy (v1.10.1)
 + scikit-learn (v1.3.0)
 
-If a newer scikit-learn version is used the models provided should still work (they were created using the version v0.19.1 and the import was tested with v0.21.3 and v0.22.2).
+If a newer scikit-learn version is used it is advised to create a new model with the newer scikit version.
 
 
 ## Annotation resources and tools
