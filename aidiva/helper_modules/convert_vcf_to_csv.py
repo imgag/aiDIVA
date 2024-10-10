@@ -95,7 +95,7 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     header_line = ""
     comment_lines = []
 
-    with open(filepath, "r") as vcf_file_to_reformat, tempfile.NamedTemporaryFile(mode="w+") as tmp:
+    with open(filepath, "r") as vcf_file_to_reformat: #, tempfile.NamedTemporaryFile(mode="w+") as tmp:
         # make sure that there are no unwanted linebreaks in the variant entries
         ## TODO: remove regular expression, should not be needed anymore
         #tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
@@ -117,8 +117,8 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
         if header_line == "":
             logger.warning("The VCF file seems to be corrupted")
 
-        vcf_header = header_line.strip().split("\t")
-        vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment="#", low_memory=False)
+    vcf_header = header_line.strip().split("\t")
+    vcf_as_dataframe = pd.read_csv(filepath, names=vcf_header, sep="\t", comment="#", low_memory=False)
 
     return comment_lines, vcf_as_dataframe
 
