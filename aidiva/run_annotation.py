@@ -14,7 +14,7 @@ import yaml
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description = "AIdiva -- Augmented Intelligence Disease Variant Analysis")
+    parser = argparse.ArgumentParser(description = "aiDIVA -- Augmented Intelligence Disease Variant Analysis")
     parser.add_argument("--vcf", type=str, dest="vcf", metavar="input.vcf(.gz)", required=True, help="VCF file with the variants to annotate [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for aiDIVA [required]")
     parser.add_argument("--out_folder", type=str, dest="out_folder", metavar="/output_path/aidiva_result", required=True, help="Prefix that is used to save the annotated files [required]")

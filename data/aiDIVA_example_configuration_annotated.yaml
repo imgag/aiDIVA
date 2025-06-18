@@ -22,25 +22,25 @@ Analysis-Input:
         repeat-identifier: simpleRepeat
         duplication-identifier: segmentDuplication
 
+    # Weights are used in the prioritization step
+    # You can change these weights, but make sure that they sum up to 1.0
+    # The default values were obtained through a simple weight optimization
+    prioritization-weights:
+        pathogenicity-weight: 0.34
+        hpo-weight: 0.65
+        hpo-interacting-weight: 0.01
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these) if not wanted use a empty list "[]" instead
-    # NOTE: currently not used, we use directly the MAX_AF annotation from VEP
     allele-frequency-list:
         - gnomAD_AFR_AF
-        - gnomAD_ASJ_AF
+        - gnomAD_AMR_AF
         - gnomAD_EAS_AF
-        - gnomAD_FIN_AF
         - gnomAD_NFE_AF
-        - gnomAD_OTH_AF
         - gnomAD_SAS_AF
-        - AA_AF
-        - EA_AF
-        - AFR_AF
-        - AMR_AF
-        - EAS_AF
-        - EUR_AF
-        - SAS_AF
+        #- gnomAD_ASJ_AF
+        #- gnomAD_FIN_AF
+        #- gnomAD_OTH_AF
 
     # List containing the names of the features used for the model training
     # the exact order of the features is crucial (make sure to have the exact same order as in the training step)

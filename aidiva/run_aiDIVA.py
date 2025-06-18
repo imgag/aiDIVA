@@ -13,7 +13,7 @@ import yaml
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description = "AIdiva -- Augmented Intelligence Disease Variant Analysis")
+    parser = argparse.ArgumentParser(description = "aiDIVA -- Augmented Intelligence Disease Variant Analysis")
     parser.add_argument("--snp_vcf", type=str, dest="snp_vcf", metavar="snp.vcf", required=True, help="VCF file with the annotated SNP variants [required]")
     parser.add_argument("--indel_vcf", type=str, dest="indel_vcf", metavar="indel.vcf", required=True, help="VCF file with the annotated (only basic annotation) InDel variants [required]")
     parser.add_argument("--expanded_indel_vcf", type=str, dest="expanded_indel_vcf", metavar="expanded_indel.vcf", required=True, help="VCF file with the annotated expanded InDel variants [required]")
@@ -175,6 +175,7 @@ if __name__=="__main__":
     ref_path = configuration["Analysis-Input"]["ref-path"]
 
     transcript_path = configuration["Canonical-Transcripts"]
+    prioritization_weights = configuration["Analysis-Input"]["prioritization-weights"]
 
     # convert splitted input data to vcf and annotate
     if snp_vcf is not None:
@@ -191,8 +192,8 @@ if __name__=="__main__":
         input_data_indel = pd.DataFrame()
         input_data_expanded_indel = pd.DataFrame()
 
-    #logger.debug(f"Condition-Check: {input_data_snp.dropna(how='all').empty}, {input_data_indel.dropna(how='all').empty}, {input_data_expanded_indel.dropna(how='all').empty}")
-    #logger.debug(f"Condition: {(not input_data_snp.dropna(how='all').empty) or ((not input_data_indel.dropna(how='all').empty) and (not input_data_expanded_indel.dropna(how='all').empty))}")
+    logger.debug(f"Condition-Check: {input_data_snp.dropna(how='all').empty}, {input_data_indel.dropna(how='all').empty}, {input_data_expanded_indel.dropna(how='all').empty}")
+    logger.debug(f"Condition: {(not input_data_snp.dropna(how='all').empty) or ((not input_data_indel.dropna(how='all').empty) and (not input_data_expanded_indel.dropna(how='all').empty))}")
 
     if (not input_data_snp.dropna(how='all').empty) or ((not input_data_indel.dropna(how='all').empty) and (not input_data_expanded_indel.dropna(how='all').empty)):
         if ((not input_data_indel.empty) and (not input_data_expanded_indel.empty)):
@@ -237,12 +238,13 @@ if __name__=="__main__":
 
         # prioritize and filter variants
         logger.info("Prioritize variants and finalize score ...")
-        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
-        prioritized_data["AIDIVA_RANK"] = prioritized_data["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
+        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, prioritization_weights, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
+        prioritized_data_filtered = prioritized_data[prioritized_data["FILTER_PASSED"] == 1].copy(deep=True)
+        prioritized_data_filtered["AIDIVA_RANK"] = prioritized_data_filtered["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
 
         ## TODO: create additional output files according to the inheritance information (only filtered data)
         if only_top_results:
-            prioritized_data[prioritized_data["FILTER_PASSED"] == 1 & prioritized_data["AIDIVA_RANK"] <= top_rank].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+            prioritized_data_filtered[prioritized_data_filtered["AIDIVA_RANK"] <= top_rank].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
             logger.info(f"Only top ranking variants are reported as result (rank: {top_rank})!")
 
         else:
@@ -252,14 +254,14 @@ if __name__=="__main__":
 
             prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"})
             prioritized_data.to_csv(str(output_filename + "_aidiva_result.tsv"), sep="\t", index=False)
-            prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+            prioritized_data_filtered.to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
 
             if family_type == "TRIO": #TODO add additional condition for type FAMILY (this type is currently not supported)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["COMPOUND"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_compound.tsv"), sep="\t", index=False)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["DOMINANT_DENOVO"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant_denovo.tsv"), sep="\t", index=False)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["DOMINANT"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant.tsv"), sep="\t", index=False)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["XLINKED"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_xlinked.tsv"), sep="\t", index=False)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["RECESSIVE"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_recessive.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["COMPOUND"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_compound.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["DOMINANT_DENOVO"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant_denovo.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["DOMINANT"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["XLINKED"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_xlinked.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["RECESSIVE"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_recessive.tsv"), sep="\t", index=False)
 
         logger.info("Pipeline successfully finsished!")
 

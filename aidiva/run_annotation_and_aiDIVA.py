@@ -17,7 +17,7 @@ import yaml
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description = "AIdiva -- Augmented Intelligence Disease Variant Analysis")
+    parser = argparse.ArgumentParser(description = "aiDIVA -- Augmented Intelligence Disease Variant Analysis")
     parser.add_argument("--vcf", type=str, dest="vcf", metavar="input.vcf(.gz)", required=True, help="VCF file with the variants to analyze [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for aiDIVA [required]")
     parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="/output_path/aidiva_result", required=True, help="Prefix that is used to save the results [required]")
@@ -185,6 +185,7 @@ if __name__=="__main__":
     ref_path = configuration["Analysis-Input"]["ref-path"]
 
     transcript_path = configuration["Canonical-Transcripts"]
+    prioritization_weights = configuration["Analysis-Input"]["prioritization-weights"]
 
     # convert splitted input data to vcf and annotate
     input_file = os.path.splitext(input_vcf)[0]
@@ -274,29 +275,30 @@ if __name__=="__main__":
 
         # prioritize and filter variants
         logger.info("Filter variants and finalize score...")
-        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
-        prioritized_data["AIDIVA_RANK"] = prioritized_data["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
+        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, prioritization_weights, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_file, gene_exclusion_file)
+        prioritized_data_filtered = prioritized_data[prioritized_data["FILTER_PASSED"] == 1].copy(deep=True)
+        prioritized_data_filtered["AIDIVA_RANK"] = prioritized_data_filtered["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
 
         ## TODO: create additional output files according to the inheritance information (only filtered data)
         if only_top_results:
-            prioritized_data[prioritized_data["FILTER_PASSED"] == 1 & prioritized_data["AIDIVA_RANK"] <= top_rank].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+            prioritized_data_filtered[prioritized_data_filtered["AIDIVA_RANK"] <= top_rank].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
             logger.info(f"Only top ranking variants are reported as result (rank: {top_rank})!")
 
         else:
             if save_as_vcf:
                 write_result.write_result_vcf(prioritized_data, str(output_filename + "_aidiva_result.vcf"), assembly_build, bool(family_type == "SINGLE"))
-                write_result.write_result_vcf(prioritized_data[prioritized_data["FILTER_PASSED"] == 1], str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
+                write_result.write_result_vcf(prioritized_data_filtered, str(output_filename + "_aidiva_result_filtered.vcf"), assembly_build, bool(family_type == "SINGLE"))
 
             #prioritized_data = prioritized_data.rename(columns={"CHROM": "#CHROM"}) # not needed anymore
             prioritized_data.to_csv(str(output_filename + "_aidiva_result.tsv"), sep="\t", index=False)
-            prioritized_data[prioritized_data["FILTER_PASSED"] == 1].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
+            prioritized_data_filtered.to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
 
             if family_type == "TRIO": #TODO add additional condition for type FAMILY (this type is currently not supported)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["COMPOUND"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_compound.tsv"), sep="\t", index=False)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["DOMINANT_DENOVO"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant_denovo.tsv"), sep="\t", index=False)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["DOMINANT"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant.tsv"), sep="\t", index=False)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["XLINKED"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_xlinked.tsv"), sep="\t", index=False)
-                prioritized_data[(prioritized_data["FILTER_PASSED"] == 1) & (prioritized_data["RECESSIVE"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_recessive.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["COMPOUND"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_compound.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["DOMINANT_DENOVO"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant_denovo.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["DOMINANT"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["XLINKED"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_xlinked.tsv"), sep="\t", index=False)
+                prioritized_data_filtered[(prioritized_data_filtered["RECESSIVE"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_recessive.tsv"), sep="\t", index=False)
 
         logger.info("Pipeline successfully finsished!")
 

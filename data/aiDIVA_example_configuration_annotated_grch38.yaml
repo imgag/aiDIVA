@@ -21,6 +21,13 @@ Analysis-Input:
         repeat-identifier: simpleRepeat
         duplication-identifier: segmentDuplication
 
+    # Weights are used in the prioritization step
+    # You can change these weights, but make sure that they sum up to 1.0
+    # The default values were obtained through a simple weight optimization
+    prioritization-weights:
+        pathogenicity-weight: 0.34
+        hpo-weight: 0.65
+        hpo-interacting-weight: 0.01
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these)

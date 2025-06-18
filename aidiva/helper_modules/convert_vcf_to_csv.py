@@ -1,4 +1,5 @@
 import argparse
+import gzip
 import logging
 import multiprocessing as mp
 import numpy as np
@@ -95,30 +96,38 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     header_line = ""
     comment_lines = []
 
-    with open(filepath, "r") as vcf_file_to_reformat, tempfile.NamedTemporaryFile(mode="w+") as tmp:
-        # make sure that there are no unwanted linebreaks in the variant entries
-        ## TODO: remove regular expression, should not be needed anymore
-        #tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
-        #tmp.seek(0)
+    if filepath.endswith(".gz"):
+        vcf_file_to_reformat = gzip.open(filepath, "rt")
 
-        # extract header from vcf file
-        for line in vcf_file_to_reformat:
-            if line.strip().startswith("##"):
-                comment_lines.append(line.strip())
+    else:
+        vcf_file_to_reformat = open(filepath, "r")
 
-            elif line.strip().startswith("#CHROM"):
-                header_line = line.strip()
-                comment_lines.append(header_line)
-                break # now the variant entries are coming
+    #with open(filepath, "r") as vcf_file_to_reformat: #, tempfile.NamedTemporaryFile(mode="w+") as tmp:
+    # make sure that there are no unwanted linebreaks in the variant entries
+    ## TODO: remove regular expression, should not be needed anymore
+    #tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
+    #tmp.seek(0)
 
-            else:
-                continue
+    # extract header from vcf file
+    for line in vcf_file_to_reformat:
+        if line.strip().startswith("##"):
+            comment_lines.append(line.strip())
 
-        if header_line == "":
-            logger.warning("The VCF file seems to be corrupted")
+        elif line.strip().startswith("#CHROM"):
+            header_line = line.strip()
+            comment_lines.append(header_line)
+            break # now the variant entries are coming
 
-        vcf_header = header_line.strip().split("\t")
-        vcf_as_dataframe = pd.read_csv(tmp.name, names=vcf_header, sep="\t", comment="#", low_memory=False)
+        else:
+            continue
+
+    if header_line == "":
+        logger.warning("The VCF file seems to be corrupted")
+
+    vcf_file_to_reformat.close()
+
+    vcf_header = header_line.strip().split("\t")
+    vcf_as_dataframe = pd.read_csv(filepath, names=vcf_header, sep="\t", comment="#", low_memory=False)
 
     return comment_lines, vcf_as_dataframe
 
@@ -479,7 +488,7 @@ def extract_sample_information(row, sample, sample_header=None):
 
     else:
         format_entries = str(row["FORMAT"]).strip().split(":")
-        sample_fields = str(row[sample + ".full"]).strip().split(":")
+        sample_fields = str(row[sample + "_full"]).strip().split(":")
 
         if len(format_entries) != len(sample_fields):
             num_missing_entries = abs(len(format_entries) - len(sample_fields))
@@ -684,18 +693,18 @@ def add_sample_information_to_dataframe(sample_ids, sample_header, vcf_as_datafr
         if (sample == "trio") or (sample == "multi"):
             sample_header_multi = []
             for sample_id in sample_header:
-                sample_header_multi.append("GT." + sample_id)
-                sample_header_multi.append("DP." + sample_id)
-                sample_header_multi.append("ALT." + sample_id)
-                sample_header_multi.append(sample_id + ".full")
+                sample_header_multi.append("GT_" + sample_id)
+                sample_header_multi.append("DP_" + sample_id)
+                sample_header_multi.append("ALT_" + sample_id)
+                sample_header_multi.append(sample_id + "_full")
 
             vcf_as_dataframe[sample_header_multi] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample, sample_header)), axis=1)
 
         else:
-            vcf_as_dataframe.rename(columns={sample: sample + ".full"}, inplace=True)
-            sample_header_default = ["GT." + sample, "DP." + sample, "REF." + sample, "ALT." + sample, "AF." + sample, "GQ." + sample]
+            vcf_as_dataframe.rename(columns={sample: sample + "_full"}, inplace=True)
+            sample_header_default = ["GT_" + sample, "DP_" + sample, "REF_" + sample, "ALT_" + sample, "AF_" + sample, "GQ_" + sample]
             vcf_as_dataframe[sample_header_default] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_sample_information(x, sample)), axis=1)
-            vcf_as_dataframe = vcf_as_dataframe.drop(columns=[sample + ".full"])
+            vcf_as_dataframe = vcf_as_dataframe.drop(columns=[sample + "_full"])
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["FORMAT"])
 
