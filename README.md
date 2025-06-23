@@ -4,6 +4,10 @@ aiDIVA is an analysis pipeline that predicts the pathogenicity of given variants
 
 The pathogenicity prediction is based on a random forest (RF) model. That covers both SNV and inframe InDel variants (frameshift variants are not covered, they are handled separately).
 
+Later we combine this prediction-based ranking with an optional evidence-based approach and refine it with an LLM.
+
+In the end we create a metascore-based ranking where we use a random forest with the ranking results as features.
+
 
 ## System requirements
 The program is written in Python 3 (v3.8.10)
@@ -16,7 +20,7 @@ The following additional libraries need to be installed in order to use the prog
 + pysam (v0.21.0)
 + pyyaml (v6.0)
 + scipy (v1.10.1)
-+ scikit-learn (v1.3.0)
++ scikit-learn (v1.3.2)
 
 If a newer scikit-learn version is used it is advised to create a new model with the newer scikit version.
 
@@ -38,53 +42,175 @@ To recreate the HPO resources please head over to the detailed [instructions](ht
 
 Protein interactions based on String-DB v11.0b
 
-Last update of HPO resources: 30th July, 2021
+Last update of HPO resources: 22nd May, 2023
 
 
 
 ## Pathogenicity prediction
-There is one random forest models that is used in aiDIVA to predict the pathogenicity of a given variant. It is a combined model for SNV and inframe InDel variants. The training data of the model consists of variants from Clinvar.
+There is one random forest model that is used in aiDIVA to predict the pathogenicity of a given variant. It is a combined model for SNV and inframe InDel variants. The training data of the model consists of variants from Clinvar.
 
-The scripts used to train the models can be found in the following GitHub repository: [aiDIVA-Training](https://github.com/imgag/aiDIVA-Training)
+The scripts used to train the model can be found in the following GitHub repository: [aiDIVA-Training](https://github.com/imgag/aiDIVA-Training)
 
 _Frameshift_ variants will get a default score of 0.9, whereas _synonymous_ variants always get the lowest score 0.0
 
-Pretrained random forest models using our current feature set can be found [here](https://download.imgag.de/ahboced1/aiDIVA_pretrained_models/). The current model was trained using scikit-learn v1.3.0. The trained models of scikit-learn are version dependent.
+Pretrained random forest models using our current feature set can be found [here](https://download.imgag.de/ahboced1/aiDIVA_pretrained_models/). The latest model was trained using scikit-learn v1.3.2. The trained models of scikit-learn are version dependent.
 
 
 ## Running aiDIVA
-aiDIVA can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. When the variant annotation with VEP should also be performed with aiDIVA this is the only required command line argument. In the other case when an already annotated file is given there are a few more arguments that needs to be passed instead of being specified in the configuration file. The reason for this different set of parameters is due to the fact that it makes it more convenient to include aiDIVA in another existing pipeline.
+aiDIVA can be run either on already annotated VCF files or unannotated VCF files. In both cases a configuration file in the YAML format is required. Furthermore it is possible to run only segments of the whole pipeline. In total we have six different modi in which our pipeline can be run.
 
-Make sure to specify the trained model in the config file `aiDIVA_configuration_annotated.yaml`.
+Make sure to specify the trained model in the config file `aiDIVA_configuration_annotated.yaml`/`aiDIVA_configuration_with_annotation.yaml`.
+
+
+### Running only annotation:
+
+```
+python3 run_annotation.py --config aiDIVA_configuration_with_annotation.yaml --vcf input.vcf --out_folder output_path/aidiva_annotation [--filtered] [--filtered_folder output_path/aidiva_filtered/] [--inhouse_sample] [--output_table] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO]
+```
+
++ _config_ -- YAML configuration file (in the `data` folder there are example configuration files)
++ _vcf_ -- Input VCF file containing all variants of the given patient
++ _out_folder_ -- Folder where the resulting output files should be saved
++ _filtered_ -- Skip filtering step if it was already done [optional]
++ _filtered_folder_ -- Folder where to find the already filtered VCF files [optional]
++ _inhouse_sample_ -- The input VCF was prepared inhouse (skips some additional preparation steps to prevent possible problems) [optional]
++ _output_table_ -- Save the annotations additionally as a TAB separated file [optional]
++ _threads_ -- Number of threads that should be used (default: 1) [optional]
++ _log_file_ -- Specify a custom log file to store the log messages from the tool [optional]
++ _log_level_ -- Define logging level [DEBUG, INFO] (default: INFO) [optional]
+
 
 
 ### Running aiDIVA on already annotated data:
 
 ```
-python run_aiDIVA.py --config aiDIVA_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
+python3 run_aiDIVA.py --config aiDIVA_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list HP:xxxx,HP:xxxx] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--top_rank 25] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO] [--save_as_vcf]
 ```
 
-+ _config_ -- YAML configuration file (in the `data` folder there are example configuration files for each of the two modes)
++ _config_ -- YAML configuration file (in the `data` folder there are example configuration files)
 + _snp_vcf_ -- Input VCF file containing all annotated SNP variants of the given patient
 + _indel_vcf_ -- Input VCF file containing all InDel variants with basic annotation of the given patient
-+ _expanded_indel_vcf_ -- Input VCF file containing all annotated expanded InDel of the given patient
-+ _out_prefix_ -- A prefix for the resulting output files
-+ _workdir_ -- Working directory, where all temporary files are created and saved (the results will also be stored here)
-+ _hpo_list_ -- TXT file containing all the HPO terms observed with the patient [optional]
++ _expanded_indel_vcf_ -- Input VCF file containing all annotated expanded InDel variants of the given patient
++ _out_prefix_ -- A prefix for the resulting output files the output folder can also be specified with that parameter
++ _workdir_ -- Working directory, where all temporary files are created and saved [optional]
++ _hpo_list_ -- Comma-separated list of HPO terms observed with the patient [optional]
 + _gene_exclusion_ -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness [optional]
 + _family_file_ -- TXT file containing the sample information if run on multisample VCF files [optional]
-+ _family_type_ -- Type of the family relation [SINGLE, TRIO, FAMILY] (default: SINGLE) [optional]
++ _family_type_ -- Type of the family relation [SINGLE, TRIO] (default: SINGLE) [optional]
 + _skip_db_check_ -- Skip the database checkup for existing entries in ClinVar (and HGMD) [optional]
-+ _only_top_results_ -- Restrict the results to only report the top 25 variants [optional]
++ _only_top_results_ -- Restrict the results to only report the top X variants (default: 25) [optional]
++ _top_rank_ -- Rank that should be used as maximum for the top ranking results to report (default: 25) [optional]
 + _threads_ -- Number of threads that should be used (default: 1) [optional]
-+ _log_level_ -- Define logging level [DEBUG, INFO, WARN, ERROR, CRITICAL] (default: INFO) [optional]
++ _log_file_ -- Specify a custom log file to store the log messages from the tool [optional]
++ _log_level_ -- Define logging level [DEBUG, INFO] (default: INFO) [optional]
+
 
 ### Running aiDIVA and perform the annotation:
 
 ```
-python run_annotation_and_aiDIVA.py --config aiDIVA_configuration_with_annotation.yaml --vcf input.vcf --workdir aidiva_workdir/ [--hpo_list hpo_terms.txt] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--threads 1] [--log_level INFO]
+python3 run_annotation_and_aiDIVA.py --config aiDIVA_configuration_with_annotation.yaml --vcf input.vcf --out_prefix output_path/aidiva_result [--workdir aidiva_workdir/] [--hpo_list HP:xxxx,HP:xxxx] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--top_rank 25] [--inhouse_sample] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO] [--save_as_vcf]
 ```
+
++ _config_ -- YAML configuration file (in the `data` folder there are example configuration files)
++ _vcf_ -- Input VCF file containing all variants of the given patient
++ _out_prefix_ -- A prefix for the resulting output files the output folder can also be specified with that parameter
++ _workdir_ -- Working directory, where all temporary files are created and saved [optional]
++ _hpo_list_ -- Comma-separated list of HPO terms observed with the patient [optional]
++ _gene_exclusion_ -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness [optional]
++ _family_file_ -- TXT file containing the sample information if run on multisample VCF files [optional]
++ _family_type_ -- Type of the family relation [SINGLE, TRIO] (default: SINGLE) [optional]
++ _skip_db_check_ -- Skip the database checkup for existing entries in ClinVar (and HGMD) [optional]
++ _only_top_results_ -- Restrict the results to only report the top X variants (default: 25) [optional]
++ _top_rank_ -- Rank that should be used as maximum for the top ranking results to report (default: 25) [optional]
++ _inhouse_sample_ -- The input VCF was prepared inhouse (skips some additional preparation steps to prevent possible problems) [optional]
++ _threads_ -- Number of threads that should be used (default: 1) [optional]
++ _log_file_ -- Specify a custom log file to store the log messages from the tool [optional]
++ _log_level_ -- Define logging level [DEBUG, INFO] (default: INFO) [optional]
++ _save_as_vcf_ -- Save results additionally in VCF format [optional]
+
+
+### Running only the metascore ranking:
+
+```
+python3 run_metamodel.py --config aiDIVA_configuration_with_annotation.yaml --in_rf in_rf.tsv --out_prefix output_path/aidiva_result --sample_id NA12878 [--in_eb_dom in_eb_dom.GSvar] [--in_eb_rec in_eb_rec.GSvar] [--workdir aidiva_workdir/] --hpo_list HP:xxxx,HP:xxxx [--gender male/female] [--age 42] [--evidence_based] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO]
+```
+
++ _config_ -- YAML configuration file (in the `data` folder there are example configuration files)
++ _in_rf_ -- TAB separated file with the random forest-based ranking results from aiDIVA without using the metamodel
++ _out_prefix_ -- A prefix for the resulting output files the output folder can also be specified with that parameter
++ _sample_id_ -- Sample ID this is used to extract the genotype in the VCF file
++ _in_eb_dom_ -- GSvar file containing the evidence-based ranking results of the patients variants using the dominant mode of the algorithm [optional]
++ _in_eb_rec_ -- GSvar file containing the evidence-based ranking results of the patients variants using the recessive mode of the algorithm [optional]
++ _workdir_ -- Working directory, where all temporary files are created and saved [optional]
++ _hpo_list_ -- Comma-separated list of HPO terms observed with the patient [optional]
++ _gender_ -- Gender of the patient if known [optional]
++ _age_ -- Age of the patient if known [optional]
++ _evidence_based_ -- Include evidence-based ranking results [optional]
++ _threads_ -- Number of threads that should be used (default: 1) [optional]
++ _log_file_ -- Specify a custom log file to store the log messages from the tool [optional]
++ _log_level_ -- Define logging level [DEBUG, INFO] (default: INFO) [optional]
+
+
+### Running aiDIVA on already annotated data with metascore ranking:
+
+```
+python3 run_aiDIVA_with_metamodel.py --config aiDIVA_configuration_with_annotation.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf [--in_eb_dom in_eb_dom.GSvar] [--in_eb_rec in_eb_rec.GSvar] --out_prefix output_path/aidiva_result --sample_id NA12878 [--workdir aidiva_workdir/] --hpo_list HP:xxxx,HP:xxxx [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--top_rank 25] [--gender male/female] [--age 42] [--evidence_based] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO] [--save_as_vcf]
+```
+
++ _config_ -- YAML configuration file (in the `data` folder there are example configuration files)
++ _snp_vcf_ -- Input VCF file containing all annotated SNP variants of the given patient
++ _indel_vcf_ -- Input VCF file containing all InDel variants with basic annotation of the given patient
++ _expanded_indel_vcf_ -- Input VCF file containing all annotated expanded InDel variants of the given patient
++ _in_eb_dom_ -- GSvar file containing the evidence-based ranking results of the patients variants using the dominant mode of the algorithm [optional]
++ _in_eb_rec_ -- GSvar file containing the evidence-based ranking results of the patients variants using the recessive mode of the algorithm [optional]
++ _out_prefix_ -- A prefix for the resulting output files the output folder can also be specified with that parameter
++ _sample_id_ -- Sample ID this is used to extract the genotype in the VCF file
++ _workdir_ -- Working directory, where all temporary files are created and saved [optional]
++ _hpo_list_ -- Comma-separated list of HPO terms observed with the patient
++ _gene_exclusion_ -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness [optional]
++ _family_file_ -- TXT file containing the sample information if run on multisample VCF files [optional]
++ _family_type_ -- Type of the family relation [SINGLE, TRIO] (default: SINGLE) [optional]
++ _skip_db_check_ -- Skip the database checkup for existing entries in ClinVar (and HGMD) [optional]
++ _only_top_results_ -- Restrict the results to only report the top X variants (default: 25) [optional]
++ _top_rank_ -- Rank that should be used as maximum for the top ranking results to report (default: 25) [optional]
++ _gender_ -- Gender of the patient if known [optional]
++ _age_ -- Age of the patient if known [optional]
++ _evidence_based_ -- Include evidence-based ranking results [optional]
++ _threads_ -- Number of threads that should be used (default: 1) [optional]
++ _log_file_ -- Specify a custom log file to store the log messages from the tool [optional]
++ _log_level_ -- Define logging level [DEBUG, INFO] (default: INFO) [optional]
++ _save_as_vcf_ -- Save results additionally in VCF format [optional]
+
+
+### Running aiDIVA with metascore ranking and perform the annotation:
+
+```
+python3 run_annotation_and_aiDIVA_with_metamodel.py --config aiDIVA_configuration_with_annotation.yaml --vcf input.vcf [--in_eb_dom in_eb_dom.GSvar] [--in_eb_rec in_eb_rec.GSvar] --out_prefix output_path/aidiva_result --sample_id NA12878 [--workdir aidiva_workdir/] --hpo_list HP:xxxx,HP:xxxx [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--top_rank 25] [--inhouse_sample] [--gender male/female] [--age 42] [--evidence_based] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO] [--save_as_vcf]
+```
+
++ _config_ -- YAML configuration file (in the `data` folder there are example configuration files)
++ _vcf_ -- Input VCF file containing all variants of the given patient
++ _in_eb_dom_ -- GSvar file containing the evidence-based ranking results of the patients variants using the dominant mode of the algorithm [optional]
++ _in_eb_rec_ -- GSvar file containing the evidence-based ranking results of the patients variants using the recessive mode of the algorithm [optional]
++ _out_prefix_ -- A prefix for the resulting output files the output folder can also be specified with that parameter
++ _sample_id_ -- Sample ID this is used to extract the genotype in the VCF file
++ _workdir_ -- Working directory, where all temporary files are created and saved [optional]
++ _hpo_list_ -- Comma-separated list of HPO terms observed with the patient [optional]
++ _gene_exclusion_ -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness [optional]
++ _family_file_ -- TXT file containing the sample information if run on multisample VCF files [optional]
++ _family_type_ -- Type of the family relation [SINGLE, TRIO] (default: SINGLE) [optional]
++ _skip_db_check_ -- Skip the database checkup for existing entries in ClinVar (and HGMD) [optional]
++ _only_top_results_ -- Restrict the results to only report the top X variants (default: 25) [optional]
++ _top_rank_ -- Rank that should be used as maximum for the top ranking results to report (default: 25) [optional]
++ _inhouse_sample_ -- The input VCF was prepared inhouse (skips some additional preparation steps to prevent possible problems) [optional]
++ _gender_ -- Gender of the patient if known [optional]
++ _age_ -- Age of the patient if known [optional]
++ _evidence_based_ -- Include evidence-based ranking results [optional]
++ _threads_ -- Number of threads that should be used (default: 1) [optional]
++ _log_file_ -- Specify a custom log file to store the log messages from the tool [optional]
++ _log_level_ -- Define logging level [DEBUG, INFO] (default: INFO) [optional]
++ _save_as_vcf_ -- Save results additionally in VCF format [optional]
 
 
 ## aiDIVA results
-aiDIVA will produce three different output files two CSV files with the annotation and the results from the prediction and the prioritization. One of these two contains all variants, whereas the other one only contains the variants that passed the internal filtering step. The third file is a VCF file with the results in the INFO field, there are nine different fields in the INFO field. Four indicate a possible inheritance if the given VCF was a multisample VCF (These are missing if only a single sample VCF was given). One indicates if all internal filters were passed (AIDIVA_FILTER).
+aiDIVA will produce multiple different output files two CSV files with the annotation and the results from the prediction and the prioritization. One of these two contains all variants, whereas the other one only contains the variants that passed the internal filtering step. The third file is a VCF file with the results in the INFO field, there are nine different fields in the INFO field. Four indicate a possible inheritance if the given VCF was a multisample VCF (These are missing if only a single sample VCF was given). One indicates if all internal filters were passed (AIDIVA_FILTER).
