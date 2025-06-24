@@ -1,3 +1,7 @@
+###########################################################
+### Small script to easily recreate all used resources! ###
+###########################################################
+
 import argparse
 import gzip
 import json
@@ -343,7 +347,7 @@ def create_transcript_length_mapping(transcript_lengths, transcript_information)
 
                 if cds_length != "":
                     transcript_mapping[transcript_id] = cds_length
-    
+
     with open(transcript_lengths, "w") as transcript_lengths_f:
         json.dump(transcript_mapping, transcript_lengths_f)
 

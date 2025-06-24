@@ -1,7 +1,9 @@
+#####################################################################
+### Small script to prepare the REVEL data for easier annotation! ###
+#####################################################################
+
 import csv
-import gzip
 import sys
-import zipfile
 
 
 infile = sys.argv[1]

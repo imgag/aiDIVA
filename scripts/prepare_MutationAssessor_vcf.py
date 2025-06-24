@@ -1,3 +1,7 @@
+################################################################################
+### Small script to prepare the MutationAssessor data for easier annotation! ###
+################################################################################
+
 import csv
 import sys
 

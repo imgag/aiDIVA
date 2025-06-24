@@ -1,3 +1,7 @@
+############################################################################
+### Small script to prepare the RepeatMasker data for easier annotation! ###
+############################################################################
+
 import gzip
 import re
 import sys
