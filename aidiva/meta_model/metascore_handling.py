@@ -88,7 +88,6 @@ def extract_rf_rank_and_score(gene_rank_score_information, no_variant):
 def choose_desired_transcript(gene_transcripts):
     if len(gene_transcripts) > 2:
         logger.warning("Check sample. Reason: more than two transcripts for one gene.")
-        print(f"WARNING: Check sample. Reason: more than two transcripts for one gene.")
         consequence_value = 50
 
         for transcript in gene_transcripts:
@@ -138,13 +137,6 @@ def extract_eb_rank_and_score(gene_rank_score_information, no_variant):
     gene_info_dict_eb = {}
 
     for gene_entry in gene_entries:
-        #transcript_info = gene_entry.split("=")[0]
-        #rank_score_info = gene_entry.split("=")[1]
-
-        #rank = rank_score_info.replace(")", "").split("(")[0]
-        #score = rank_score_info.replace(")", "").split("(")[1].split("/")[0]
-        #genotype = rank_score_info.replace(")", "").split("(")[1].split("/")[1]
-
         gene_name = gene_entry.replace(")", "").split("(")[0].upper()
         gene_info = gene_entry.replace(")", "").split("(")[1]
 
@@ -165,7 +157,6 @@ def extract_eb_rank_and_score(gene_rank_score_information, no_variant):
         if len(splitted_gene_names) == 1:
             current_gene = splitted_gene_names[0].upper()
             variant_type_info = splitted_gene_info[1]
-            #print(splitted_gene_info)
 
             variant_type = choose_desired_variant_type(variant_type_info)
 
@@ -181,20 +172,20 @@ def extract_eb_rank_and_score(gene_rank_score_information, no_variant):
     return gene_info_dict_eb
 
 
-def get_gene_list(data, model_type):
-    if model_type == "RF":
-        gene_list = subdata["RF_top10_aiDIVA_v101"].values[0]
-
-    elif model_type == "EB dom":
-        gene_list = subdata["EB_top10_GSvar_v2_dominant"].values[0]
-
-    elif model_type == "EB rec":
-        gene_list = subdata["EB_top10_GSvar_v2_recessive"].values[0]
-
-    else:
-        print("ERROR!")
-
-    return gene_list
+#def get_gene_list(data, model_type):
+#    if model_type == "RF":
+#        gene_list = subdata["RF_top10_aiDIVA_v101"].values[0]
+#
+#    elif model_type == "EB dom":
+#        gene_list = subdata["EB_top10_GSvar_v2_dominant"].values[0]
+#
+#    elif model_type == "EB rec":
+#        gene_list = subdata["EB_top10_GSvar_v2_recessive"].values[0]
+#
+#    else:
+#        logger.error("Unknown model type! Not able to extract the top-10 ranking genes!")
+#
+#    return gene_list
 
 
 def get_llm_gene_candidates(data):
@@ -208,9 +199,7 @@ def get_llm_gene_candidates(data):
 def create_table_rf_based(in_data_rf_based, rf_gene_list, no_variant):
     meta_table_dict_list = []
 
-    #rf_gene_list = get_gene_list(in_data_rf_based, "RF")
     rf_gene_info_dict = extract_rf_rank_and_score(rf_gene_list, no_variant)
-
     rf_genes = set(list(rf_gene_info_dict.keys()))
 
     current_gene_set = set()
@@ -258,8 +247,6 @@ def create_table_rf_based(in_data_rf_based, rf_gene_list, no_variant):
         else:
             rf_rank_llm = 4
 
-        #print(f"{gene}\t{rf_rank}\t{rf_score}\t{rf_rank_llm}\n")
-
         meta_table_dict_list.append({"gene_name": gene, "variant": gene_variant, "rf_rank": rf_rank, "rf_score": rf_score, "rf_rank_llm": rf_rank_llm})
 
     meta_table = pd.DataFrame.from_dict(meta_table_dict_list)
@@ -270,17 +257,9 @@ def create_table_rf_based(in_data_rf_based, rf_gene_list, no_variant):
 def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_eb_dom, eb_dom_gene_list, in_data_eb_rec, eb_rec_gene_list, no_variant):
     meta_table_dict_list = []
 
-    #rf_gene_list = get_gene_list(in_data_rf_based, sample_id, "RF")
     rf_gene_info_dict = extract_rf_rank_and_score(rf_gene_list, no_variant)
-    #print("RF:", rf_gene_info_dict)
-
-    #eb_dom_gene_list = get_gene_list(in_data_eb_dom, sample_id, "EB dom")
     eb_dom_gene_info_dict = extract_eb_rank_and_score(eb_dom_gene_list, no_variant)
-    #print("EB dom:", eb_dom_gene_info_dict)
-
-    #eb_rec_gene_list = get_gene_list(in_data_eb_rec, sample_id, "EB rec")
     eb_rec_gene_info_dict = extract_eb_rank_and_score(eb_rec_gene_list, no_variant)
-    #print("EB rec:", eb_rec_gene_info_dict)
 
     rf_genes = set(list(rf_gene_info_dict.keys()))
     eb_dom_genes = set(list(eb_dom_gene_info_dict.keys()))
@@ -305,7 +284,6 @@ def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_e
             elif gene_variant != "" and gene_variant != rf_gene_info_dict[gene][0]["variant"]:
                 gene_variant = gene_variant + ";" + rf_gene_info_dict[gene][0]["variant"]
 
-            #gene_variant = rf_gene_info_dict[gene][0]["variant"]
             if len(rf_gene_info_dict[gene]) > 1:
                 consequence_value = 50
 
@@ -332,7 +310,6 @@ def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_e
             elif gene_variant != "" and gene_variant != eb_dom_gene_info_dict[gene][0]["variant"]:
                 gene_variant = gene_variant + ";" + eb_dom_gene_info_dict[gene][0]["variant"]
 
-            #gene_variant = eb_dom_gene_info_dict[gene][0]["variant"]
             if len(eb_dom_gene_info_dict[gene]) > 1:
                 consequence_value = 50
 
@@ -359,7 +336,6 @@ def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_e
             elif gene_variant != "" and gene_variant != eb_rec_gene_info_dict[gene][0]["variant"]:
                 gene_variant = gene_variant + ";" + eb_rec_gene_info_dict[gene][0]["variant"]
             
-            #gene_variant = eb_rec_gene_info_dict[gene][0]["variant"]
             if len(eb_rec_gene_info_dict[gene]) > 1:
                 consequence_value = 50
 
@@ -439,7 +415,6 @@ def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_e
         else:
             eb_rank_llm = 4
 
-        #print(f"{gene}\t{rf_rank}\t{rf_score}\t{rf_rank_llm}\t{eb_rank}\t{eb_score}\t{eb_rank_llm}\n")
         meta_table_dict_list.append({"gene_name": gene, "variant": gene_variant, "rf_rank": rf_rank, "rf_score": rf_score, "rf_rank_llm": rf_rank_llm, "eb_model": eb_model, "eb_rank": eb_rank, "eb_score": eb_score, "eb_rank_llm": eb_rank_llm})
 
     meta_table = pd.DataFrame.from_dict(meta_table_dict_list)
@@ -461,7 +436,6 @@ def import_model(model_file):
 
 
 def meta_scoring(metascore_table, meta_model, rf_only):
-    #metascore_table = pd.read_csv(in_file, sep="\t", low_memory=False)
     metascore_model = import_model(meta_model)
 
     label_column = "label"
@@ -480,18 +454,16 @@ def meta_scoring(metascore_table, meta_model, rf_only):
         metascore_table.loc[metascore_table['eb_model'] == 'rec', 'recessive'] = 1
 
     metascore_table_X = np.asarray(metascore_table[feature_list])
-
     score_prediction = pd.DataFrame(metascore_model.predict_proba(metascore_table_X), columns=["Probability_Benign", "Probability_Pathogenic"])
     metascore_table["metascore_prediction"] = score_prediction["Probability_Pathogenic"]
     metascore_table["meta_rank"] = metascore_table["metascore_prediction"].rank(method="min", ascending=False).astype(int)
     metascore_table.sort_values("meta_rank", inplace=True)
     metascore_table.reset_index(inplace=True, drop=True)
 
-    #metascore_table.to_csv(out_file, sep="\t", index=False)
-
     return metascore_table
 
 
+# for debugging
 def main(in_rf_llm, in_eb_dom_llm, in_eb_rec_llm, rf_file, eb_dom_file, eb_rec_file, sample_id, out_file, no_variant):
     rf_llm_res = pd.read_csv(in_rf_llm, sep="\t", low_memory=False)
     eb_dom_llm_res = pd.read_csv(in_eb_dom_llm, sep="\t", low_memory=False)
@@ -507,6 +479,7 @@ def main(in_rf_llm, in_eb_dom_llm, in_eb_rec_llm, rf_file, eb_dom_file, eb_rec_f
     metascore_table.to_csv(out_file, sep="\t", index=False)
 
 
+## The possibility to directly run the script is mainly meant for testing und debugging
 if __name__ == "__main__":
     import get_top_ranking_genes as top_ranking
 

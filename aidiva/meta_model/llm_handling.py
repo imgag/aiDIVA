@@ -70,7 +70,6 @@ def get_hpo_translations(hpo_terms, hpo2name_mapping):
 
         else:
             logger.warning(f"No HPO translation found! Skip HPO term ({term})!")
-            print(f"WARNING: No HPO translation found! Skip HPO term ({term})!")
 
     return hpo_translations
 
@@ -78,10 +77,8 @@ def get_hpo_translations(hpo_terms, hpo2name_mapping):
 def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, internal_parameter_dict, with_variant_type=True, with_genotype=True):
     hpo_2_name_f = get_resource_file(internal_parameter_dict["hpo2name-mapping"])
     hpo2name_mapping = load_from_json(hpo_2_name_f)
-
     hpo_translations = get_hpo_translations(hpo_terms, hpo2name_mapping)
     phenotype_information = ", ".join(hpo_translations)
-
     gene_list = top_ranking_genes
     list_of_gene_dicts = []
 
@@ -110,31 +107,6 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
             score = gene_info.split(",")[3].split(": ")[1]
             genotype = gene_info.split(",")[4].split(": ")[1]
 
-            #print("Gene:", gene_name)
-            #print("Consequence:", consequence)
-            #print("Type:", variant_type)
-
-            #gene_info = entry.split("=")[0]
-            #additional_info = entry.split("=")[1].replace(")", "")
-
-            #if "/" in gene_info:
-            #    if len(gene_info.split("/")) == 2:
-            #        if any(consequence in gene_info.split("/")[0] for consequence in CONSEQUENCE_MAPPING.keys()) and not any(consequence in gene_info.split("/")[1] for consequence in CONSEQUENCE_MAPPING.keys()):
-            #            gene_info = gene_info.split("/")[0]
-
-            #        elif any(consequence in gene_info.split("/")[1] for consequence in CONSEQUENCE_MAPPING.keys()) and not any(consequence in gene_info.split("/")[0] for consequence in CONSEQUENCE_MAPPING.keys()):
-            #            gene_info = gene_info.split("/")[1]
-
-            #        else:
-            #            print("ERROR: No supported variant type present!!!")
-
-            #    gene_name = gene_info.replace(")", "").split("(")[0]
-            #    variant_type = gene_info.replace(")", "").split("(")[1]
-
-            #else:
-            #    gene_name = gene_info.replace(")", "").split("(")[0]
-            #    variant_type = gene_info.replace(")", "").split("(")[1]
-
             if "/" in gene_name:
                 if len(gene_consequence.split("/")) == 2:
                     if any(consequence in gene_consequence.split("/")[0] for consequence in CONSEQUENCE_MAPPING.keys()) and not any(consequence in gene_consequence.split("/")[1] for consequence in CONSEQUENCE_MAPPING.keys()):
@@ -147,13 +119,10 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
 
                     else:
                         logger.error("No supported variant type present!!!")
-                        print("ERROR: No supported variant type present!!!")
 
             else:
                 gene_name = gene_name.split("/")[0]
                 variant_type = variant_type.split("/")[0]
-
-            #print("Type update:", variant_type)
 
             if "+" in variant_type:
                 consequences = [min([VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in variant_type.split("+")])]
@@ -174,10 +143,6 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
                     if not variant_type in SUPPORTED_VARIANT_TYPES:
                         variant_type = "unspecified variant"
 
-            #rank = additional_info.split("(")[0]
-            #score = additional_info.split("(")[1].split("/")[0]
-            #genotype = additional_info.split("(")[1].split("/")[1]
-
         if genotype == "het":
             genotype = "heterozygous"
 
@@ -185,7 +150,6 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
             genotype = "homozygous"
 
         list_of_gene_dicts.append({"gene": gene_name, "variant_type": variant_type, "genotype": genotype})
-        #print(list_of_gene_dicts)
 
     random.seed(RANDOM_SEED)
     random.shuffle(list_of_gene_dicts)
@@ -217,9 +181,8 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
 
             llm_prompt += "For each candidate gene the type of the variant is given in brackets. Furthermore the genotype of the variant is included in the brackets if it is a homozygous variant. "
             llm_prompt += f"Candidate genes: {', '.join(causal_genes)}"
-        
-        else:
 
+        else:
             causal_genes = []
 
             for entry in list_of_gene_dicts:
@@ -240,8 +203,6 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
 
 
 def call_llm_api(client, prompt, llm_instructions, model_id, llm_api, use_random_seed=False):
-    print("LLM-Instruction:\n", llm_instructions)
-
     # Define your messages for the chat
     messages = [
                 {"role": "system", "content": llm_instructions},
@@ -267,21 +228,17 @@ def call_llm_api(client, prompt, llm_instructions, model_id, llm_api, use_random
             used_tokens = response.usage
 
             # Print the response
-            print("Response from OpenAI API:")
-            print(answer, "\n\n")
-            print("Tokens used:", used_tokens)
-            print("Finish reason:", finish_reason, "\n\n")
+            logger.debug("Response from OpenAI API:")
+            logger.debug(answer, "\n\n")
+            logger.debug("Tokens used:", used_tokens)
+            logger.debug("Finish reason:", finish_reason, "\n\n")
 
             if "```json" in answer:
                 answer = answer.replace("```json", "```")
 
-            print(answer, "\n\n")
-
-            #answer = answer.replace("\",\n ", "\",\n \"")
-
             cleaned_answer = answer.split("```")
-
-            print("Cleaned answer:\n", cleaned_answer)
+            logger.debug(answer, "\n\n")
+            logger.debug("Cleaned answer:\n", cleaned_answer)
 
             if len(cleaned_answer) > 1:
                 json_answer = cleaned_answer[1]
@@ -289,7 +246,7 @@ def call_llm_api(client, prompt, llm_instructions, model_id, llm_api, use_random
             else:
                 json_answer = cleaned_answer[0]
 
-            print("JSON answer:\n", json_answer)
+            logger.debug("JSON answer:\n", json_answer)
 
             if json_answer.startswith("{"):
                 if not json_answer.endswith("}"):
@@ -302,14 +259,11 @@ def call_llm_api(client, prompt, llm_instructions, model_id, llm_api, use_random
             if i < num_retries - 1: # i is zero indexed
                 logger.warning(f"Caught {type(e)}: {e}")
                 logger.warning(f"Retry in 30 seconds to get answer from LLM! ({i + 1}  out of {num_retries} tries)")
-                print(f"Caught {type(e)}: {e}")
-                print(f"Retry in 30 seconds to get answer from LLM! ({i + 1}  out of {num_retries} tries)")
                 time.sleep(30)
                 continue
 
             else:
                 logger.error(f"Failed {num_retries} times! Execution stopped please investigate the problem manually!")
-                print(f"ERROR: Failed {num_retries} times! Execution stopped please investigate the problem manually!")
                 raise
 
         break
@@ -317,9 +271,6 @@ def call_llm_api(client, prompt, llm_instructions, model_id, llm_api, use_random
     if not isinstance(list_of_answers, list):
         if isinstance(list_of_answers, dict):
             list_of_answers = [list_of_answers]
-
-    #print("List of answers:")
-    #print(list_of_answers, "\n\n")
 
     results = pd.DataFrame(list_of_answers)
 
@@ -355,9 +306,11 @@ def check_gene_rank(row):
     return llm_causal_rank
 
 
+# for debugging
 def main(infile, outfile, result_path, rank):
     pass
 
 
+## The possibility to directly run the script is mainly meant for testing und debugging
 if __name__ == "__main__":
     pass

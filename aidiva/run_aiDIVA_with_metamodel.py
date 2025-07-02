@@ -61,8 +61,6 @@ if __name__=="__main__":
         if (args.in_eb_dom is not None) and (args.in_eb_rec is not None):
             in_eb_dom = args.in_eb_dom
             in_eb_rec = args.in_eb_rec
-            #result_data_evidence_dominant = pd.read_csv(in_eb_dom, sep="\t", header=None, comment="#", low_memory=False)
-            #result_data_evidence_recessive = pd.read_csv(in_eb_rec, sep="\t", header=None, comment="#", low_memory=False)
 
         else:
             raise SystemExit("ERROR: The evidence based input TSV files were not specified!")
@@ -169,17 +167,17 @@ if __name__=="__main__":
             log_level = logging.INFO
             log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "WARNING":
-        #    log_level = logging.WARNING
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "WARNING":
+            log_level = logging.WARNING
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "ERROR":
-        #    log_level = logging.ERROR
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "ERROR":
+            log_level = logging.ERROR
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "CRITICAL":
-        #    log_level = logging.CRITICAL
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "CRITICAL":
+            log_level = logging.CRITICAL
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
         else:
             log_level = logging.INFO
@@ -311,7 +309,6 @@ if __name__=="__main__":
         prioritized_data_filtered = prioritized_data[prioritized_data["FILTER_PASSED"] == 1].copy(deep=True)
         prioritized_data_filtered["AIDIVA_RANK"] = prioritized_data_filtered["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
 
-        ## TODO: create additional output files according to the inheritance information (only filtered data)
         if only_top_results:
             prioritized_data_filtered[prioritized_data_filtered["AIDIVA_RANK"] <= top_rank].to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
             logger.info(f"Only top ranking variants are reported as result (rank: {top_rank})!")
@@ -325,7 +322,7 @@ if __name__=="__main__":
             prioritized_data.to_csv(str(output_filename + "_aidiva_result.tsv"), sep="\t", index=False)
             prioritized_data_filtered.to_csv(str(output_filename + "_aidiva_result_filtered.tsv"), sep="\t", index=False)
 
-            if family_type == "TRIO": #TODO add additional condition for type FAMILY (this type is currently not supported)
+            if family_type == "TRIO": ##TODO add additional condition for type FAMILY (this type is currently not supported)
                 prioritized_data_filtered[(prioritized_data_filtered["COMPOUND"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_compound.tsv"), sep="\t", index=False)
                 prioritized_data_filtered[(prioritized_data_filtered["DOMINANT_DENOVO"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant_denovo.tsv"), sep="\t", index=False)
                 prioritized_data_filtered[(prioritized_data_filtered["DOMINANT"] == 1)].to_csv(str(output_filename + "_aidiva_result_filtered_dominant.tsv"), sep="\t", index=False)

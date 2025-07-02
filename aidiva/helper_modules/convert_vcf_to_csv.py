@@ -102,12 +102,6 @@ def reformat_vcf_file_and_read_into_pandas_and_extract_header(filepath):
     else:
         vcf_file_to_reformat = open(filepath, "r")
 
-    #with open(filepath, "r") as vcf_file_to_reformat: #, tempfile.NamedTemporaryFile(mode="w+") as tmp:
-    # make sure that there are no unwanted linebreaks in the variant entries
-    ## TODO: remove regular expression, should not be needed anymore
-    #tmp.write(vcf_file_to_reformat.read().replace(r"(\n(?!((((((chr)?[0-9]{1,2}|(chr)?[xXyY]{1}|(chr)?(MT|mt){1})\t)(.+\t){6,}(.+(\n|\Z))))|(#{1,2}.*(\n|\Z))|(\Z))))", ""))
-    #tmp.seek(0)
-
     # extract header from vcf file
     for line in vcf_file_to_reformat:
         if line.strip().startswith("##"):
@@ -801,9 +795,6 @@ if __name__ == "__main__":
 
     else:
         num_cores = 1
-
-    # TODO: add as parameter if it works
-    #transcript_file_path = "/mnt/storage2/users/ahboced1/phd_project/mane_grch38_v13_transcript_ids.txt"
 
     vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.expanded, args.transcript_ids, num_cores)
     write_vcf_to_csv(vcf_as_dataframe, args.out_data)

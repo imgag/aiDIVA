@@ -100,16 +100,7 @@ def calculate_hpo_set_similarity(hpo_graph, hpo_term_set_a, hpo_term_set_b, ic_p
 
     if checked_term_set_a and checked_term_set_b:
         similarities_a_to_b = [max([compute_similarity_between_nodes(term_a, term_b, ic_per_nodes, node_ancestor_mapping) for term_b in checked_term_set_b], default=0.0) for term_a in checked_term_set_a]
-        #similarities_b_to_a = [max([compute_similarity_between_nodes(term_b, term_a, ic_per_nodes, node_ancestor_mapping) for term_a in checked_term_set_a], default=0.0) for term_b in checked_term_set_b]
-
         set_a_to_b_similarity = np.median(similarities_a_to_b)
-        #set_b_to_a_similarity = np.median(similarities_b_to_a)
-
-        #if set_a_to_b_similarity != 0.0 or set_b_to_a_similarity != 0.0:
-        #    hpo_set_similarity = (set_a_to_b_similarity + set_b_to_a_similarity) / 2
-
-        #else:
-        #    hpo_set_similarity = 0.0
 
         return set_a_to_b_similarity
 

@@ -47,17 +47,17 @@ if __name__=="__main__":
             log_level = logging.INFO
             log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "WARNING":
-        #    log_level = logging.WARNING
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "WARNING":
+            log_level = logging.WARNING
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "ERROR":
-        #    log_level = logging.ERROR
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "ERROR":
+            log_level = logging.ERROR
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "CRITICAL":
-        #    log_level = logging.CRITICAL
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "CRITICAL":
+            log_level = logging.CRITICAL
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
         else:
             log_level = logging.INFO
@@ -192,4 +192,3 @@ if __name__=="__main__":
         # Create combined annotated CSV file
         input_data_combined = pd.concat([input_data_snp_annotated, input_data_indel_combined_annotated]).sort_values(["#CHROM", "POS"], ascending=[True, True])
         input_data_combined.to_csv(str(output_folder + "/" + input_filename + "_annotated.csv"), index=False, sep="\t")
-

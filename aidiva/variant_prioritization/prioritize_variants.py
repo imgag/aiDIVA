@@ -150,7 +150,7 @@ def parse_hpo_list(hpo_list_file):
         else:
             hpo_query = hpo_list_file.split(",")
             hpo_query.sort()
-            #logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
+            logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
 
     else:
         logger.warning("HPO score finalization will be skipped!")
@@ -728,14 +728,9 @@ def homopolymer_filter(sequence):
 
 
 def check_filters(variant, genes2exclude, HPO_query, reference):
-    #variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     variant_genes = str(variant["SYMBOL"])
     genenames = set(variant_genes.split(";"))
-
     in_fasta = pysam.FastaFile(reference)
-
-    #consequences = str(variant["Consequence"])
-    #found_consequences = consequences.split("&")
     most_severe_consequence = str(variant["MOST_SEVERE_CONSEQUENCE"])
 
     repeat = str(variant[repeat_identifier])
@@ -1220,7 +1215,6 @@ if __name__=="__main__":
     parser.add_argument("--family_type", type=str, choices=["TRIO", "FAMILY", "SINGLE"], dest="family_type", required=False, help="Choose if the data you provide is a trio or a larger family")
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion_list", required=False, help="List of genes that should be excluded in the prioritization")
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", default=None, required=False, help="List of HPO terms that are observed in the patient. These terms are used to adjust the AIDIVA_SCORE\n")
-    #parser.add_argument("--hpo_resources", type=str, dest="hpo_resources", default="../../data/", required=True, help="Folder where the HPO resources (HPO_graph,...) are found\n")
     parser.add_argument("--genome_build", type=str, dest="genome_build", default="GRCh38", required=True, help="Version of the genome build to use [GRCh37, GRCH38]\n")
     parser.add_argument("--feature_list", type=str, dest="feature_list", required=True, help="Feature list used in the AIDIVA_SCORE prediction.\n")
     parser.add_argument("--reference", type=str, dest="reference", required=True, help="Path to the refernce genome.\n")

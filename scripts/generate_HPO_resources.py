@@ -50,6 +50,52 @@ def generate_gene2hpo_dict(gene2phenotype_list, gene2hpo_dict):
     logger.info(f"Gene to HPO mapping successfully generated and saved as {gene2hpo_dict}")
 
 
+# get mapping HPO -> translation
+# download data:
+# wget http://purl.obolibrary.org/obo/hp.obo -> ontology file
+def generate_hpo2name_dict(hpo_ontology, hpo2name_dict):
+    hpo_mapping = dict()
+    token = False
+
+    with open(hpo_ontology, "r") as ontology:
+        for line in ontology:
+            if line.startswith("[Term]"):
+                if token:
+                    hpo_mapping[hpo_term] = dict()
+                    hpo_mapping[hpo_term]["name"] = name
+                    hpo_mapping[hpo_term]["synonyms"] = synonyms
+
+                token = True
+                synonyms = []
+                name = ""
+            
+            elif line.startswith("id:"):
+                hpo_term = line.strip().split("id: ")[1]
+            
+            elif line.startswith("name:"):
+                name = line.strip().split("name: ")[1]
+            
+            elif line.startswith('synonym:'):
+                synonyms.append(line.strip().split('"')[1])
+            
+            elif line.startswith("[Typedef]"):
+                break
+
+            else:
+                continue
+
+        # add information of the last entry of the file to the HPO edges file
+        if token:
+            hpo_mapping[hpo_term] = dict()
+            hpo_mapping[hpo_term]["name"] = name
+            hpo_mapping[hpo_term]["synonyms"] = synonyms
+            
+    with open(hpo2name_dict, "w") as hpo2name_f:
+        json.dump(hpo_mapping, hpo2name_f)
+
+    logger.info(f"HPO to name mapping successfully generated and saved as {hpo2name_dict}")
+
+
 # download data:
 # wget http://purl.obolibrary.org/obo/hp.obo -> ontology file
 # wget http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa
@@ -359,6 +405,7 @@ if __name__=="__main__":
     parser.add_argument("--hpo_ontology", type=str, dest="hpo_ontology", metavar="hp.obo", required=False, help="File containing the HPO ontology\n")
     parser.add_argument("--gene_phenotype", type=str, dest="gene_phenotype", metavar="phenotype_to_genes.txt", required=False, help="File that contains information about the genes and the associated phenotypes\n")
     parser.add_argument("--gene_hpo", type=str, dest="gene_hpo", metavar="gene2hpo.json", required=False, help="File to save the generated gene2hpo_dict\n")
+    parser.add_argument("--hpo_name", type=str, dest="hpo_name", metavar="hpo2name.json", required=False, help="File to save the generated hpo2name_dict\n")
     parser.add_argument("--phenotype_hpoa", type=str, dest="phenotype_hpoa", metavar="phenotype.hpoa", required=False, help="File containing inforamtion to all hpo ids, is used to compute the hpo counts\n")
     parser.add_argument("--hpo_graph", type=str, dest="hpo_graph", metavar="hpo_graph.gexf", required=False, help="File to save the generated hpo graph\n")
     parser.add_argument("--hpo_replacements", type=str, dest="hpo_replacements", metavar="hpo2replacement.json", required=False, help="File to save the hpo replacement information\n")
@@ -373,6 +420,9 @@ if __name__=="__main__":
 
     if args.gene_phenotype and args.gene_hpo:
         generate_gene2hpo_dict(args.gene_phenotype, args.gene_hpo)
+
+    if args.hpo_ontology and args.hpo_name:
+        generate_hpo2name_dict(args.hpo_ontology, args.hpo_name):
 
     if args.hpo_ontology and args.phenotype_hpoa and args.hpo_graph and args.hpo_replacements:
         create_hpo_graph(args.hpo_ontology, args.phenotype_hpoa, args.hpo_graph, args.hpo_replacements)

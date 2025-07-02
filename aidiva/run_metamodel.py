@@ -10,6 +10,7 @@ import meta_model.llm_handling as llm_handler
 import meta_model.metascore_handling as meta_handler
 import yaml
 
+#from mistralai import Mistral
 from openai import OpenAI
 
 
@@ -45,8 +46,6 @@ if __name__=="__main__":
         if (args.in_eb_dom is not None) and (args.in_eb_rec is not None):
             in_eb_dom = args.in_eb_dom
             in_eb_rec = args.in_eb_rec
-            #result_data_evidence_dominant = pd.read_csv(in_eb_dom, sep="\t", header=None, comment="#", low_memory=False)
-            #result_data_evidence_recessive = pd.read_csv(in_eb_rec, sep="\t", header=None, comment="#", low_memory=False)
 
         else:
             raise SystemExit("ERROR: The evidence based input TSV files were not specified!")
@@ -128,17 +127,17 @@ if __name__=="__main__":
             log_level = logging.INFO
             log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "WARNING":
-        #    log_level = logging.WARNING
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "WARNING":
+            log_level = logging.WARNING
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "ERROR":
-        #    log_level = logging.ERROR
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "ERROR":
+            log_level = logging.ERROR
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "CRITICAL":
-        #    log_level = logging.CRITICAL
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "CRITICAL":
+            log_level = logging.CRITICAL
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
         else:
             log_level = logging.INFO
@@ -201,8 +200,6 @@ if __name__=="__main__":
 
         # extract top 10 gene list from random forest ranking
         top_ranking_genes_random_forest = top_ranking.extract_top_ranking_entries_random_forest_based(sample_id, result_data_random_forest, 10)
-
-        #print(top_ranking_genes_random_forest)
 
         # extract top10 list from evidence ranking (dominant and recessive)
         if evidence_based:

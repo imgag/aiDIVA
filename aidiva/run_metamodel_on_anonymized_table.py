@@ -10,24 +10,15 @@ import meta_model.llm_handling as llm_handler
 import meta_model.metascore_handling as meta_handler
 import yaml
 
+#from mistralai import Mistral
 from openai import OpenAI
 
 
-def perform_llm_refinement(row, evidence_based, llm_api, llm_api_key, llm_model, llm_instructions):
-    #sample_id = row["#patient_id"]
+def perform_llm_refinement(row, evidence_based, llm_api, llm_api_key, llm_api_url, llm_api_port, llm_model, llm_instructions, meta_ml_model):
     sex = row["sex"]
     age = row["age"]
     hpo_terms = row["hpo"]
     causal_gene = row["causal_gene"]
-    # extract top 10 gene list from random forest ranking
-    #top_ranking_genes_random_forest = top_ranking.extract_top_ranking_entries_random_forest_based(sample_id, result_data_random_forest, 10)
-
-    #print(top_ranking_genes_random_forest)
-
-    # extract top10 list from evidence ranking (dominant and recessive)
-    #if evidence_based:
-    #    top_ranking_genes_evidence_dominant = top_ranking.extract_top_ranking_entries_evidence_based(sample_id, in_eb_dom, 10) #result_data_evidence_dominant, 10)
-    #    top_ranking_genes_evidence_recessive = top_ranking.extract_top_ranking_entries_evidence_based(sample_id, in_eb_rec, 10) #result_data_evidence_recessive, 10)
 
     top_ranking_genes_random_forest = row["top_10_rf"]
 
@@ -61,12 +52,6 @@ def perform_llm_refinement(row, evidence_based, llm_api, llm_api_key, llm_model,
     llm_prompt_random_forest = llm_handler.create_llm_prompt(sex, age, hpo_terms, top_ranking_genes_random_forest, "rf", internal_parameter_dict)
     llm_refined_results_random_forest = llm_handler.call_llm_api(client, llm_prompt_random_forest, llm_instructions, llm_model, llm_api)
 
-    print(llm_prompt_random_forest, "\n\n")
-    print(llm_refined_results_random_forest, "\n\n")
-
-    ## TODO: use temp file
-    #llm_refined_results_random_forest.to_csv(str(working_directory + "_" + sample_id + "_aidiva_random_forest_based_llm_results.tsv"), sep="\t", index=False)
-
     if evidence_based:
         llm_prompt_evidence_dominant = llm_handler.create_llm_prompt(sex, age, hpo_terms, top_ranking_genes_evidence_dominant, "eb_dom", internal_parameter_dict)
         llm_prompt_evidence_recessive = llm_handler.create_llm_prompt(sex, age, hpo_terms, top_ranking_genes_evidence_recessive, "eb_rec", internal_parameter_dict)
@@ -79,10 +64,6 @@ def perform_llm_refinement(row, evidence_based, llm_api, llm_api_key, llm_model,
         print(llm_prompt_evidence_recessive, "\n\n")
         print(llm_refined_results_evidence_recessive, "\n\n")
 
-        ## TODO: use temp files
-        #llm_refined_results_evidence_dominant.to_csv(str(working_directory + "_" + sample_id + "_aidiva_evidence_dominant_based_llm_results.tsv"), sep="\t", index=False)
-        #llm_refined_results_evidence_recessive.to_csv(str(working_directory + "_" + sample_id + "_aidiva_evidence_recessive_based_llm_results.tsv"), sep="\t", index=False)
-
     # create metascore table
     metascore_table_random_forest = meta_handler.create_table_rf_based(llm_refined_results_random_forest, top_ranking_genes_random_forest, True)
 
@@ -91,15 +72,10 @@ def perform_llm_refinement(row, evidence_based, llm_api, llm_api_key, llm_model,
 
     # use metascore model to predict new values and create final ranking
     if evidence_based:
-        metascore_table_random_forest_and_evidence_predicted = meta_handler.meta_scoring(metascore_table_random_forest_and_evidence, meta_model, False)
+        metascore_table_random_forest_and_evidence_predicted = meta_handler.meta_scoring(metascore_table_random_forest_and_evidence, meta_ml_model, False)
 
     else:
-       metascore_table_random_forest_and_evidence_predicted = meta_handler.meta_scoring(metascore_table_random_forest, meta_model, True)
-
-    print(metascore_table_random_forest_and_evidence_predicted)
-
-    # extract final ranking and create result file
-    #metascore_table_random_forest_and_evidence_predicted.to_csv(str(working_directory + "_" + sample_id + "_aidiva_metascore_results.tsv"), sep="\t", index=False)
+       metascore_table_random_forest_and_evidence_predicted = meta_handler.meta_scoring(metascore_table_random_forest, meta_ml_model, True)
 
     llm_rank_rf = -1
     llm_rank_eb = -1
@@ -179,17 +155,17 @@ if __name__=="__main__":
             log_level = logging.INFO
             log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "WARNING":
-        #    log_level = logging.WARNING
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "WARNING":
+            log_level = logging.WARNING
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "ERROR":
-        #    log_level = logging.ERROR
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "ERROR":
+            log_level = logging.ERROR
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
-        #elif args.log_level == "CRITICAL":
-        #    log_level = logging.CRITICAL
-        #    log_format = "%(asctime)s -- %(levelname)s - %(message)s"
+        elif args.log_level == "CRITICAL":
+            log_level = logging.CRITICAL
+            log_format = "%(asctime)s -- %(levelname)s - %(message)s"
 
         else:
             log_level = logging.INFO
@@ -225,10 +201,10 @@ if __name__=="__main__":
 
     # load meta ML model
     if evidence_based:
-        meta_model = configuration["LLM-Input"]["meta-model"]
+        meta_ml_model = configuration["LLM-Input"]["meta-model"]
 
     else:
-        meta_model = configuration["LLM-Input"]["meta-model-rf"]
+        meta_ml_model = configuration["LLM-Input"]["meta-model-rf"]
 
     # specify LLM API to use
     llm_api = configuration["LLM-Input"]["llm-api"]
@@ -239,7 +215,7 @@ if __name__=="__main__":
         llm_api_port = configuration["LLM-Input"]["llm-api-port"]
 
     # load LLM API keyfile
-    key_file = configuration["LLM-Input"]["llm-api-key"]
+    llm_api_key = configuration["LLM-Input"]["llm-api-key"]
 
     # load LLM API keyfile
     llm_model = configuration["LLM-Input"]["llm-model"]
@@ -253,10 +229,10 @@ if __name__=="__main__":
         #(anonymized_id) | causal gene | (causal variant) | age | sex | hpo | transl. hpo | top 10 rf | top 10 eb dom | top 10 eb rec | rf rank | rf score | eb dom rank | eb dom score | eb rec rank | eb rec score | exomiser rank | AIM rank 
         # add directly the result for the causal gene
         if evidence_based:
-            result_data[["llm_rank_rf", "llm_rank_eb", "rank_metascore", "metascore"]] = result_data.apply(lambda row: pd.Series(perform_llm_refinement(row, True, llm_api, llm_api_key, llm_model, llm_instructions)), axis=1)
+            result_data[["llm_rank_rf", "llm_rank_eb", "rank_metascore", "metascore"]] = result_data.apply(lambda row: pd.Series(perform_llm_refinement(row, True, llm_api, llm_api_key, llm_api_url, llm_api_port, llm_model, llm_instructions, meta_ml_model)), axis=1)
 
         else:
-            result_data[["llm_rank_rf", "rank_metascore", "metascore"]] = result_data.apply(lambda row: pd.Series(perform_llm_refinement(row, False, llm_api, llm_api_key, llm_model, llm_instructions)), axis=1)
+            result_data[["llm_rank_rf", "rank_metascore", "metascore"]] = result_data.apply(lambda row: pd.Series(perform_llm_refinement(row, False, llm_api, llm_api_key, llm_api_url, llm_api_port, llm_model, llm_instructions, meta_ml_model)), axis=1)
 
         # save updated table
         result_data.to_csv(output_filename, sep="\t", index=False)
