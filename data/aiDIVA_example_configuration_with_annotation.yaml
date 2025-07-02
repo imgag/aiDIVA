@@ -15,7 +15,7 @@ Analysis-Input:
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
     # If you train your own models make sure to set the full path here, also if you save the models not in "aiDIVA/data/prediction_models/"
-    scoring-model: <full-path-to-model>/rf_model.pkl
+    scoring-model: <full-path-to-model>/aidiva-rf_pretrained_scikit132.pkl.gz
 
     prioritization-information:
         # Identifier to get the score from the annotated file
@@ -39,14 +39,14 @@ LLM-Input:
     llm-api-port: 8000 # port for the locally hosted LLM
 
     # API key used to access the LLM API (OpenAI/MistralAI API)
-    llm-api-key: None #"/mnt/storage2/users/ahboced1/server_setup/api_keys/OPENAI_API_KEY.txt"
+    llm-api-key: <full-path-to-file>/OPENAI_API_KEY.txt # leave blank if a local model is used
 
     # 
-    meta-model: <full-path-to-file>/meta_model.pkl"
-    meta-model-rf: <full-path-to-file>/meta_model_rf.pkl
+    meta-model: <full-path-to-file>/aidiva-meta_pretrained_scikit132.pkl.gz
+    meta-model-rf: <full-path-to-file>/aidiva-meta-rf_pretrained_scikit132.pkl.gz
     
     # specify the LLM model that the api should call (gpt-4o directs to the latest model)
-    llm-model: "meta/llama-3.1-70b-instruct" #("meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "gpt-4o")
+    llm-model: "gpt-4o" #("meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "gpt-4o")
 
     # system instructions for the LLM
     # enable reasoning in the system intructions by adding 'Advanced reasoning ON'
