@@ -6,21 +6,24 @@ The pathogenicity prediction is based on a random forest (RF) model. That covers
 
 Later we combine this prediction-based ranking with an optional evidence-based approach and refine it with an LLM.
 
-In the end we create a metascore-based ranking where we use a random forest with the ranking results as features.
+In the end we create a metascore-based ranking, where we use a random forest with the ranking results as features.
 
 
 ## System requirements
-The program is written in Python 3 (v3.8.10)
+The program is written in Python 3 (v3.12.3)
 
 The following additional libraries need to be installed in order to use the program:
 
-+ networkx (v3.1)
-+ numpy (v1.24.4)
-+ pandas (v1.5.3)
-+ pysam (v0.21.0)
-+ pyyaml (v6.0)
-+ scipy (v1.10.1)
++ networkx (v3.4.2)
++ numpy (v1.26.4)
++ openai (v1.60.2)
++ pandas (v2.2.3)
++ pysam (v0.22.1)
++ pyyaml (v6.0.2)
++ scipy (v1.15.1)
 + scikit-learn (v1.3.2)
+
+For easy package installation in your Python virtual environment we included a requirements.txt just run `pip install -r requiremnts.txt` to install all necessary packages.
 
 If a newer scikit-learn version is used it is advised to create a new model with the newer scikit version.
 
@@ -34,7 +37,7 @@ For detailed instructions on how to download and install the annotation tools pl
 
 
 ## HPO resources
-The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location. Although we used networkx v3.1 to create the HPO graph it should also be possible to use networkx in version 1 or 2. We included some workarounds to still support the older versions.
+The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location. Although we used networkx v3.4 to create the HPO graph it should also be possible to use networkx in version 1 or 2. We included some workarounds to still support the older versions.
 
 To recreate the HPO resources please head over to the detailed [instructions](https://github.com/imgag/aiDIVA/blob/master/doc/recreate_hpo_resources.md) found in the _doc_ folder.
 <br>
@@ -45,6 +48,10 @@ Protein interactions based on String-DB v11.0b
 Last update of HPO resources: 22nd May, 2023
 
 
+## LLM setup
+aiDIVA supports the use of the official [OpenAI API](https://platform.openai.com/docs/api-reference/introduction) to send the requests to GPT-4o or GPT-4.1 for example. For that you need an account and an API-Key that needs to be specified in the configuration file.
+Alternatively it is possible to set up your own local LLM (eg., LLama-8b, Mistral-12b, ...) and serve it as a local Webservice. For an easy deployment you could use the NVIDIA NIM Containers see [here](https://build.nvidia.com/meta/llama-3_1-8b-instruct/deploy) for more details on how to do that. These local LLMs use the same python package for inference you just have to specify the port and URL where to find the local model in the configuration file.
+
 
 ## Pathogenicity prediction
 There is one random forest model that is used in aiDIVA to predict the pathogenicity of a given variant. It is a combined model for SNV and inframe InDel variants. The training data of the model consists of variants from Clinvar.
@@ -53,7 +60,11 @@ The scripts used to train the model can be found in the following GitHub reposit
 
 _Frameshift_ variants will get a default score of 0.9, whereas _synonymous_ variants always get the lowest score 0.0
 
-Pretrained random forest models using our current feature set can be found [here](https://download.imgag.de/ahboced1/aiDIVA_pretrained_models/). The latest model was trained using scikit-learn v1.3.2. The trained models of scikit-learn are version dependent.
+A pretrained random forest model (aiDIVA-RF) using our current feature set can be found [here](https://download.imgag.de/aidiva/aiDIVA_pretrained_models/). The latest model was trained using scikit-learn v1.3.2. The trained models of scikit-learn are version dependent.
+
+
+## Meta model
+You can download the pretrained meta models (aiDIVA-meta & aiDIVA-meta-RF) [here](https://download.imgag.de/aidiva/aiDIVA_pretrained_models/). For these two models we used a random forest model that takes as features the ranking position and scores from the initial rankings (random forest-based and evidence-based) plus the ranking result from the LLMs and the inheritance mode used in the evidence-based model.
 
 
 ## Running aiDIVA
@@ -81,7 +92,7 @@ python3 run_annotation.py --config aiDIVA_configuration_with_annotation.yaml --v
 
 
 
-### Running aiDIVA on already annotated data:
+### Running aiDIVA without meta ranking on already annotated data:
 
 ```
 python3 run_aiDIVA.py --config aiDIVA_configuration_annotated.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --out_prefix aidiva_result --workdir aidiva_workdir/ [--hpo_list HP:xxxx,HP:xxxx] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--top_rank 25] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO] [--save_as_vcf]
@@ -105,7 +116,7 @@ python3 run_aiDIVA.py --config aiDIVA_configuration_annotated.yaml --snp_vcf ann
 + _log_level_ -- Define logging level [DEBUG, INFO] (default: INFO) [optional]
 
 
-### Running aiDIVA and perform the annotation:
+### Running aiDIVA  without meta ranking and perform the annotation:
 
 ```
 python3 run_annotation_and_aiDIVA.py --config aiDIVA_configuration_with_annotation.yaml --vcf input.vcf --out_prefix output_path/aidiva_result [--workdir aidiva_workdir/] [--hpo_list HP:xxxx,HP:xxxx] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--top_rank 25] [--inhouse_sample] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO] [--save_as_vcf]
@@ -213,4 +224,17 @@ python3 run_annotation_and_aiDIVA_with_metamodel.py --config aiDIVA_configuratio
 
 
 ## aiDIVA results
-aiDIVA will produce multiple different output files two CSV files with the annotation and the results from the prediction and the prioritization. One of these two contains all variants, whereas the other one only contains the variants that passed the internal filtering step. The third file is a VCF file with the results in the INFO field, there are nine different fields in the INFO field. Four indicate a possible inheritance if the given VCF was a multisample VCF (These are missing if only a single sample VCF was given). One indicates if all internal filters were passed (AIDIVA_FILTER).
+aiDIVA will produce multiple different output files. The following lists all possible result files. Depending on your chosen mode to run aiDIVA you will only get a subset of these result files.
+
++ <your-result-prefix>_aidiva_result.tsv -- The unfiltered result table for the random forest-based ranking (aiDIVA-RF).
++ <your-result-prefix>_aidiva_result_filtered.tsv -- The filtered result table for the random forest-based ranking (aiDIVA-RF) this table is internally used for the subsequent analysis steps (if they are performed).
++ <your-result-prefix>_aidiva_random_forest_based_llm_result.tsv -- The LLM results based on the random forest-based top ranking variants.
++ <your-result-prefix>_aidiva_evidence_dominant_based_llm_result.tsv -- The LLM results based on the evidence-based top ranking variants (dominant model).
++ <your-result-prefix>_aidiva_evidence_recessive_based_llm_result.tsv -- The LLM results based on the evidence-based top ranking variants (recessive model).
++ <your-result-prefix>_aidiva_metascore_results.tsv -- The final result table with the variant ranking based on the meta model (aiDIVA-meta).
+
+If aiDIVA is run in annotation mode only you will get the following annotated files:
+
++ <your-result-prefix>_snp_annotated.vcf
++ <your-result-prefix>_indel_annotated.vcf
++ <your-result-prefix>_indelExpanded_annotated.vcf

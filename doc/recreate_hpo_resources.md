@@ -45,6 +45,11 @@ __gene2hpo.json__
 python3 prepare_HPO_resources.py --gene_phenotype phenotype_to_genes.txt --gene_hpo gene2hpo.json
 ```
 
+__hpo2name.json__
+```
+python3 prepare_HPO_resources.py --hpo_ontology hp.obo --hpo_name hpo2name.json
+```
+
 __hgnc2gene.json__
 ```
 python3 prepare_HPO_resources.py --hgnc_symbols hgnc_complete_set.txt --hgnc_gene hgnc2gene.json
@@ -57,7 +62,8 @@ python3 prepare_HPO_resources.py --string_mapping human.name_2_string.tsv.gz --s
 
 __grch37transcript2length.json__ and __grch38transcript2length.json__
 ```
-python3 prepare_HPO_resources.py 
+python3 prepare_HPO_resources.py --transcript_information grch37_ensembl_transcript_length_and_strand.tsv --transcript_mapping grch37transcript2length.json
+python3 prepare_HPO_resources.py --transcript_information grch38_ensembl_transcript_length_and_strand.tsv --transcript_mapping grch38transcript2length.json
 ```
 
-Note: You can also use all of the above parameters in one single command and create all resources at once with a single command call. Here they are splitted in separate call for better readability.
+Note: You can also use all of the above parameters in one single command and create all resources at once with a single command call. Here they are splitted in separate calls for better readability.

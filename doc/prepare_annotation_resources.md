@@ -34,7 +34,7 @@ samtools faidx hg38.fa.gz
 ## Annotation Databases
 INFO: Please be adviced that some of the annotation sources aiDIVA uses are only free for non-commercial and academic use!
 
-If for some reason you choose to exclude one or more of the Annotation sources shown here you have to make sure to modify the source code accordingly. If an annotation source is used as a feature for the random forest and you exclude it in your analysis you have to train a new model before you can use Aidiva.
+If for some reason you choose to exclude one or more of the Annotation sources shown here you have to make sure to modify the source code accordingly. If an annotation source is used as a feature for the random forest and you exclude it in your analysis you have to train a new model before you can use aiDIVA.
 
 
 ### CADD
@@ -292,7 +292,7 @@ bgzip grch37_gnomAD_genomes_r211.vcf
 tabix -p vcf grch37_gnomAD_genomes_r211.vcf.gz
 ```
 
-GRCh38:
+GRCh38 -- NOTE -- we switched to the gnomAD 3.1.2 genome dataset (unfortunately for this data you have to prepare each chromosome separately and combine them afterwards into a huge VCF file for annotation):
 \
 https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz
 \
@@ -311,11 +311,11 @@ tabix -p vcf grch38_gnomAD_genomes_r211.vcf.gz
 
 
 ### \[optional\] HGMD (needs license)
-The possibility to use HGMD in AIdiva is optional due to the fact that you need a license for it. If you choose to include HGMD in the AIdiva analysis you can use the public/professional version of HGMD.
+The possibility to use HGMD in aiDIVA is optional due to the fact that you need a license for it. If you choose to include HGMD in the aiDIVA analysis you can use the public/professional version of HGMD.
 
 
 ### \[optional\] OMIM (needs license)
-The possibility to use OMIM in AIdiva is optional due to the fact that you need a license for it.
+The possibility to use OMIM in aiDIVA is optional due to the fact that you need a license for it.
 **Currently not implemented!**
 
 
@@ -534,37 +534,6 @@ rm revel-v1.3_all_chromosomes.zip
 rm revel_with_transcript_ids
 rm grch37_revel_v13_unsort.vcf
 rm grch38_revel_v13_unsort.vcf
-```
-
-
-### dbscSNV (in newer versions of aiDIVA SpliceAI is used instead)
-GRCh37 and GRCh38:
-\
-ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbscSNV1.1.zip
-
-```
-wget -c ftp://dbnsfp:dbnsfp@dbnsfp.softgenetics.com/dbscSNV1.1.zip
-
-mkdir dbscSNV_files
-
-unzip dbscSNV1.1.zip -d dbscSNV_files
-
-python3 prepare_dbscSNV_vcf.py $(ls -m dbscSNV_files/dbscSNV1.1.* | tr -d '[:space:]') grch37_dbscSNV_scores_unsort.vcf grch38_dbscSNV_scores_unsort.vcf
-
-# use VcfSort from ngs-bits to make sure that the created VCF is sorted
-ngs-bits/VcfSort -in grch37_dbscSNV_scores_unsort.vcf -out grch37_dbscSNV_scores.vcf
-ngs-bits/VcfSort -in grch38_dbscSNV_scores_unsort.vcf -out grch38_dbscSNV_scores.vcf
-
-bgzip grch37_dbscSNV_scores.vcf
-bgzip grch38_dbscSNV_scores.vcf
-
-tabix -p vcf grch37_dbscSNV_scores_unsort.vcf.gz
-tabix -p vcf grch38_dbscSNV_scores_unsort.vcf.gz
-
-rm dbscSNV1.1.zip
-rm -r dbscSNV_files/
-rm grch37_dbscSNV_scores_unsort.vcf
-rm grch38_dbscSNV_scores_unsort.vcf
 ```
 
 
