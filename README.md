@@ -60,11 +60,11 @@ The scripts used to train the model can be found in the following GitHub reposit
 
 _Frameshift_ variants will get a default score of 0.9, whereas _synonymous_ variants always get the lowest score 0.0
 
-A pretrained random forest model (aiDIVA-RF) using our current feature set can be found [here](https://download.imgag.de/aidiva/aiDIVA_pretrained_models/). The latest model was trained using scikit-learn v1.3.2. The trained models of scikit-learn are version dependent.
+A pretrained random forest model (aiDIVA-RF) using our current feature set can be found [here](https://download.imgag.de/aidiva/aidiva_pretrained_models/). The latest model was trained using scikit-learn v1.3.2. The trained models of scikit-learn are version dependent.
 
 
 ## Meta model
-You can download the pretrained meta models (aiDIVA-meta & aiDIVA-meta-RF) [here](https://download.imgag.de/aidiva/aiDIVA_pretrained_models/). For these two models we used a random forest model that takes as features the ranking position and scores from the initial rankings (random forest-based and evidence-based) plus the ranking result from the LLMs and the inheritance mode used in the evidence-based model.
+You can download the pretrained meta models (aiDIVA-meta & aiDIVA-meta-RF) [here](https://download.imgag.de/aidiva/aidiva_pretrained_models/). For these two models we used a random forest model that takes as features the ranking position and scores from the initial rankings (random forest-based and evidence-based) plus the ranking result from the LLMs and the inheritance mode used in the evidence-based model.
 
 
 ## Running aiDIVA
