@@ -1,4 +1,4 @@
-# aiDIVA - augmented intelligence-based Disease Variant Analysis
+# aiDIVA - augmented intelligence-based DIsease Variant Analysis
 
 aiDIVA is an analysis pipeline that predicts the pathogenicity of given variants and prioritizes them according to the predicted pathogenicity to identify potential disease causing variants of a given sample.
 
