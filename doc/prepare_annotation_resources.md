@@ -305,7 +305,7 @@ bgzip grch38_gnomAD_genomes_r211.vcf
 
 tabix -p vcf grch38_gnomAD_genomes_r211.vcf.gz
 ```
-\
+
 
 If disk storage is a problem it is also possible to use the exome dataset instead of the genome one.
 
