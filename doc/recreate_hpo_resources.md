@@ -5,9 +5,9 @@ It is recommended to regularly recreate the HPO resources that are included in t
 HPO graph:
 ```
 wget -c wget http://purl.obolibrary.org/obo/hp.obo
-wget -c http://purl.obolibrary.org/obo/hp/hpoa/phenotype_annotation.tab
+wget -c https://github.com/obophenotype/human-phenotype-ontology/releases/download/v2025-05-06/phenotype.hpoa
 
-awk -F '\t'  '{print $5}' < phenotype_annotation.tab | sort  | uniq -c | awk '{print $2 "\t" $1}' > HPO_counts.txt
+awk -F '\t'  '{print $4}' < phenotype.hpoa | grep -v '^#' | sort  | uniq -c | awk '{print $2 "\t" $1}' > HPO_counts.txt
 ```
 
 Phenotype to gene mapping:

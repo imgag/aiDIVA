@@ -174,9 +174,6 @@ rm gnomAD_OE_sorted.bed
 GRCh38:
 \
 https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz
-\
-\
-(https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/exomes/gnomad.exomes.r2.1.1.sites.liftover_grch38.vcf.bgz)
 
 ```
 wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz
@@ -187,7 +184,8 @@ bgzip grch38_gnomAD_genomes_r211.vcf
 tabix -p vcf grch38_gnomAD_genomes_r211.vcf.gz
 ```
 \
--- NOTE -- we switched to the gnomAD 3.1.2 genome dataset (unfortunately for this data you have to prepare each chromosome (1-22 and X) separately the same way as described for v2.1.1 and combine them afterwards into a huge VCF file for annotation):
+-- NOTE -- 
+We switched to the gnomAD 3.1.2 genome dataset (unfortunately for this data you have to prepare each chromosome (1-22 and X) separately the same way as described for v2.1.1 and combine them afterwards into a huge VCF file for annotation):
 
 
 ### \[optional\] HGMD (needs license)

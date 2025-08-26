@@ -1,8 +1,8 @@
-## aiDIVA -- augmented intelligence-based disease variant analysis
+## aiDIVA -- augmented intelligence-based DIsease Variant Analysis
 # Configuration file specifiying all the parameters that are needed to run aiDIVA in the different modes
 # if you modify the key names make sure to also update them in the run_aiDIVA.py script
 ---
-# used assembly build, valid values: [GRCh37, GRCh38]
+# used assembly build, valid values: [GRCh38]
 Assembly-Build: GRCh38
 Canonical-Transcripts: <full-path-to-file>/mane_grch38_v13_transcript_ids.txt
 
