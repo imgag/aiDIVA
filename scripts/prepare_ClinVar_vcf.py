@@ -1,3 +1,7 @@
+#######################################################################
+### Small script to prepare the ClinVar data for easier annotation! ###
+#######################################################################
+
 import gzip
 import sys
 

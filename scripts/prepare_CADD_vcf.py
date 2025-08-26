@@ -1,3 +1,7 @@
+####################################################################
+### Small script to prepare the CADD data for easier annotation! ###
+####################################################################
+
 import gzip
 import sys
 

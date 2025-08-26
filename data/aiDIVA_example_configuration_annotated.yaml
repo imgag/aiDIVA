@@ -1,20 +1,21 @@
-## aiDIVA -- augmented intelligence-based disease variant analysis
+## aiDIVA -- augmented intelligence-based DIsease Variant Analysis
 # Configuration file specifiying all the parameters that are needed to run aiDIVA in the different modes
 # if you modify the key names make sure to also update them in the run_aiDIVA.py script
 ---
-Assembly-Build: GRCh37
-Canonical-Transcripts: "/mnt/storage2/users/ahboced1/phd_project/mane_grch37_v13_transcript_ids.txt"
+# used assembly build, valid values: [GRCh38]
+Assembly-Build: GRCh38
+Canonical-Transcripts: <full-path-to-file>/mane_grch38_v13_transcript_ids.txt
 
 
 Analysis-Input:
     # path to the reference assembly used during the expansion of the indels
-    # instead of GRCh37 you can also use hg19 the differences between the two should not matter here
-    ref-path: <full-path-to-reference>/GRCh37.fa
+    # hg19 instead of GRCh37 or hg38 instead of GRCh38 can also be used the differences between them should not matter here
+    ref-path: <full-path-to-reference>/GRCh38.fa
 
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
-    scoring-model-snp: <full-path-to-model>/rf_model_snp.pkl
-    scoring-model-indel: <full-path-to-model>/rf_model_indel.pkl
+    # If you train your own models make sure to set the full path here, also if you save the models not in "aiDIVA/data/prediction_models/"
+    scoring-model: <full-path-to-model>/aidiva-rf_pretrained_scikit132.pkl.gz
 
     prioritization-information:
         # Identifier to get the score from the annotated file
@@ -22,25 +23,49 @@ Analysis-Input:
         repeat-identifier: simpleRepeat
         duplication-identifier: segmentDuplication
 
+    # Weights are used in the prioritization step
+    # You can change these weights, but make sure that they sum up to 1.0
+    # The default values were obtained through a simple weight optimization
+    prioritization-weights:
+        pathogenicity-weight: 0.34
+        hpo-weight: 0.65
+        hpo-interacting-weight: 0.01
+
+
+LLM-Input:
+    llm-api: LOCAL # (LOCAL, OPENAI)
+
+    llm-api-url: http://127.0.0.1 # URL for the locally hosted LLM
+    llm-api-port: 8000 # port for the locally hosted LLM
+
+    # API key used to access the LLM API (OpenAI/MistralAI API)
+    llm-api-key: <full-path-to-file>/OPENAI_API_KEY.txt # leave blank if a local model is used
+
+    # trained meta models
+    meta-model: <full-path-to-file>/aidiva-meta_pretrained_scikit132.pkl.gz
+    meta-model-rf: <full-path-to-file>/aidiva-meta-rf_pretrained_scikit132.pkl.gz
+
+    # specify the LLM model that the api should call (gpt-4o directs to the latest model)
+    llm-model: "gpt-4o" #("meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "gpt-4o")
+
+    # system instructions for the LLM
+    # enable reasoning in the system intructions by adding 'Advanced reasoning ON'
+    llm-instruction: |
+        Here you can write the system instructions for the LLM.
+        They can span multiple rows and the linebreaks are preserved.
+
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these) if not wanted use a empty list "[]" instead
-    # NOTE: currently not used, we use directly the MAX_AF annotation from VEP
     allele-frequency-list:
         - gnomAD_AFR_AF
-        - gnomAD_ASJ_AF
+        - gnomAD_AMR_AF
         - gnomAD_EAS_AF
-        - gnomAD_FIN_AF
         - gnomAD_NFE_AF
-        - gnomAD_OTH_AF
         - gnomAD_SAS_AF
-        - AA_AF
-        - EA_AF
-        - AFR_AF
-        - AMR_AF
-        - EAS_AF
-        - EUR_AF
-        - SAS_AF
+        #- gnomAD_ASJ_AF
+        #- gnomAD_FIN_AF
+        #- gnomAD_OTH_AF
 
     # List containing the names of the features used for the model training
     # the exact order of the features is crucial (make sure to have the exact same order as in the training step)
@@ -61,8 +86,13 @@ Model-Features:
         - phyloP_primate
         - phyloP_vertebrate
         - oe_lof
+        #- oe_mis
+        #- oe_syn
         - homAF
         - CAPICE
+        - ALPHA_MISSENSE_SCORE
+        - HIGH_IMPACT
+        - IS_INDEL
 
 
 # DO NOT CHANGE IF YOU DON'T KNOW WHAT YOU DO
@@ -70,7 +100,8 @@ Model-Features:
 Internal-Parameters:
     gene2hpo-mapping: ../../data/hpo_resources/gene2hpo.json
     gene2interacting-mapping: ../../data/hpo_resources/gene2interacting.json
-    transcript2length-mapping: ../../data/hpo_resources/grch37transcript2length.json
+    transcript2length-mapping: ../../data/hpo_resources/grch38transcript2length.json
     hgnc2gene-mapping: ../../data/hpo_resources/hgnc2gene.json
     hpo-graph: ../../data/hpo_resources/hpo_graph.gexf
     hpo2replacement-mapping: ../../data/hpo_resources/hpo2replacement.json
+    hpo2name-mapping: ../../data/hpo_resources/hpo2name.json

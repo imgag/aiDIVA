@@ -1,6 +1,11 @@
+#########################################################################
+### Small script to prepare the Fathmm-XF data for easier annotation! ###
+#########################################################################
+
 import csv
 import gzip
 import sys
+
 
 infile = sys.argv[1]
 outfile = sys.argv[2]

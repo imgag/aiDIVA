@@ -35,18 +35,6 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = f"{vep_command} --biotype"
     vep_command = f"{vep_command} --variant_class"
 
-    #if not expanded:
-    #    pass 
-        # deprecated -> to remove
-        # allele frequencies to include
-        #vep_command = f"{vep_command} --af"
-        #vep_command = f"{vep_command} --af_1kg"
-        #vep_command = f"{vep_command} --af_esp"
-        #if build == "GRCh37":
-        #    vep_command = f"{vep_command} --af_gnomad"
-        #elif build == "GRCh38":
-        #    vep_command = f"{vep_command} --af_gnomadg"
-
     # vep plugins to use
     if not basic:
         vep_command = f"{vep_command} --sift s"

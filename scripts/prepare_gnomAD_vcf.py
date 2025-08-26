@@ -1,3 +1,7 @@
+######################################################################
+### Small script to prepare the gnomAD data for easier annotation! ###
+######################################################################
+
 import gzip
 import sys
 
@@ -88,7 +92,7 @@ with gzip.open(infile, "rt") as gnomad, open(outfile, "w") as prepared_gnomad:
 
                 else:
                     continue
-            
+
             chrom = splitted_line[0]
             pos = splitted_line[1]
             id = "."

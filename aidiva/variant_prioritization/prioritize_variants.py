@@ -150,7 +150,7 @@ def parse_hpo_list(hpo_list_file):
         else:
             hpo_query = hpo_list_file.split(",")
             hpo_query.sort()
-            #logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
+            logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
 
     else:
         logger.warning("HPO score finalization will be skipped!")
@@ -222,7 +222,7 @@ def compare_polyphen_and_sift_prediction(variant):
     return polyphen_sift_opposed
 
 
-def prioritize_variants(variant_data, internal_parameter_dict, reference, num_cores, build, feature_list, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
+def prioritize_variants(variant_data, internal_parameter_dict, prioritization_weights, reference, num_cores, build, feature_list, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     # load HPO resources
     hpo_graph_f = get_resource_file(internal_parameter_dict["hpo-graph"])
     hpo_replacement_f = get_resource_file(internal_parameter_dict["hpo2replacement-mapping"])
@@ -251,7 +251,7 @@ def prioritize_variants(variant_data, internal_parameter_dict, reference, num_co
     information_content_per_node = nx.get_node_attributes(hpo_graph, "IC")
     node_ancestor_mapping = {hpo_term: nx.ancestors(hpo_graph, hpo_term) for hpo_term in hpo_graph}
 
-    variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, skip_db_check, transcript_length_mapping, family, family_type, genes2exclude, gene_2_hpo, hgnc_2_gene, gene_2_interacting, hpo_graph, hpo_query, information_content_per_node, node_ancestor_mapping, hpo_replacement_information, reference, feature_list), num_cores)
+    variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, skip_db_check, transcript_length_mapping, family, family_type, genes2exclude, gene_2_hpo, hgnc_2_gene, gene_2_interacting, hpo_graph, hpo_query, information_content_per_node, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, prioritization_weights), num_cores)
     variant_data = variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False])
     variant_data = variant_data.reset_index(drop=True)
 
@@ -278,7 +278,7 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
     return variant_data
 
 
-def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, variant_data):
+def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, prioritization_weights, variant_data):
     genotype_column = [column for column in variant_data.columns if column.startswith("GT.")]
 
     if genotype_column:
@@ -300,7 +300,7 @@ def parallelized_variant_processing(skip_db_check, transcript_dict, family, fami
     else:
         logger.info(f"Skip variant pathogenicity lookup in existing databases (ClinVar, HGMD)!")
 
-    variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information)), axis=1)
+    variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, prioritization_weights)), axis=1)
     variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query, reference)), axis=1)
 
     return variant_data
@@ -461,7 +461,7 @@ def check_databases_for_pathogenicity_classification(variant):
     return [database_score, improved_score]
 
 
-def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information):
+def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, prioritization_weights=None):
     if HPO_query:
         if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["SpliceAI"]) == "nan") or (str(variant["SpliceAI"]) == "")):
             final_score = np.nan
@@ -529,9 +529,19 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                 hpo_relatedness = max(gene_similarities, default=0.0)
                 hpo_relatedness_interacting = max(gene_similarities_interacting, default=0.0)
 
-                # predicted pathogenicity has a higher weight than the HPO relatedness
-                # weight optimization suggests the following weights
-                final_score = (pathogenictiy_prediction * 0.34 + float(hpo_relatedness) * 0.65 + float(hpo_relatedness_interacting) * 0.01)
+                if prioritization_weights is not None:
+                    pathogenicity_weight = prioritization_weights["pathogenicity-weight"]
+                    hpo_weight = prioritization_weights["hpo-weight"]
+                    hpo_interacting_weight = prioritization_weights["hpo-interacting-weight"]
+
+                else:
+                    # weight optimization suggested the following weights
+                    pathogenicity_weight = 0.34
+                    hpo_weight = 0.65
+                    hpo_interacting_weight = 0.01
+
+                print(f"DEBUG: Using the following weights for prioritization: pathogenicity={pathogenicity_weight}, hpo={hpo_weight}, hpo_interacting={hpo_interacting_weight}")
+                final_score = (pathogenictiy_prediction * pathogenicity_weight + float(hpo_relatedness) * hpo_weight + float(hpo_relatedness_interacting) * hpo_interacting_weight)
 
             else:
                 final_score = np.nan
@@ -718,14 +728,9 @@ def homopolymer_filter(sequence):
 
 
 def check_filters(variant, genes2exclude, HPO_query, reference):
-    #variant_genes = re.sub("\(.*?\)", "", str(variant["SYMBOL"]))
     variant_genes = str(variant["SYMBOL"])
     genenames = set(variant_genes.split(";"))
-
     in_fasta = pysam.FastaFile(reference)
-
-    #consequences = str(variant["Consequence"])
-    #found_consequences = consequences.split("&")
     most_severe_consequence = str(variant["MOST_SEVERE_CONSEQUENCE"])
 
     repeat = str(variant[repeat_identifier])
@@ -1210,7 +1215,6 @@ if __name__=="__main__":
     parser.add_argument("--family_type", type=str, choices=["TRIO", "FAMILY", "SINGLE"], dest="family_type", required=False, help="Choose if the data you provide is a trio or a larger family")
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion_list", required=False, help="List of genes that should be excluded in the prioritization")
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", default=None, required=False, help="List of HPO terms that are observed in the patient. These terms are used to adjust the AIDIVA_SCORE\n")
-    #parser.add_argument("--hpo_resources", type=str, dest="hpo_resources", default="../../data/", required=True, help="Folder where the HPO resources (HPO_graph,...) are found\n")
     parser.add_argument("--genome_build", type=str, dest="genome_build", default="GRCh38", required=True, help="Version of the genome build to use [GRCh37, GRCH38]\n")
     parser.add_argument("--feature_list", type=str, dest="feature_list", required=True, help="Feature list used in the AIDIVA_SCORE prediction.\n")
     parser.add_argument("--reference", type=str, dest="reference", required=True, help="Path to the refernce genome.\n")

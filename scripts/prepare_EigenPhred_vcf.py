@@ -1,3 +1,7 @@
+#####################################################################
+### Small script to prepare the Eigen data for easier annotation! ###
+#####################################################################
+
 import csv
 import gzip
 import sys

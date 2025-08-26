@@ -1,3 +1,7 @@
+######################################################################
+### Small script to prepare the Capice data for easier annotation! ###
+######################################################################
+
 import gzip
 import sys
 
