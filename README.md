@@ -4,7 +4,7 @@ aiDIVA is an analysis pipeline that combines a pathogenicity-based approach and 
 
 aiDIVA comprises the following steps:
 
-1. A pathogenicity-based approach that prioritizes the variants based on the pathogenicity predicted with a random forest model trained on ClinVar data.
+1. A pathogenicity-based approach that utilizes the predictions of a random forest model trained on ClinVar data, supplemented with phenotype information given as HPO terms.
 
 2. An optional evidence-based approach includes the ranks and scores that can be obtained from the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool included in [ngs-bits](https://github.com/imgag/ngs-bits/).
 

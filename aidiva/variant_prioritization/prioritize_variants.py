@@ -540,7 +540,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                     hpo_weight = 0.65
                     hpo_interacting_weight = 0.01
 
-                print(f"DEBUG: Using the following weights for prioritization: pathogenicity={pathogenicity_weight}, hpo={hpo_weight}, hpo_interacting={hpo_interacting_weight}")
+                logger.debug(f"Using the following weights for prioritization: pathogenicity={pathogenicity_weight}, hpo={hpo_weight}, hpo_interacting={hpo_interacting_weight}")
                 final_score = (pathogenictiy_prediction * pathogenicity_weight + float(hpo_relatedness) * hpo_weight + float(hpo_relatedness_interacting) * hpo_interacting_weight)
 
             else:
