@@ -113,9 +113,8 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
             tmp.write(f"{vcf_annotation['CONDEL']}\t\tCONDEL\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['EIGEN_PHRED']}\t\tEIGEN_PHRED\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['FATHMM_XF']}\t\tFATHMM_XF\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
+            #tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CAPICE']}\t\tCAPICE\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['dbscSNV']}\t\tADA=ADA_SCORE,RF=RF_SCORE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CADD']}\t\tCADD\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['REVEL']}\t\tREVEL\t\ttrue\n".encode())
 
@@ -215,12 +214,12 @@ def annotate_from_bigwig(input_vcf_file, output_vcf_file, annotation_dict, num_c
         tmp_phastCons_mammal.close()
         tmp_phastCons_vertebrate.close()
 
-        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_primate']} -name phyloP_primate -desc 'phyloP primate dataset' -mode avg -in {input_vcf_file} -out {tmp_phyloP_primate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_mammal']} -name phyloP_mammal -desc 'phyloP mammalian dataset' -mode avg -in {tmp_phyloP_primate.name} -out {tmp_phyloP_mammal.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_vertebrate']} -name phyloP_vertebrate -desc 'phyloP vertebrate dataset' -mode avg -in {tmp_phyloP_mammal.name} -out {tmp_phyloP_vertebrate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_primate']} -name phastCons_primate -desc 'phastCons primate dataset' -mode avg -in {tmp_phyloP_vertebrate.name} -out {tmp_phastCons_primate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_mammal']} -name phastCons_mammal -desc 'phastCons mammalian dataset' -mode avg -in {tmp_phastCons_primate.name} -out {tmp_phastCons_mammal.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_vertebrate']} -name phastCons_vertebrate -desc 'phastCons vertebrate dataset' -mode avg -in {tmp_phastCons_mammal.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_primate']} -name phyloP_primate -mode avg -in {input_vcf_file} -out {tmp_phyloP_primate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_mammal']} -name phyloP_mammal -mode avg -in {tmp_phyloP_primate.name} -out {tmp_phyloP_mammal.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_vertebrate']} -name phyloP_vertebrate -mode avg -in {tmp_phyloP_mammal.name} -out {tmp_phyloP_vertebrate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_primate']} -name phastCons_primate -mode avg -in {tmp_phyloP_vertebrate.name} -out {tmp_phastCons_primate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_mammal']} -name phastCons_mammal -mode avg -in {tmp_phastCons_primate.name} -out {tmp_phastCons_mammal.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_vertebrate']} -name phastCons_vertebrate -mode avg -in {tmp_phastCons_mammal.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
 
     finally:
         # clean up

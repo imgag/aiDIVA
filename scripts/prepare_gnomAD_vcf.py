@@ -75,19 +75,19 @@ with gzip.open(infile, "rt") as gnomad, open(outfile, "w") as prepared_gnomad:
                 elif entry.startswith("nhomalt="):
                     hom_entry = entry.split("=")[1]
 
-                elif entry.startswith("AFR_AF="):
+                elif entry.startswith("AF_afr="):
                     afr_af_entry = entry.split("=")[1]
 
-                elif entry.startswith("AMR_AF="):
+                elif entry.startswith("AF_amr="):
                     amr_af_entry = entry.split("=")[1]
 
-                elif entry.startswith("EAS_AF="):
+                elif entry.startswith("AF_eas="):
                     eas_af_entry = entry.split("=")[1]
 
-                elif entry.startswith("NFE_AF="):
+                elif entry.startswith("AF_nfe="):
                     nfe_af_entry = entry.split("=")[1]
 
-                elif entry.startswith("SAS_AF="):
+                elif entry.startswith("AF_sas="):
                     sas_af_entry = entry.split("=")[1]
 
                 else:

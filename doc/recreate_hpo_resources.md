@@ -4,8 +4,8 @@ It is recommended to regularly recreate the HPO resources that are included in t
 ## Preparation And Download Of Needed Resources
 HPO graph:
 ```
-wget -c wget http://purl.obolibrary.org/obo/hp.obo
-wget -c https://github.com/obophenotype/human-phenotype-ontology/releases/download/v2025-05-06/phenotype.hpoa
+wget -c http://purl.obolibrary.org/obo/hp.obo
+wget -c http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa
 
 awk -F '\t'  '{print $4}' < phenotype.hpoa | grep -v '^#' | sort  | uniq -c | awk '{print $2 "\t" $1}' > HPO_counts.txt
 ```
@@ -17,13 +17,13 @@ wget -c http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt
 
 HGNC ID mapping:
 ```
-wget -c ftp://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/hgnc_complete_set.txt
+wget -c https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_complete_set.txt
 ```
 
-Protein interaction mapping:
+Protein interaction mapping (v11.0b):
 ```
 wget -c https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.gz
-wget -c https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
+wget -c https://version-11-0b.string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
 ```
 
 Transcript length mapping:

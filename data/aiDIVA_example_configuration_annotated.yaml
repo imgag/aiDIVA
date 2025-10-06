@@ -15,7 +15,7 @@ Analysis-Input:
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
     # If you train your own models make sure to set the full path here, also if you save the models not in "aiDIVA/data/prediction_models/"
-    scoring-model: <full-path-to-model>/aidiva-rf_pretrained_scikit132.pkl.gz
+    scoring-model: <full-path-to-model>/aidiva-rf_v101.pkl.gz
 
     prioritization-information:
         # Identifier to get the score from the annotated file
@@ -42,8 +42,8 @@ LLM-Input:
     llm-api-key: <full-path-to-file>/OPENAI_API_KEY.txt # leave blank if a local model is used
 
     # trained meta models
-    meta-model: <full-path-to-file>/aidiva-meta_pretrained_scikit132.pkl.gz
-    meta-model-rf: <full-path-to-file>/aidiva-meta-rf_pretrained_scikit132.pkl.gz
+    meta-model: <full-path-to-file>/aidiva-meta_v100.gz
+    meta-model-rf: <full-path-to-file>/aidiva-meta-rf_v100.gz
 
     # specify the LLM model that the api should call (gpt-4o directs to the latest model)
     llm-model: "gpt-4o" #("meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "gpt-4o")
@@ -78,7 +78,7 @@ Model-Features:
         - EIGEN_PHRED
         - CONDEL
         - FATHMM_XF
-        - MutationAssessor
+        #- MutationAssessor
         - phastCons_mammal
         - phastCons_primate
         - phastCons_vertebrate

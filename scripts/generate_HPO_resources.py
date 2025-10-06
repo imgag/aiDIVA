@@ -309,7 +309,7 @@ def create_hpo_graph(hpo_ontology, phenotype_hpoa, hpo_graph_file, hpo_replaceme
     logger.info(f"HPO graph successfully generated and saved as {hpo_graph_file}, HPO replacement information saved to {hpo_replacement_information_file}")
 
 
-#  wget ftp://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/hgnc_complete_set.txt
+#  wget https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_complete_set.txt
 def create_gene2hgnc_mapping(hgnc_symbol_file, hgnc_2_gene):
     with open(hgnc_symbol_file, "r") as file:
         gene_dict = dict()
@@ -327,8 +327,9 @@ def create_gene2hgnc_mapping(hgnc_symbol_file, hgnc_2_gene):
     logger.info(f"Gene symbol to HGNC mapping successfully generated and saved as {hgnc_2_gene}")
 
 
-# wget https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.
-# wget https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
+# StringDB v11.0b
+# wget https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.gz
+# wget https://version-11-0b.string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
 def create_gene2interacting_mapping(string_mapping, string_db_links, string_interactions):
     with gzip.open(string_mapping, "rt") as string_mapping_file:
         string2name = dict()

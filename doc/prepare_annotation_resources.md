@@ -1,5 +1,13 @@
 # Preparation Of Annotation Resources
-This document provides links to download the annoation sources used in aiDIVA. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
+This document provides links to the annoation sources we used. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
+
+## Necessary tools
+Make sure that the following tools are installed on your system:
+- samtools [https://www.htslib.org/doc/samtools.html](https://www.htslib.org/doc/samtools.html)
+- bcftools [https://www.htslib.org/doc/bcftools.html](https://www.htslib.org/doc/bcftools.html)
+- tabix [https://www.htslib.org/doc/tabix.html](https://www.htslib.org/doc/tabix.html)
+- bgzip [https://www.htslib.org/doc/bgzip.html](https://www.htslib.org/doc/bgzip.html)
+
 \
 \
 For some of the annotation sources there are no GRCh38/hg38 files available in these cases we lifted the GRCh37/hg19 sources manually to the new assembly using the tool [CrossMap](https://github.com/liguowang/CrossMap). For this manual liftover we also provide code snippets.
@@ -12,16 +20,15 @@ GRCh38:
 
 ```
 gunzip hg38.fa.gz
-bgzip hg38.fa
 
-samtools dict hg38.fa.gz
-samtools faidx hg38.fa.gz
+samtools dict hg38.fa > hg38.dict
+samtools faidx hg38.fa
 ```
 
 ## Annotation Databases
-INFO: Please be adviced that some of the annotation sources aiDIVA uses are only free for non-commercial and academic use!
+INFO: Please be adviced that some of the following annotation sources are only free for non-commercial and academic use!
 
-If for some reason you choose to exclude one or more of the Annotation sources shown here you have to make sure to modify the source code accordingly. If an annotation source is used as a feature for the random forest (RF) and you exclude it in your analysis you have to train a new model before you can use the model RF in aiDIVA.
+If for some reason you choose to exclude one or more of the annotation sources shown here you have to make sure to modify the source code accordingly. If an annotation source is used as a feature for the random forest (RF) and you exclude it in your analysis you have to train a new model before you can use aiDIVA-RF.
 
 
 ### CADD
@@ -54,10 +61,10 @@ wget -c https://zenodo.org/record/3928295/files/capice_v1.0_build37_snvs.tsv.gz
 
 python3 prepare_Capice_vcf.py capice_v1.0_build37_snvs.tsv.gz grch37_capice_v1_snvs.vcf
 
-bgzip grch37_capice_v1_snvs.vcf
-tabix -p vcf grch37_capice_v1_snvs.vcf.gz
+CrossMap.py vcf --chromid l hg19ToHg38.over.chain.gz grch37_capice_v1_snvs.vcf hg38.fa grch38_capice_v1_snvs_unsort.vcf
 
-CrossMap.py vcf hg19ToHg38.over.chain.gz grch37_capice_v1_snvs.vcf.gz hg38.fa.gz grch38_capice_v1_snvs.vcf
+# Make sure that the created VCF is sorted
+cat grch38_capice_v1_snvs_unsort.vcf | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > grch38_capice_v1_snvs.vcf
 
 bgzip grch38_capice_v1_snvs.vcf
 tabix -p vcf grch38_capice_v1_snvs.vcf.gz
@@ -75,7 +82,7 @@ https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz
 ```
 wget -c https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz
 
-python3 prepare_ClinVar_vcf.py clinvar.vcf.gz grc38_clinvar.vcf
+python3 prepare_ClinVar_vcf.py clinvar.vcf.gz grch38_clinvar.vcf
 
 bgzip grch38_clinvar.vcf
 tabix -p vcf grch38_clinvar.vcf.gz
@@ -104,7 +111,10 @@ python3 prepare_Condel_vcf.py fannsdb.tsv.gz grch37_fannsDB_Condel.vcf
 bgzip grch37_fannsDB_Condel.vcf
 tabix -p vcf grch37_fannsDB_Condel.vcf.gz
 
-CrossMap.py vcf hg19ToHg38.over.chain.gz grch37_fannsDB_Condel.vcf.gz hg38.fa.gz grch38_fannsDB_Condel.vcf
+CrossMap vcf --chromid l hg19ToHg38.over.chain.gz grch37_fannsDB_Condel.vcf hg38.fa grch38_fannsDB_Condel_unsort.vcf
+
+# Make sure that the created VCF is sorted
+cat grch38_fannsDB_Condel_unsort.vcf | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > grch38_fannsDB_Condel.vcf
 
 bgzip grch38_fannsDB_Condel.vcf
 tabix -p vcf grch38_fannsDB_Condel.vcf.gz
@@ -122,12 +132,12 @@ https://zenodo.org/record/3256671/files/Eigen_hg38_coding_annot_04092016.tab.gz
 ```
 wget -c https://zenodo.org/record/3256671/files/Eigen_hg38_coding_annot_04092016.tab.gz
 
-python3 prepare_EigenPhred_vcf.py Eigen_hg38_coding_annot_04092016.tab.bgz grch38_eigen_phred_coding.vcf
+python3 prepare_EigenPhred_vcf.py Eigen_hg38_coding_annot_04092016.tab.gz grch38_eigen_phred_coding.vcf
 
 bgzip grch38_eigen_phred_coding.vcf
 tabix grch38_eigen_phred_coding.vcf.gz
 
-rm Eigen_hg38_coding_annot_04092016.tab.bgz
+rm Eigen_hg38_coding_annot_04092016.tab.gz
 ```
 
 
@@ -139,7 +149,7 @@ https://fathmm.biocompute.org.uk/fathmm-xf/fathmm_xf_coding_hg38.vcf.gz
 ```
 wget -c https://fathmm.biocompute.org.uk/fathmm-xf/fathmm_xf_coding_hg38.vcf.gz
 
-python3 prepare_Fathmm_XF_vcf.py fathmm_xf_coding_hg38.vcf.gz grch38_fathmm_xf_coding.vcf
+python3 prepare_FathmmXF_vcf.py fathmm_xf_coding_hg38.vcf.gz grch38_fathmm_xf_coding.vcf
 
 bgzip grch38_fathmm_xf_coding.vcf
 tabix -p vcf grch38_fathmm_xf_coding.vcf.gz
@@ -148,7 +158,7 @@ rm fathmm_xf_coding_hg38.vcf.gz
 ```
 
 
-### GnomAD (oe_lof and homAF)
+### GnomAD (oe_lof and homAF and MAX_AF)
 GRCh38:
 \
 https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/constraint/gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz
@@ -157,12 +167,12 @@ Needs manual liftover!!!
 https://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver/hg19ToHg38.over.chain.gz
 
 ```
-wget -c https://storage.googleapis.com/gnomad-public/release/2.1.1/constraint/gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/constraint/gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz
 
-zcat gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz | sed -n '1d;p' | awk -v OFS="\t" -F "\t" '{ print $$75,$$76,$$77,$$24}' > gnomad_OE.bed
+zcat gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz | sed -n '1d;p' | awk -v OFS="\t" -F "\t" '{ print $75,$76,$77,$24}' > gnomad_OE.bed
 cat gnomad_OE.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | sed '/NA/s/\bNA//g' > gnomAD_OE_sorted.bed
 
-CrossMap.py vcf hg19ToHg38.over.chain.gz gnomAD_OE_sorted.bed hg38.fa.gz gnomAD_OE_grch38.bed
+CrossMap bed hg19ToHg38.over.chain.gz gnomAD_OE_sorted.bed gnomAD_OE_grch38.bed
 
 cat gnomad_OE_grch38.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | sed '/NA/s/\bNA//g' | awk 'NF==4' > gnomAD_OE_grch38_sorted.bed
 
@@ -173,19 +183,147 @@ rm gnomAD_OE_sorted.bed
 \
 GRCh38:
 \
-https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz
-
-```
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/liftover_grch38/vcf/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz
-
-python3 prepare_gnomAD_vcf.py gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz grch38_gnomAD_genomes_r211.vcf
-
-bgzip grch38_gnomAD_genomes_r211.vcf
-tabix -p vcf grch38_gnomAD_genomes_r211.vcf.gz
-```
+--- NOTE ---
+The gnomAD 3.1.2 genome dataset very big so make sure that you have enough disk space for the data preparation. To save space it is possible to remove the downloaded .bgz file after running the `prepare_gnomAD_vcf.py` script and only keep the prepared VCF file until they are concatenated.:
 \
--- NOTE -- 
-We switched to the gnomAD 3.1.2 genome dataset (unfortunately for this data you have to prepare each chromosome (1-22 and X) separately the same way as described for v2.1.1 and combine them afterwards into a huge VCF file for annotation):
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr1.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr2.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr3.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr4.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr5.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr6.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr7.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr8.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr9.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr10.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr11.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr12.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr13.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr14.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr15.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr16.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr17.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr18.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr19.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr20.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr21.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr22.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chrX.vcf.bgz
+https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chrY.vcf.bgz
+
+
+```
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr1.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr2.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr3.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr4.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr5.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr6.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr7.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr8.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr9.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr10.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr11.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr12.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr13.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr14.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr15.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr16.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr17.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr18.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr19.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr20.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr21.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr22.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chrX.vcf.bgz
+wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chrY.vcf.bgz
+
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr1.vcf.bgz grch38_gnomAD_genomes_v312_chr1.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr2.vcf.bgz grch38_gnomAD_genomes_v312_chr2.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr3.vcf.bgz grch38_gnomAD_genomes_v312_chr3.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr4.vcf.bgz grch38_gnomAD_genomes_v312_chr4.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr5.vcf.bgz grch38_gnomAD_genomes_v312_chr5.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr6.vcf.bgz grch38_gnomAD_genomes_v312_chr6.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr7.vcf.bgz grch38_gnomAD_genomes_v312_chr7.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr8.vcf.bgz grch38_gnomAD_genomes_v312_chr8.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr9.vcf.bgz grch38_gnomAD_genomes_v312_chr9.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr10.vcf.bgz grch38_gnomAD_genomes_v312_chr10.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr11.vcf.bgz grch38_gnomAD_genomes_v312_chr11.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr12.vcf.bgz grch38_gnomAD_genomes_v312_chr12.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr13.vcf.bgz grch38_gnomAD_genomes_v312_chr13.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr14.vcf.bgz grch38_gnomAD_genomes_v312_chr14.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr15.vcf.bgz grch38_gnomAD_genomes_v312_chr15.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr16.vcf.bgz grch38_gnomAD_genomes_v312_chr16.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr17.vcf.bgz grch38_gnomAD_genomes_v312_chr17.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr18.vcf.bgz grch38_gnomAD_genomes_v312_chr18.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr19.vcf.bgz grch38_gnomAD_genomes_v312_chr19.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr20.vcf.bgz grch38_gnomAD_genomes_v312_chr20.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr21.vcf.bgz grch38_gnomAD_genomes_v312_chr21.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr22.vcf.bgz grch38_gnomAD_genomes_v312_chr22.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chrX.vcf.bgz grch38_gnomAD_genomes_v312_chrX.vcf
+python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chrY.vcf.bgz grch38_gnomAD_genomes_v312_chrY.vcf
+
+# Concatenate the prepared VCF files
+bcftools concat grch38_gnomAD_genomes_v312_chr1.vcf grch38_gnomAD_genomes_v312_chr2.vcf grch38_gnomAD_genomes_v312_chr3.vcf grch38_gnomAD_genomes_v312_chr4.vcf grch38_gnomAD_genomes_v312_chr5.vcf \
+grch38_gnomAD_genomes_v312_chr6.vcf grch38_gnomAD_genomes_v312_chr7.vcf grch38_gnomAD_genomes_v312_chr8.vcf grch38_gnomAD_genomes_v312_chr9.vcf grch38_gnomAD_genomes_v312_chr10.vcf \
+grch38_gnomAD_genomes_v312_chr11.vcf grch38_gnomAD_genomes_v312_chr12.vcf grch38_gnomAD_genomes_v312_chr13.vcf grch38_gnomAD_genomes_v312_chr14.vcf grch38_gnomAD_genomes_v312_chr15.vcf \
+grch38_gnomAD_genomes_v312_chr16.vcf grch38_gnomAD_genomes_v312_chr17.vcf grch38_gnomAD_genomes_v312_chr18.vcf grch38_gnomAD_genomes_v312_chr19.vcf grch38_gnomAD_genomes_v312_chr20.vcf \
+grch38_gnomAD_genomes_v312_chr21.vcf grch38_gnomAD_genomes_v312_chr22.vcf grch38_gnomAD_genomes_v312_chrX.vcf grch38_gnomAD_genomes_v312_chrY.vcf -o grch38_gnomAD_genomes_v312.vcf
+
+bgzip grch38_gnomAD_genomes_v312.vcf
+tabix -p vcf grch38_gnomAD_genomes_v312.vcf.gz
+
+# Clean up
+rm gnomad.genomes.v3.1.2.sites.chr1.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr2.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr3.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr4.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr5.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr6.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr7.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr8.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr9.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr10.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr11.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr12.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr13.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr14.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr15.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr16.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr17.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr18.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr19.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr20.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr21.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chr22.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chrX.vcf.bgz
+rm gnomad.genomes.v3.1.2.sites.chrY.vcf.bgz
+
+rm grch38_gnomAD_genomes_v312_chr1.vcf
+rm grch38_gnomAD_genomes_v312_chr2.vcf
+rm grch38_gnomAD_genomes_v312_chr3.vcf
+rm grch38_gnomAD_genomes_v312_chr4.vcf
+rm grch38_gnomAD_genomes_v312_chr5.vcf
+rm grch38_gnomAD_genomes_v312_chr6.vcf
+rm grch38_gnomAD_genomes_v312_chr7.vcf
+rm grch38_gnomAD_genomes_v312_chr8.vcf
+rm grch38_gnomAD_genomes_v312_chr9.vcf
+rm grch38_gnomAD_genomes_v312_chr10.vcf
+rm grch38_gnomAD_genomes_v312_chr11.vcf
+rm grch38_gnomAD_genomes_v312_chr12.vcf
+rm grch38_gnomAD_genomes_v312_chr13.vcf
+rm grch38_gnomAD_genomes_v312_chr14.vcf
+rm grch38_gnomAD_genomes_v312_chr15.vcf
+rm grch38_gnomAD_genomes_v312_chr16.vcf
+rm grch38_gnomAD_genomes_v312_chr17.vcf
+rm grch38_gnomAD_genomes_v312_chr18.vcf
+rm grch38_gnomAD_genomes_v312_chr19.vcf
+rm grch38_gnomAD_genomes_v312_chr20.vcf
+rm grch38_gnomAD_genomes_v312_chr21.vcf
+rm grch38_gnomAD_genomes_v312_chr22.vcf
+rm grch38_gnomAD_genomes_v312_chrX.vcf
+rm grch38_gnomAD_genomes_v312_chrY.vcf
+```
 
 
 ### \[optional\] HGMD (needs license)
@@ -203,6 +341,13 @@ wget -c -O grch38_low_conf_region.bed https://github.com/imgag/megSAP/raw/master
 
 
 ### MutationAssessor
+
+--- NOTE ---
+Unfortunately the MutationAssessor resource that we utilized in the previous releases is not available anymore. We are working on simplifying the whole annotation process and want to include MutationAssessor again from another source.
+For now we trained a new model with the same settings as before we just excluded the feature MutationAssessor. This new model can be found togehter with the previous models and in the release tab.
+If you use this model without MutationAssessor you need to also remove the feature from the feature list in the configuration file.
+
+<!-- 
 GRCh38:
 <br>
 https://web.archive.org/web/20160802103335/http://mutationassessor.org/r3/MA_scores_rel3_hg19_full.tar.gz
@@ -215,13 +360,15 @@ tar -xzf MA_scores_rel3_hg19_full.tar.gz
 
 python3 prepare_MutationAssessor_vcf.py $(ls -m MA_scores_rel3_hg19_full/*.csv | tr -d '[:space:]') grch37_precomputed_MutationAssessor_unsort.vcf
 
-# use VcfSort from ngs-bits to make sure that the created VCF is sorted
-ngs-bits/VcfSort -in grch37_precomputed_MutationAssessor_unsort.vcf -out grch37_precomputed_MutationAssessor.vcf
+
+# Make sure that the created VCF is sorted
+cat grch37_precomputed_MutationAssessor_unsort.vcf | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > grch37_precomputed_MutationAssessor.vcf
 
 bgzip grch37_precomputed_MutationAssessor.vcf
 tabix -p vcf grch37_precomputed_MutationAssessor.vcf.gz
 
-CrossMap.py vcf hg19ToHg38.over.chain.gz grch37_precomputed_MutationAssessor.vcf.gz hg38.fa.gz grch38_precomputed_MutationAssessor.vcf
+# Make sure that the created VCF is sorted
+cat grch38_precomputed_MutationAssessor_unsort.vcf | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > grch37_precomputed_MutationAssessor.vcf
 
 bgzip grch38_precomputed_MutationAssessor.vcf
 tabix -p vcf grch38_precomputed_MutationAssessor.vcf.gz
@@ -231,6 +378,7 @@ rm -r MA_scores_rel3_hg19_full/
 rm grch37_precomputed_MutationAssessor_unsort.vcf
 rm grch37_precomputed_MutationAssessor.vcf.gz
 ```
+-->
 
 
 ### PhastCons
@@ -294,10 +442,10 @@ rm grch38_simpleRepeat_unsort.bed
 ### RepeatMasker
 GRCh38:
 \
-http://www.repeatmasker.org/genomes/hg38/RepeatMasker-rm405-db20140131/hg38.fa.out.gz
+https://www.repeatmasker.org/genomes/hg38/rmsk4.0.5_rb20140131/hg38.fa.out.gz
 
 ```
-wget -c http://www.repeatmasker.org/genomes/hg38/RepeatMasker-rm405-db20140131/hg38.fa.out.gz
+wget -c https://www.repeatmasker.org/genomes/hg38/rmsk4.0.5_rb20140131/hg38.fa.out.gz
 
 python3 prepare_RepeatMasker_bed.py hg38.fa.out.gz grch38_repeatmasker.bed
 
@@ -317,7 +465,9 @@ unzip revel-v1.3_all_chromosomes.zip
 
 python3 prepare_REVEL_vcf.py revel_with_transcript_ids grch37_revel_v13_unsort.vcf grch38_revel_v13_unsort.vcf
 
-ngs-bits/VcfSort -in grch38_revel_v13_unsort.vcf -out grch38_revel_v13.vcf
+
+# Make sure that the created VCF is sorted
+cat grch38_revel_v13_unsort.vcf | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > grch38_revel_v13.vcf
 
 bgzip grch38_revel_v13.vcf
 tabix -p vcf grch38_revel_v13.vcf.gz

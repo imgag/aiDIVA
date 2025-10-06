@@ -15,7 +15,7 @@ Analysis-Input:
     # trained scoring models used to predict the pathogenicity score
     # if no trained model is present you can use the train_model.py script to train a new custom model
     # If you train your own models make sure to set the full path here, also if you save the models not in "aiDIVA/data/prediction_models/"
-    scoring-model: <full-path-to-model>/aidiva-rf_pretrained_scikit132.pkl.gz
+    scoring-model: <full-path-to-model>/aidiva-rf_v101.gz
 
     prioritization-information:
         # Identifier to get the score from the annotated file
@@ -42,8 +42,8 @@ LLM-Input:
     llm-api-key: <full-path-to-file>/OPENAI_API_KEY.txt # leave blank if a local model is used
 
     # trained meta models
-    meta-model: <full-path-to-file>/aidiva-meta_pretrained_scikit132.pkl.gz
-    meta-model-rf: <full-path-to-file>/aidiva-meta-rf_pretrained_scikit132.pkl.gz
+    meta-model: <full-path-to-file>/aidiva-meta_v100.pkl.gz
+    meta-model-rf: <full-path-to-file>/aidiva-meta-rf_v100.pkl.gz
     
     # specify the LLM model that the api should call (gpt-4o directs to the latest model)
     llm-model: "gpt-4o" #("meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "gpt-4o")
@@ -78,7 +78,7 @@ Model-Features:
         - EIGEN_PHRED
         - CONDEL
         - FATHMM_XF
-        - MutationAssessor
+        #- MutationAssessor
         - phastCons_mammal
         - phastCons_primate
         - phastCons_vertebrate
@@ -108,21 +108,22 @@ Annotation-Resources:
     ngs-bits: <full-path-to-folder>/ngs-bits/
 
     # low-confidence filter file
-    low-confidence: <full-path-to-file>/grch37_low_conf_regions.bed
+    low-confidence: <full-path-to-file>/grch38_low_conf_regions.bed
 
     # BED like files here the key of the dictionary is used as the name to present the feature in the annotated file
     bed-files:
-        simpleRepeat: <full-path-to-file>/grch37_simpleRepeat.bed
-        segmentDuplication: <full-path-to-file>/grch37_genomicSuperDups.bed
+        simpleRepeat: <full-path-to-file>/grch38_simpleRepeat.bed
+        segmentDuplication: <full-path-to-file>/grch38_genomicSuperDups.bed
         oe_lof: <full-path-to-file>/gnomAD_oe_lof_sorted.bed
-        oe_mis: <full-path-to-file>/gnomAD_oe_mis_grch38_sorted.bed
-        oe_syn: <full-path-to-file>/gnomAD_oe_syn_grch38_sorted.bed
-        repeatMasker: <full-path-to-file>/grch37_repeatmasker.bed
+        #oe_mis: <full-path-to-file>/gnomAD_oe_mis_grch38_sorted.bed # currently not used
+        #oe_syn: <full-path-to-file>/gnomAD_oe_syn_grch38_sorted.bed # currently not used
+        repeatMasker: <full-path-to-file>/grch38_repeatmasker.bed
 
         # OPTIONAL: only used if DB check is not skipped
         # NOTE: currently not implemented
         # NOTE: the following annotation needs a valid license
-        omim: <full-path-to-file>/omim.bed
+        # If it should be used replace 'None' with the correct path
+        omim: None #<full-path-to-file>/omim.bed
 
     plugin-files:
         AlphaMissense: <full-path-to-file>/AlphaMissense_hg38.tsv.gz
@@ -132,7 +133,7 @@ Annotation-Resources:
         EIGEN_PHRED: <full-path-to-file>/grch38_eigen_phred_coding.vcf.gz
         CONDEL: <full-path-to-file>/grch38_fannsDB_Condel.vcf.gz
         FATHMM_XF: <full-path-to-file>/grch38_fathmm_xf_coding.vcf.gz
-        MutationAssessor: <full-path-to-file>/grch38_precomputed_MutationAssessor.vcf.gz
+        #MutationAssessor: <full-path-to-file>/grch38_precomputed_MutationAssessor.vcf.gz
         gnomAD: <full-path-to-file>/grch38_gnomad_genome_v3.1.2.vcf.gz
         CADD: <full-path-to-file>/grch38_CADD_snvs_v16.vcf.gz
         CAPICE: <full-path-to-file>/capice_v1_grch38_snvs.vcf.gz
@@ -145,7 +146,8 @@ Annotation-Resources:
 
         # OPTIONAL: only used if DB check is not skipped
         # NOTE: the following annotation needs a valid license
-        hgmd: <full-path-to-file>/HGMD.vcf.gz
+        # If it should be used replace 'None' with the correct path
+        hgmd: None #<full-path-to-file>/HGMD.vcf.gz
 
     # Bigwig files the key of the dictionary is used as the name to present the feature in the annotated file
     bigwig-files:
