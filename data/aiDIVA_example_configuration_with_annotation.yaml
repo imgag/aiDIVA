@@ -19,7 +19,6 @@ Analysis-Input:
 
     prioritization-information:
         # Identifier to get the score from the annotated file
-        cadd-identifier: CADD_PHRED
         repeat-identifier: simpleRepeat
         duplication-identifier: segmentDuplication
 

@@ -228,6 +228,7 @@ if __name__=="__main__":
 
     transcript_path = configuration["Canonical-Transcripts"]
     prioritization_weights = configuration["Analysis-Input"]["prioritization-weights"]
+    filter_identifiers = configuration["Analysis-Input"]["prioritization-information"]
 
     # load meta ML model
     if evidence_based:
@@ -340,7 +341,7 @@ if __name__=="__main__":
 
         # prioritize and filter variants
         logger.info("Filter variants and finalize score...")
-        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, prioritization_weights, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_terms, gene_exclusion_file)
+        prioritized_data = prio.prioritize_variants(predicted_data, internal_parameter_dict, prioritization_weights, filter_identifiers, ref_path, num_cores, assembly_build, feature_list, skip_db_check, family_file, family_type, hpo_terms, gene_exclusion_file)
         prioritized_data_filtered = prioritized_data[prioritized_data["FILTER_PASSED"] == 1].copy(deep=True)
         prioritized_data_filtered["AIDIVA_RANK"] = prioritized_data_filtered["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
 

@@ -85,11 +85,6 @@ VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
 logger = logging.getLogger(__name__)
 
 
-cadd_identifier = "CADD_PHRED"
-duplication_identifier = "segmentDuplication"
-repeat_identifier = "simpleRepeat"
-
-
 def load_from_json(json_file):
     if json_file.endswith(".gz"):
         with gzip.open(json_file, "rt") as json_f:
@@ -98,7 +93,7 @@ def load_from_json(json_file):
     else:
         with open(json_file, "r") as json_f:
             loaded_resource = json.load(json_f)
-    
+
     return loaded_resource
 
 
@@ -222,7 +217,7 @@ def compare_polyphen_and_sift_prediction(variant):
     return polyphen_sift_opposed
 
 
-def prioritize_variants(variant_data, internal_parameter_dict, prioritization_weights, reference, num_cores, build, feature_list, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
+def prioritize_variants(variant_data, internal_parameter_dict, prioritization_weights, filter_identifiers, reference, num_cores, build, feature_list, skip_db_check=False, family_file=None, family_type="SINGLE", hpo_list=None, gene_exclusion_list=None):
     # load HPO resources
     hpo_graph_f = get_resource_file(internal_parameter_dict["hpo-graph"])
     hpo_replacement_f = get_resource_file(internal_parameter_dict["hpo2replacement-mapping"])
@@ -251,7 +246,7 @@ def prioritize_variants(variant_data, internal_parameter_dict, prioritization_we
     information_content_per_node = nx.get_node_attributes(hpo_graph, "IC")
     node_ancestor_mapping = {hpo_term: nx.ancestors(hpo_graph, hpo_term) for hpo_term in hpo_graph}
 
-    variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, skip_db_check, transcript_length_mapping, family, family_type, genes2exclude, gene_2_hpo, hgnc_2_gene, gene_2_interacting, hpo_graph, hpo_query, information_content_per_node, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, prioritization_weights), num_cores)
+    variant_data = parallelize_dataframe_processing(variant_data, partial(parallelized_variant_processing, skip_db_check, transcript_length_mapping, family, family_type, genes2exclude, gene_2_hpo, hgnc_2_gene, gene_2_interacting, hpo_graph, hpo_query, information_content_per_node, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, prioritization_weights, filter_identifiers), num_cores)
     variant_data = variant_data.sort_values(["FINAL_AIDIVA_SCORE"], ascending=[False])
     variant_data = variant_data.reset_index(drop=True)
 
@@ -278,7 +273,7 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
     return variant_data
 
 
-def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, prioritization_weights, variant_data):
+def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, prioritization_weights, filter_identifiers, variant_data):
     genotype_column = [column for column in variant_data.columns if column.startswith("GT.")]
 
     if genotype_column:
@@ -288,11 +283,16 @@ def parallelized_variant_processing(skip_db_check, transcript_dict, family, fami
         logger.info(f"Skip inheritance check!")
 
     variant_data["MISSING_FEATURE_PERCENTAGE"] = variant_data.apply(lambda variant: pd.Series(get_feature_completeness(variant, feature_list)), axis=1)
-    variant_data["POLYPHEN_SIFT_OPPOSED"] = variant_data.apply(lambda variant: pd.Series(compare_polyphen_and_sift_prediction(variant)), axis=1)
-    
+
+    if "SIFT" in feature_list and "PolyPhen" in feature_list:
+        variant_data["POLYPHEN_SIFT_OPPOSED"] = variant_data.apply(lambda variant: pd.Series(compare_polyphen_and_sift_prediction(variant)), axis=1)
+
+    else:
+        logger.info("Skip check for opposed SIFT and PolyPhen scores! At least one of the two features is not part of the feature list.")
+
     logger.debug("Investigate Transcript CDS region!")
     variant_data[["CDS_START_PERCENTAGE", "PREDICTED_AIDIVA_SCORE", "AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(investigate_transcript_cds_position(variant, transcript_dict)), axis=1)
-    
+
     if not skip_db_check:
         logger.debug("Check databases (ClinVar, HGMD) for known variants!")
         variant_data[["VARIANT_DB_SCORE", "AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(check_databases_for_pathogenicity_classification(variant)), axis=1)
@@ -301,7 +301,7 @@ def parallelized_variant_processing(skip_db_check, transcript_dict, family, fami
         logger.info(f"Skip variant pathogenicity lookup in existing databases (ClinVar, HGMD)!")
 
     variant_data[["HPO_RELATEDNESS", "HPO_RELATEDNESS_INTERACTING", "FINAL_AIDIVA_SCORE"]] = variant_data.apply(lambda variant: pd.Series(compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, prioritization_weights)), axis=1)
-    variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query, reference)), axis=1)
+    variant_data[["FILTER_PASSED", "FILTER_COMMENT"]] = variant_data.apply(lambda variant: pd.Series(check_filters(variant, genes2exclude, HPO_query, reference, filter_identifiers)), axis=1)
 
     return variant_data
 
@@ -525,7 +525,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                     if gene_HPO_list:
                         gene_hpo_similarity = gs.calculate_hpo_set_similarity(HPO_graph, HPO_query, gene_HPO_list, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information)
                         gene_similarities_interacting.append(gene_hpo_similarity)
-                    
+
                 hpo_relatedness = max(gene_similarities, default=0.0)
                 hpo_relatedness_interacting = max(gene_similarities_interacting, default=0.0)
 
@@ -540,7 +540,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                     hpo_weight = 0.65
                     hpo_interacting_weight = 0.01
 
-                print(f"DEBUG: Using the following weights for prioritization: pathogenicity={pathogenicity_weight}, hpo={hpo_weight}, hpo_interacting={hpo_interacting_weight}")
+                logger.debug(f"Using the following weights for prioritization: pathogenicity={pathogenicity_weight}, hpo={hpo_weight}, hpo_interacting={hpo_interacting_weight}")
                 final_score = (pathogenictiy_prediction * pathogenicity_weight + float(hpo_relatedness) * hpo_weight + float(hpo_relatedness_interacting) * hpo_interacting_weight)
 
             else:
@@ -655,11 +655,11 @@ def add_inheritance_mode(variant, variant_columns):
     if "DOMINANT_DENOVO" in variant_columns:
         if variant["DOMINANT_DENOVO"] == 1:
             inheritance_list.append("DOMINANT_DENOVO")
-    
+
     if "RECESSIVE" in variant_columns:
         if variant["RECESSIVE"] == 1:
             inheritance_list.append("RECESSIVE")
-    
+
     if "COMPOUND" in variant_columns:
         if variant["COMPOUND"] == 1:
             inheritance_list.append("COMPOUND")
@@ -667,7 +667,7 @@ def add_inheritance_mode(variant, variant_columns):
     if "XLINKED" in variant_columns:
         if variant["XLINKED"] == 1:
             inheritance_list.append("XLINKED")
-    
+
     inheritance_mode = "&".join(inheritance_list)
 
     return inheritance_mode
@@ -727,23 +727,32 @@ def homopolymer_filter(sequence):
     return homopolymer_flag, low_complexity_flag
 
 
-def check_filters(variant, genes2exclude, HPO_query, reference):
+def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifiers):
     variant_genes = str(variant["SYMBOL"])
     genenames = set(variant_genes.split(";"))
-    in_fasta = pysam.FastaFile(reference)
-    most_severe_consequence = str(variant["MOST_SEVERE_CONSEQUENCE"])
 
-    repeat = str(variant[repeat_identifier])
+    ## TODO: Change to make dynamic
+    most_severe_consequence = str(variant["MOST_SEVERE_CONSEQUENCE"])
     filter_comment = ""
 
     try:
+        repeat_identifier = filter_identifiers["repeat-identifier"]
+        repeat = str(variant[repeat_identifier])
+
+    except Exception as e:
+        logger.debug("Skip additional simpleRepeat entries!")
+        repeat=""
+
+    try:
+        duplication_identifier = filter_identifiers["duplication-identifier"]
         seg_dup = float(variant[duplication_identifier])
 
     except Exception as e:
         logger.debug("Use 0.0 for missing segment duplication entries!")
         seg_dup = 0.0
-    
+
     try:
+        ## TODO: Add workaround if not MAX_AF is given, but instead the AF for the different populations
         maf = float(variant["MAX_AF"])
 
     except Exception as e:
@@ -803,15 +812,18 @@ def check_filters(variant, genes2exclude, HPO_query, reference):
         else:
             chrom_id = "chr" + str(variant["#CHROM"])
 
-        num_bases = 5
-        pos_start = max(int(variant["POS"]) - (num_bases + 1), 1)
-        pos_end = min(int(variant["POS"]) + num_bases, in_fasta.get_reference_length(chrom_id))
-
         try:
+            in_fasta = pysam.FastaFile(reference)
+
+            num_bases = 5
+            pos_start = max(int(variant["POS"]) - (num_bases + 1), 1)
+            pos_end = min(int(variant["POS"]) + num_bases, in_fasta.get_reference_length(chrom_id))
+
             sequence_context = in_fasta.fetch(chrom_id, pos_start, pos_end)
             sequence_context = sequence_context.upper()
 
-        except FileNotFoundError:
+        except Exception as e:
+            logger.warning("An error occured loading the sequence context from the reference file!")
             sequence_context = '.'
 
         homopolymer_flag, low_complexity_flag = homopolymer_filter(sequence_context)
