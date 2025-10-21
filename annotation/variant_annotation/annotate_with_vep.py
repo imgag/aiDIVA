@@ -170,7 +170,7 @@ def annotate_from_bed(input_vcf_file, output_vcf_file, annotation_dict, num_core
         subprocess.run(f"{command} -bed {bed_annotation['segmentDuplication']} -name SegDup -sep '&' -in {input_vcf_file} -out {tmp_segDup.name} -threads {num_cores}", shell=True, check=True)
         subprocess.run(f"{command} -bed {bed_annotation['simpleRepeat']} -name SimpleRepeats -sep '&' -in {tmp_segDup.name} -out {tmp_simpleRepeat.name} -threads {num_cores}", shell=True, check=True)
         subprocess.run(f"{command} -bed {bed_annotation['oe_lof']} -name oe_lof -sep '&' -in {tmp_simpleRepeat.name} -out {tmp_oe_lof.name} -threads {num_cores}", shell=True, check=True)
-
+        
         ## currently not used
         #subprocess.run(f"{command} -bed {bed_annotation['oe_mis']} -name oe_mis -sep '&' -in {tmp_oe_lof.name} -out {tmp_oe_mis.name} -threads {num_cores}", shell=True, check=True)
         #subprocess.run(f"{command} -bed {bed_annotation['oe_syn']} -name oe_syn -sep '&' -in {tmp_oe_mis.name} -out {tmp_oe_syn.name} -threads {num_cores}", shell=True, check=True)

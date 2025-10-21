@@ -11,7 +11,7 @@ Ngs-bits is used to annotate the VCF files.
 ```
 git clone https://github.com/imgag/ngs-bits.git
 cd ngs-bits
-git checkout 2023_06 && git submodule update --recursive --init
+git checkout 2025_03 && git submodule update --recursive --init
 make build_3rdparty
 make build_libs_release
 make build_tools_release
@@ -24,6 +24,7 @@ Make sure to specify the correct paths for the VEP installation and the VEP cach
 
 ```
 # specify the installation directory to match your own setup
+# You should use absolute paths
 vep_install_dir=ensembl-vep-release-109.3/
 vep_cpan_dir=$vep_install_dir/cpan/
 vep_data_dir=ensembl-vep-109/
@@ -44,18 +45,16 @@ mkdir -p ftp
 cd ftp
 
 wget ftp://ftp.ensembl.org/pub/release-109/variation/indexed_vep_cache/homo_sapiens_vep_109_GRCh38.tar.gz
-#wget ftp://ftp.ensembl.org/pub/release-109/variation/indexed_vep_cache/homo_sapiens_vep_109_GRCh37.tar.gz
 
 # install ensembl-vep
 PERL5LIB=$vep_install_dir/Bio/:$vep_cpan_dir/lib/perl5/:$PERL5LIB
 cd $vep_install_dir
 
-perl INSTALL.pl --SPECIES homo_sapiens --ASSEMBLY GRCh38 --AUTO acp --NO_UPDATE --NO_BIOPERL --CACHEDIR $vep_data_dir/cache --CACHEURL $vep_data_dir/ftp --NO_TEST
-#perl INSTALL.pl --SPECIES homo_sapiens --ASSEMBLY GRCh37 --AUTO acp --NO_UPDATE --NO_BIOPERL --CACHEDIR $vep_data_dir/cache --CACHEURL $vep_data_dir/ftp --NO_TEST
+perl INSTALL.pl --SPECIES homo_sapiens --ASSEMBLY GRCh38 --AUTO ac --NO_UPDATE --NO_BIOPERL --CACHEDIR $vep_data_dir/cache --CACHEURL $vep_data_dir/ftp --NO_TEST
 
+mkdir -p $vep_data_dir/cache/Plugins
 cd $vep_data_dir/cache/Plugins
-wget https://github.com/Ensembl/VEP_plugins/blob/release/110/AlphaMissense.pm
 
-cp $vep_data_dir/cache/Plugins/*.pm $vep_install_dir/modules/ #should not be necessary - probably a bug in the VEP installation script when using the CACHEDIR option (MS)
-
+# make sure to download the pugin from the 110 release or later (in earlier releases it is not present)
+wget https://raw.githubusercontent.com/Ensembl/VEP_plugins/refs/heads/release/110/AlphaMissense.pm
 ```

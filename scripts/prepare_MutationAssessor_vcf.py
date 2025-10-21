@@ -10,7 +10,7 @@ outfile = sys.argv[2]
 
 with open(outfile, "w") as writer:
     writer.write("##fileformat=VCFv4.1\n")
-    writer.write("##INFO=<ID=FATHMM_XF,Number=1,Type=String,Description=\"FATHMM-XF score\">\n")
+    writer.write("##INFO=<ID=tMutationAssessor,Number=1,Type=String,Description=\"tMutationAssessor score\">\n")
     writer.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
 
     for chrom in chroms:
