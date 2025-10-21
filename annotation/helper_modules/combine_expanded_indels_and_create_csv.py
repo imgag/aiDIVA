@@ -11,18 +11,6 @@ from functools import partial
 logger = logging.getLogger(__name__)
 
 
-#SYNONYMOUS_VARIANTS = ["synonymous_variant",
-#                       "start_retained_variant",
-#                       "stop_retained_variant"]
-
-#SPLICE_VARIANTS = ["splice_acceptor_variant",
-#                   "splice_donor_variant",
-#                   "splice_donor_5th_base_variant",
-#                   "splice_region_variant",
-#                   "splice_donor_region_variant",
-#                   "splice_polypyrimidine_tract_variant"]
-
-
 def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature, SPLICE_VARIANTS, SYNONYMOUS_VARIANTS):
     with warnings.catch_warnings():
         # we expect to see RuntimeWarnings if the values for a certain variant are missing (the following filter will prevent them from bloating the log file)

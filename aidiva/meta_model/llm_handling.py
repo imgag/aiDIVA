@@ -9,33 +9,6 @@ import re
 import time
 
 
-#RANDOM_SEED = 14038
-
-#CONSEQUENCE_MAPPING = {"splice_acceptor_variant": "loss-of-function variant",
-#                       "splice_donor_variant": "loss-of-function variant",
-#                       "frameshift_variant": "loss-of-function variant",
-#                       "stop_gained": "loss-of-function variant",
-#                       "stop_lost": "loss-of-function variant",
-#                       "start_lost": "loss-of-function variant",
-#                       "inframe_insertion": "inframe insertion/deletion",
-#                       "inframe_deletion": "inframe insertion/deletion",
-#                       "missense_variant": "missense variant",
-#                       "splice_donor_5th_base_variant": "splice region variant",
-#                       "splice_region_variant": "splice region variant",
-#                       "splice_donor_region_variant": "splice region variant",
-#                       "splice_polypyrimidine_tract_variant": "splice region variant",
-#                       "synonymous_variant": "synonymous variant",
-#                       "start_retained_variant": "synonymous variant",
-#                       "stop_retained_variant": "synonymous variant",
-#                       "intron_variant": "intronic variant"}
-
-#SUPPORTED_VARIANT_TYPES = ["loss-of-function variant",
-#                           "inframe insertion/deletion",
-#                           "missense variant",
-#                           "splice region variant",
-#                           "synonymous variant",
-#                           "intronic variant"]
-
 logger = logging.getLogger(__name__)
 
 

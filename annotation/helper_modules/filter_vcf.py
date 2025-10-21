@@ -4,27 +4,6 @@ import logging
 import tempfile
 
 
-#CODING_VARIANTS = ["splice_acceptor_variant",
-#                   "splice_donor_variant",
-#                   "stop_gained",
-#                   "frameshift_variant",
-#                   "stop_lost",
-#                   "start_lost",
-#                   "inframe_insertion",
-#                   "inframe_deletion",
-#                   "missense_variant",
-#                   "protein_altering_variant",
-#                   "splice_region_variant",
-#                   "splice_donor_5th_base_variant",
-#                   "splice_donor_region_variant",
-#                   "splice_polypyrimidine_tract_variant",
-#                   "incomplete_terminal_codon_variant",
-#                   "start_retained_variant",
-#                   "stop_retained_variant",
-#                   "synonymous_variant",
-#                   "coding_sequence_variant"]
-
-
 logger = logging.getLogger(__name__)
 
 

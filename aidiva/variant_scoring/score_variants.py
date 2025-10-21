@@ -9,67 +9,6 @@ import pickle
 from functools import partial
 
 
-
-#MEAN_DICT = {"phastCons_mammal": 0.09691308336428194,
-#             "phastCons_primate": 0.12353343703613741,
-#             "phastCons_vertebrate": 0.1366339183101041,
-#             "phyloP_mammal": -0.0063575303590607925,
-#             "phyloP_primate": -0.012076641890840553,
-#             "phyloP_vertebrate": 0.06761867323083483,
-#             "phastCons100": 0.11273633387190414,
-#             "phyloP100": 0.052907788505469275,
-#             "MutationAssessor": 1.7961304794577417,
-#             "CONDEL": 0.49699016949707825,
-#             "EIGEN_PHRED": 4.342947928406315,
-#             "CADD_PHRED": 4.471745325,
-#             "FATHMM_XF": 0.35846023623584666,
-#             "SIFT": 0.35216996259535444,
-#             "REVEL": 0.28019263637740743,
-#             "PolyPhen": 0.5169017014355943,
-#             "oe_lof": 0.53667483333333332,
-#             "oe_mis": 0.8742450611581991, ## currently not used
-#             "oe_syn": 1.0262797714053697, ## currently not used
-#             "CAPICE": 0.04487945928377704,
-#             "ALPHA_MISSENSE_SCORE": 0.4074365673385914}
-
-#MEDIAN_DICT = {"MutationAssessor": 1.87,
-#               "CONDEL": 0.4805749233199981,
-#               "EIGEN_PHRED": 3.010301,
-#               "CADD_PHRED": 3.99,
-#               "FATHMM_XF": 0.209614,
-#               "SIFT": 0.153,
-#               "REVEL": 0.193,
-#               "PolyPhen": 0.547,
-#               "oe_lof": 0.48225,
-#               "oe_mis": 0.87952, ## currently not used
-#               "oe_syn": 1.004, ## currently not used
-#               "CAPICE": 0.0006,
-#               "ALPHA_MISSENSE_SCORE": 0.2509}
-
-#SUPPORTED_CODING_VARIANTS = ["stop_gained",
-#                             "stop_lost",
-#                             "start_lost",
-#                             "frameshift_variant",
-#                             "inframe_insertion",
-#                             "inframe_deletion",
-#                             "missense_variant",
-#                             "protein_altering_variant",
-#                             "incomplete_terminal_codon_variant",
-#                             "coding_sequence_variant"]
-
-#SYNONYMOUS_VARIANTS = ["synonymous_variant",
-#                       "start_retained_variant",
-#                       "stop_retained_variant"]
-                     
-#SPLICE_VARIANTS = ["splice_acceptor_variant",
-#                   "splice_donor_variant",
-#                   "splice_donor_5th_base_variant",
-#                   "splice_region_variant",
-#                   "splice_donor_region_variant",
-#                   "splice_polypyrimidine_tract_variant"]
-
-#RANDOM_SEED = 14038
-
 logger = logging.getLogger(__name__)
 
 

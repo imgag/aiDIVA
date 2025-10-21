@@ -5,8 +5,6 @@ import pysam
 import random
 
 
-#RANDOM_SEED = 14038
-
 logger = logging.getLogger(__name__)
 
 

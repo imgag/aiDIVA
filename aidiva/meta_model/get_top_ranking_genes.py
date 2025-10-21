@@ -8,64 +8,6 @@ import random
 import re
 
 
-#RANDOM_SEED = 14038
-
-#CONSEQUENCE_MAPPING = {"splice_acceptor_variant": "loss of function variant",
-#                       "splice_donor_variant": "loss of function variant",
-#                       "frameshift_variant": "loss of function variant",
-#                       "stop_gained": "loss of function variant",
-#                       "stop_lost": "loss of function variant",
-#                       "start_lost": "loss of function variant",
-#                       "inframe_insertion": "inframe insertion/deletion",
-#                       "inframe_deletion": "inframe insertion/deletion",
-#                       "missense_variant": "missense variant",
-#                       "splice_donor_5th_base_variant": "splice region variant",
-#                       "splice_region_variant": "splice region variant",
-#                       "splice_donor_region_variant": "splice region variant",
-#                       "splice_polypyrimidine_tract_variant": "splice region variant"}
-
-#VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
-#                        "splice_acceptor_variant": 2,
-#                        "splice_donor_variant": 3,
-#                        "stop_gained": 4,
-#                        "frameshift_variant": 5,
-#                        "stop_lost": 6,
-#                        "start_lost": 7,
-#                        "transcript_amplification": 8,
-#                        "inframe_insertion": 9,
-#                        "inframe_deletion": 10,
-#                        "missense_variant": 11,
-#                        "protein_altering_variant": 12,
-#                        "splice_region_variant": 13,
-#                        "splice_donor_5th_base_variant": 14,
-#                        "splice_donor_region_variant": 15,
-#                        "splice_polypyrimidine_tract_variant": 16,
-#                        "incomplete_terminal_codon_variant": 17,
-#                        "start_retained_variant": 18,
-#                        "stop_retained_variant": 19,
-#                        "synonymous_variant": 20,
-#                        "coding_sequence_variant": 21,
-#                        "mature_miRNA_variant": 22,
-#                        "5_prime_UTR_variant": 23,
-#                        "3_prime_UTR_variant": 24,
-#                        "non_coding_transcript_exon_variant": 25,
-#                        "intron_variant": 26,
-#                        "NMD_transcript_variant": 27,
-#                        "non_coding_transcript_variant": 28,
-#                        "upstream_gene_variant": 29,
-#                        "downstream_gene_variant": 30,
-#                        "TFBS_ablation": 31,
-#                        "TFBS_amplification": 32,
-#                        "TF_binding_site_variant": 33,
-#                        "regulatory_region_ablation": 34,
-#                        "regulatory_region_amplification": 35,
-#                        "feature_elongation": 36,
-#                        "regulatory_region_variant": 37,
-#                        "feature_truncation": 38,
-#                        "intergenic_variant": 39,
-#                        # use "unknown" consequence as default if new consequence terms are added to the database that are not yet implemented (this prevents the program from exiting with an error)
-#                        "unknown": 40}
-
 logger = logging.getLogger(__name__)
 
 
