@@ -10,49 +10,49 @@ import random
 import re
 
 
-RANDOM_SEED = 14038
+#RANDOM_SEED = 14038
 
-VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
-                        "splice_acceptor_variant": 2,
-                        "splice_donor_variant": 3,
-                        "stop_gained": 4,
-                        "frameshift_variant": 5,
-                        "stop_lost": 6,
-                        "start_lost": 7,
-                        "transcript_amplification": 8,
-                        "inframe_insertion": 9,
-                        "inframe_deletion": 10,
-                        "missense_variant": 11,
-                        "protein_altering_variant": 12,
-                        "splice_region_variant": 13,
-                        "splice_donor_5th_base_variant": 14,
-                        "splice_donor_region_variant": 15,
-                        "splice_polypyrimidine_tract_variant": 16,
-                        "incomplete_terminal_codon_variant": 17,
-                        "start_retained_variant": 18,
-                        "stop_retained_variant": 19,
-                        "synonymous_variant": 20,
-                        "coding_sequence_variant": 21,
-                        "mature_miRNA_variant": 22,
-                        "5_prime_UTR_variant": 23,
-                        "3_prime_UTR_variant": 24,
-                        "non_coding_transcript_exon_variant": 25,
-                        "intron_variant": 26,
-                        "NMD_transcript_variant": 27,
-                        "non_coding_transcript_variant": 28,
-                        "upstream_gene_variant": 29,
-                        "downstream_gene_variant": 30,
-                        "TFBS_ablation": 31,
-                        "TFBS_amplification": 32,
-                        "TF_binding_site_variant": 33,
-                        "regulatory_region_ablation": 34,
-                        "regulatory_region_amplification": 35,
-                        "feature_elongation": 36,
-                        "regulatory_region_variant": 37,
-                        "feature_truncation": 38,
-                        "intergenic_variant": 39,
-                        # use "unknown" consequence as default if new consequence terms are added to the database that are not yet implemented (this prevents the program from exiting with an error)
-                        "unknown": 40}
+#VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
+#                        "splice_acceptor_variant": 2,
+#                        "splice_donor_variant": 3,
+#                        "stop_gained": 4,
+#                        "frameshift_variant": 5,
+#                        "stop_lost": 6,
+#                        "start_lost": 7,
+#                        "transcript_amplification": 8,
+#                        "inframe_insertion": 9,
+#                        "inframe_deletion": 10,
+#                        "missense_variant": 11,
+#                        "protein_altering_variant": 12,
+#                        "splice_region_variant": 13,
+#                        "splice_donor_5th_base_variant": 14,
+#                        "splice_donor_region_variant": 15,
+#                        "splice_polypyrimidine_tract_variant": 16,
+#                        "incomplete_terminal_codon_variant": 17,
+#                        "start_retained_variant": 18,
+#                        "stop_retained_variant": 19,
+#                        "synonymous_variant": 20,
+#                        "coding_sequence_variant": 21,
+#                        "mature_miRNA_variant": 22,
+#                        "5_prime_UTR_variant": 23,
+#                        "3_prime_UTR_variant": 24,
+#                        "non_coding_transcript_exon_variant": 25,
+#                        "intron_variant": 26,
+#                        "NMD_transcript_variant": 27,
+#                        "non_coding_transcript_variant": 28,
+#                        "upstream_gene_variant": 29,
+#                        "downstream_gene_variant": 30,
+#                        "TFBS_ablation": 31,
+#                        "TFBS_amplification": 32,
+#                        "TF_binding_site_variant": 33,
+#                        "regulatory_region_ablation": 34,
+#                        "regulatory_region_amplification": 35,
+#                        "feature_elongation": 36,
+#                        "regulatory_region_variant": 37,
+#                        "feature_truncation": 38,
+#                        "intergenic_variant": 39,
+#                        # use "unknown" consequence as default if new consequence terms are added to the database that are not yet implemented (this prevents the program from exiting with an error)
+#                        "unknown": 40}
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ def extract_rf_rank_and_score(gene_rank_score_information, no_variant):
     return gene_info_dict_rf
 
 
-def choose_desired_transcript(gene_transcripts):
+def choose_desired_transcript(gene_transcripts, VARIANT_CONSEQUENCES):
     if len(gene_transcripts) > 2:
         logger.warning("Check sample. Reason: more than two transcripts for one gene.")
         consequence_value = 50
@@ -115,7 +115,7 @@ def choose_desired_transcript(gene_transcripts):
     return gene, variant_type
 
 
-def choose_desired_variant_type(variant_consequences):
+def choose_desired_variant_type(variant_consequences, VARIANT_CONSEQUENCES):
     found_consequences = variant_consequences.split("+")
 
     # use most severe consequence for filtering if overlapping consequences are present
@@ -132,7 +132,7 @@ def choose_desired_variant_type(variant_consequences):
     return most_severe_consequence
 
 
-def extract_eb_rank_and_score(gene_rank_score_information, no_variant):
+def extract_eb_rank_and_score(gene_rank_score_information, no_variant, VARIANT_CONSEQUENCES):
     gene_entries = gene_rank_score_information.split(";")
     gene_info_dict_eb = {}
 
@@ -158,10 +158,10 @@ def extract_eb_rank_and_score(gene_rank_score_information, no_variant):
             current_gene = splitted_gene_names[0].upper()
             variant_type_info = splitted_gene_info[1]
 
-            variant_type = choose_desired_variant_type(variant_type_info)
+            variant_type = choose_desired_variant_type(variant_type_info, VARIANT_CONSEQUENCES)
 
         elif len(splitted_gene_names) > 1:
-            current_gene, variant_type = choose_desired_transcript(gene_entry)
+            current_gene, variant_type = choose_desired_transcript(gene_entry, VARIANT_CONSEQUENCES)
 
         if current_gene in gene_info_dict_eb.keys():
             gene_info_dict_eb[current_gene].append({"rank": gene_rank, "score": gene_score, "variant_type": gene_consequence, "variant": gene_variant})
@@ -196,7 +196,10 @@ def get_llm_gene_candidates(data):
     return first_gene, second_gene, third_gene
 
 
-def create_table_rf_based(in_data_rf_based, rf_gene_list, no_variant):
+def create_table_rf_based(in_data_rf_based, rf_gene_list, no_variant, CONSTANT_DICTIONARY):
+    #get constants
+    VARIANT_CONSEQUENCES = CONSTANT_DICTIONARY["VARIANT_CONSEQUENCES"]
+    
     meta_table_dict_list = []
 
     rf_gene_info_dict = extract_rf_rank_and_score(rf_gene_list, no_variant)
@@ -254,12 +257,15 @@ def create_table_rf_based(in_data_rf_based, rf_gene_list, no_variant):
     return meta_table
 
 
-def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_eb_dom, eb_dom_gene_list, in_data_eb_rec, eb_rec_gene_list, no_variant):
+def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_eb_dom, eb_dom_gene_list, in_data_eb_rec, eb_rec_gene_list, no_variant, CONSTANT_DICTIONARY):
+    #get constants
+    VARIANT_CONSEQUENCES = CONSTANT_DICTIONARY["VARIANT_CONSEQUENCES"]
+
     meta_table_dict_list = []
 
     rf_gene_info_dict = extract_rf_rank_and_score(rf_gene_list, no_variant)
-    eb_dom_gene_info_dict = extract_eb_rank_and_score(eb_dom_gene_list, no_variant)
-    eb_rec_gene_info_dict = extract_eb_rank_and_score(eb_rec_gene_list, no_variant)
+    eb_dom_gene_info_dict = extract_eb_rank_and_score(eb_dom_gene_list, no_variant, VARIANT_CONSEQUENCES)
+    eb_rec_gene_info_dict = extract_eb_rank_and_score(eb_rec_gene_list, no_variant, VARIANT_CONSEQUENCES)
 
     rf_genes = set(list(rf_gene_info_dict.keys()))
     eb_dom_genes = set(list(eb_dom_gene_info_dict.keys()))

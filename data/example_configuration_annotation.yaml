@@ -1,0 +1,231 @@
+# Configuration file specifiying all the parameters that are needed to run annotation
+# if you modify the key names make sure to also update them in the respective scripts
+---
+# used assembly build, valid values: [GRCh38]
+Assembly-Build: GRCh38
+Reference-Genome: <full-path-to-reference>/GRCh38.fa
+
+# this file can be used to pick a transcript during the annotation if not specified or 'None' the default is to pick the allele with the most severe consequence
+Canonical-Transcripts: <full-path-to-file>/mane_grch38_v13_transcript_ids.txt
+
+
+Model-Features:
+    # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these)
+    allele-frequency-list:
+        - gnomAD_AFR_AF
+        - gnomAD_AMR_AF
+        - gnomAD_EAS_AF
+        - gnomAD_NFE_AF
+        - gnomAD_SAS_AF
+        #- gnomAD_ASJ_AF
+        #- gnomAD_FIN_AF
+        #- gnomAD_OTH_AF
+
+    # List containing the names of the features used for the model training
+    # the exact order of the features is crucial (make sure to have the exact same order as in the training step)
+    feature-list:
+        - SIFT
+        - PolyPhen
+        - CADD_PHRED
+        - REVEL
+        - MAX_AF
+        - EIGEN_PHRED
+        - CONDEL
+        - FATHMM_XF
+        - MutationAssessor
+        - phastCons_mammal
+        - phastCons_primate
+        - phastCons_vertebrate
+        - phyloP_mammal
+        - phyloP_primate
+        - phyloP_vertebrate
+        - oe_lof
+        - homAF
+        - CAPICE
+        - ALPHA_MISSENSE_SCORE
+        - HIGH_IMPACT
+        - IS_INDEL
+
+
+Annotation-Resources:
+    # VEP: path to the VEP executable
+    vep: <full-path-to-folder>/ensembl-vep-release/vep
+
+    # VEP: path where the needed perl modules are installed
+    vep-cpan: <full-path-to-folder>/ensembl-vep-release/cpan/
+
+    # VEP: path where the the VEP plugins were put
+    vep-plugin-path: <full-path-to-folder>/vep_plugins/
+
+    # VEP cache directory
+    vep-cache: <full-path-to-folder>/ensembl-vep/cache
+
+    # ngs-bits install path
+    ngs-bits: <full-path-to-folder>/ngs-bits/
+
+    # low-confidence filter file
+    low-confidence: <full-path-to-file>/grch38_low_conf_regions.bed
+
+    # BED like files here the key of the dictionary is used as the name to present the feature in the annotated file
+    bed-files:
+        simpleRepeat: <full-path-to-file>/grch38_simpleRepeat.bed
+        segmentDuplication: <full-path-to-file>/grch38_genomicSuperDups.bed
+        oe_lof: <full-path-to-file>/gnomAD_oe_lof_grch38_sorted.bed
+        #oe_mis: <full-path-to-file>/gnomAD_oe_mis_grch38_sorted.bed
+        #oe_syn: <full-path-to-file>/gnomAD_oe_syn_grch38_sorted.bed
+        repeatMasker: <full-path-to-file>/grch37_repeatmasker.bed
+        
+        # OPTIONAL: only used if DB check is not skipped
+        # NOTE: currently not implemented
+        # NOTE: the following annotation needs a valid license
+        omim: <full-path-to-file>/omim.bed
+
+    plugin-files:
+        AlphaMissense: <full-path-to-file>/AlphaMissense_hg38.tsv.gz
+
+    # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
+    vcf-files:
+        EIGEN_PHRED: <full-path-to-file>/grch38_eigen_phred_coding.vcf.gz
+        CONDEL: <full-path-to-file>/grch38_fannsDB_Condel.vcf.gz
+        FATHMM_XF: <full-path-to-file>/grch38_fathmm_xf_coding.vcf.gz
+        MutationAssessor: <full-path-to-file>/grch38_precomputed_MutationAssessor.vcf.gz
+        gnomAD: <full-path-to-file>/grch38_gnomad_genome_v3.1.2.vcf.gz
+        CADD: <full-path-to-file>/grch38_CADD_snvs_v16.vcf.gz
+        CAPICE: <full-path-to-file>/capice_v1_grch38_snvs.vcf.gz
+        REVEL: <full-path-to-file>/grch38_revel_v13.vcf.gz
+        SpliceAI-SNV: <full-path-to-file>/spliceai_scores.masked.snv.hg38.vcf.gz
+        SpliceAI-InDel: <full-path-to-file>/spliceai_scores.masked.indel.hg38.vcf.gz
+        
+        # OPTIONAL: only used if DB check is not skipped
+        clinvar: <full-path-to-file>/clinvar.vcf.gz
+        
+        # OPTIONAL: only used if DB check is not skipped
+        # NOTE: the following annotation needs a valid license
+        hgmd: <full-path-to-file>/HGMD.vcf.gz
+
+    # Bigwig files the key of the dictionary is used as the name to present the feature in the annotated file
+    bigwig-files:
+        phastCons_primate: <full-path-to-file>/hg38_phastCons17way_primate.bw
+        phastCons_mammal: <full-path-to-file>/hg38_phastCons30way_mammal.bw
+        phastCons_vertebrate: <full-path-to-file>/hg38_phastCons100way_vertebrate.bw
+        phyloP_primate: <full-path-to-file>/hg38_phyloP17way_primate.bw
+        phyloP_mammal: <full-path-to-file>/hg38_phyloP30way_mammal.bw
+        phyloP_vertebrate: <full-path-to-file>/hg38_phyloP100way_vertebrate.bw
+
+
+# DO NOT CHANGE THE FOLLOWING IF YOU DON'T KNOW WHAT YOU DO
+# In case you change the following parameters (eg. if you recomputed the hpo resources) make sure to specify the full path to the newly created resources
+Internal-Parameters:
+    # defines constants used in different parts of the tool
+    CONSTANTS:
+        # random seed that is used when random numbers or decisions are used
+        # not used in the LLM part
+        RANDOM_SEED: 14038
+
+        # number mapping of the calculated variant consequences from ensembl (https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html)
+        # lower numbers means higher impact
+        VARIANT_CONSEQUENCES:
+            transcript_ablation: 1
+            splice_acceptor_variant: 2
+            splice_donor_variant: 3
+            stop_gained: 4
+            frameshift_variant: 5
+            stop_lost: 6
+            start_lost: 7
+            transcript_amplification: 8
+            feature_elongation: 9
+            feature_truncation: 10
+            inframe_insertion: 11
+            inframe_deletion: 12
+            missense_variant: 13
+            protein_altering_variant: 14
+            splice_donor_5th_base_variant: 15
+            splice_region_variant: 16
+            splice_donor_region_variant: 17
+            splice_polypyrimidine_tract_variant: 18
+            incomplete_terminal_codon_variant: 19
+            start_retained_variant: 20
+            stop_retained_variant: 21
+            synonymous_variant: 22
+            coding_sequence_variant: 23
+            mature_miRNA_variant: 24
+            5_prime_UTR_variant: 25
+            3_prime_UTR_variant: 26
+            non_coding_transcript_exon_variant: 27
+            intron_variant: 28
+            NMD_transcript_variant: 29
+            non_coding_transcript_variant: 30
+            coding_transcript_variant: 31
+            upstream_gene_variant: 32
+            downstream_gene_variant: 33
+            TFBS_ablation: 34
+            TFBS_amplification: 35
+            TF_binding_site_variant: 36
+            regulatory_region_ablation: 37
+            regulatory_region_amplification: 38
+            regulatory_region_variant: 39
+            intergenic_variant: 40
+            sequence_variant: 41
+            # use "unknown" consequence as default if new consequence terms are added to the database that are not yet in this mapping (this prevents the program from exiting with an error)
+            unknown: 42
+
+        CODING_VARIANTS:
+            - coding_sequence_variant
+            - frameshift_variant
+            - incomplete_terminal_codon_variant
+            - inframe_deletion
+            - inframe_insertion
+            - missense_variant
+            - protein_altering_variant
+            - start_lost
+            - stop_gained
+            - stop_lost
+
+        SPLICE_VARIANTS:
+            - splice_acceptor_variant
+            - splice_donor_5th_base_variant
+            - splice_donor_region_variant
+            - splice_donor_variant
+            - splice_polypyrimidine_tract_variant
+            - splice_region_variant
+
+        SYNONYMOUS_VARIANTS:
+            - start_retained_variant
+            - stop_retained_variant
+            - synonymous_variant
+
+        # keys that are parsed from the INFO column in the VCF during the annotation part
+        USED_INFO_FIELDS:
+            - INDEL_ID
+            - CSQ
+            - FATHMM_XF
+            - CONDEL
+            - EIGEN_PHRED
+            - MutationAssessor
+            - REVEL
+            - phyloP_primate
+            - phyloP_mammal
+            - phyloP_vertebrate
+            - phastCons_primate
+            - phastCons_mammal
+            - phastCons_vertebrate
+            - gnomAD_Hom
+            - gnomAD_AN
+            - gnomAD_AFR_AF
+            - gnomAD_AMR_AF
+            - gnomAD_EAS_AF
+            - gnomAD_NFE_AF
+            - gnomAD_SAS_AF
+            - CAPICE
+            - CADD
+            - SpliceAI
+            - oe_lof
+            - oe_mis
+            - oe_syn
+            - SegDup
+            - SimpleRepeats
+            - CLINVAR_DETAILS
+            - HGMD_CLASS
+            - HGMD_RANKSCORE
+            - OMIM # currently not used
+            - REPEATMASKER

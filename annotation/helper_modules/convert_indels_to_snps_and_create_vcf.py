@@ -5,12 +5,12 @@ import pysam
 import random
 
 
-RANDOM_SEED = 14038
+#RANDOM_SEED = 14038
 
 logger = logging.getLogger(__name__)
 
 
-def write_data_information_to_file(input_data, outfile, ref_sequence, header):
+def write_data_information_to_file(input_data, outfile, ref_sequence, header, RANDOM_SEED):
     data_grouped = [group for key, group in input_data.groupby("#CHROM")]
     in_fasta = pysam.FastaFile(ref_sequence)
     random.seed(RANDOM_SEED)
@@ -83,18 +83,19 @@ def import_vcf_data(in_data):
     return data, comment_lines
 
 
-def convert_indel_vcf_to_expanded_indel_vcf(in_data, out_data, ref_folder):
+def convert_indel_vcf_to_expanded_indel_vcf(in_data, out_data, ref_folder, CONSTANT_DICTIONARY):
+    RANDOM_SEED = CONSTANT_DICTIONARY["RANDOM_SEED"]
     input_data, header = import_vcf_data(in_data)
 
     with open(out_data, "w", newline="") as outfile:
-        write_data_information_to_file(input_data, outfile, ref_folder, header)
+        write_data_information_to_file(input_data, outfile, ref_folder, header, RANDOM_SEED)
 
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="InDel VCF file to expand\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.vcf", required=True, help="Output VCF file\n")
-    parser.add_argument("--ref_path", type=str, dest="ref_path", metavar="/path/to/hg19/Homo_sapiens.GRCh37.dna.chromosome.[ID].fa", required=True, help="Path were the reference genome is found.\n")
+    parser.add_argument("--ref_path", type=str, dest="ref_path", metavar="/path/to/hg38/Homo_sapiens.GRCh38.dna.chromosome.[ID].fa", required=True, help="Path were the reference genome is found.\n")
     args = parser.parse_args()
 
     ref_folder = args.ref_path

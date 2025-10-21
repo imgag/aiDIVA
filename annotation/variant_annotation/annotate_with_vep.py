@@ -113,9 +113,8 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
             tmp.write(f"{vcf_annotation['CONDEL']}\t\tCONDEL\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['EIGEN_PHRED']}\t\tEIGEN_PHRED\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['FATHMM_XF']}\t\tFATHMM_XF\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
+            #tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CAPICE']}\t\tCAPICE\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['dbscSNV']}\t\tADA=ADA_SCORE,RF=RF_SCORE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CADD']}\t\tCADD\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['REVEL']}\t\tREVEL\t\ttrue\n".encode())
 
@@ -123,7 +122,7 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
             tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAN,Hom,AFR_AF,AMR_AF,EAS_AF,NFE_AF,SAS_AF\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['clinvar']}\tCLINVAR\tDETAILS\t\ttrue\n".encode())
 
-            # HGMD needs a valid license, therefor we check if the file exists otherwise this annotation is skipped
+            # HGMD needs a valid license, therefore we check if the file exists otherwise this annotation is skipped
             if os.path.isfile(f"{vcf_annotation['hgmd']}"):
                 tmp.write(f"{vcf_annotation['hgmd']}\tHGMD\tCLASS,RANKSCORE\t\ttrue\n".encode())
 
@@ -176,7 +175,8 @@ def annotate_from_bed(input_vcf_file, output_vcf_file, annotation_dict, num_core
         #subprocess.run(f"{command} -bed {bed_annotation['oe_mis']} -name oe_mis -sep '&' -in {tmp_oe_lof.name} -out {tmp_oe_mis.name} -threads {num_cores}", shell=True, check=True)
         #subprocess.run(f"{command} -bed {bed_annotation['oe_syn']} -name oe_syn -sep '&' -in {tmp_oe_mis.name} -out {tmp_oe_syn.name} -threads {num_cores}", shell=True, check=True)
 
-        if os.path.isfile(f"{bed_annotation['omim']}"):
+        # OMIM needs a valid license, therefore we check if the file exists otherwise this annotation is skipped
+        if ("omim" in bed_annotation.keys()) and (os.path.isfile(f"{bed_annotation['omim']}")):
             subprocess.run(f"{command} -bed {bed_annotation['repeatMasker']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {tmp_repeatmasker.name} -threads {num_cores}", shell=True, check=True)
             subprocess.run(f"{command} -bed {bed_annotation['omim']} -name OMIM -sep '&' -in {tmp_repeatmasker.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
 
@@ -215,12 +215,12 @@ def annotate_from_bigwig(input_vcf_file, output_vcf_file, annotation_dict, num_c
         tmp_phastCons_mammal.close()
         tmp_phastCons_vertebrate.close()
 
-        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_primate']} -name phyloP_primate -desc 'phyloP primate dataset' -mode avg -in {input_vcf_file} -out {tmp_phyloP_primate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_mammal']} -name phyloP_mammal -desc 'phyloP mammalian dataset' -mode avg -in {tmp_phyloP_primate.name} -out {tmp_phyloP_mammal.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_vertebrate']} -name phyloP_vertebrate -desc 'phyloP vertebrate dataset' -mode avg -in {tmp_phyloP_mammal.name} -out {tmp_phyloP_vertebrate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_primate']} -name phastCons_primate -desc 'phastCons primate dataset' -mode avg -in {tmp_phyloP_vertebrate.name} -out {tmp_phastCons_primate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_mammal']} -name phastCons_mammal -desc 'phastCons mammalian dataset' -mode avg -in {tmp_phastCons_primate.name} -out {tmp_phastCons_mammal.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_vertebrate']} -name phastCons_vertebrate -desc 'phastCons vertebrate dataset' -mode avg -in {tmp_phastCons_mammal.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_primate']} -name phyloP_primate -mode avg -in {input_vcf_file} -out {tmp_phyloP_primate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_mammal']} -name phyloP_mammal -mode avg -in {tmp_phyloP_primate.name} -out {tmp_phyloP_mammal.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_vertebrate']} -name phyloP_vertebrate -mode avg -in {tmp_phyloP_mammal.name} -out {tmp_phyloP_vertebrate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_primate']} -name phastCons_primate -mode avg -in {tmp_phyloP_vertebrate.name} -out {tmp_phastCons_primate.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_mammal']} -name phastCons_mammal -mode avg -in {tmp_phastCons_primate.name} -out {tmp_phastCons_mammal.name} -threads {num_cores}", shell=True, check=True)
+        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_vertebrate']} -name phastCons_vertebrate -mode avg -in {tmp_phastCons_mammal.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
 
     finally:
         # clean up
@@ -257,7 +257,7 @@ def left_normalize_and_sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description = "aiDIVA -- Annotation with VEP")
+    parser = argparse.ArgumentParser(description = "Annotation with VEP")
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="data.vcf", required=True, help="VCF file containing the data, you want to annotate with VEP\n")
     parser.add_argument("--out_data", type=str, dest="out_data", metavar="out.vcf", required=True, help="Specifies the annotated output file\n")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the annotation parameters\n")
