@@ -1,5 +1,7 @@
 # aiDIVA - augmented intelligence-based DIsease Variant Analysis
 
+Please cite the following preprint when using our software: [https://www.medrxiv.org/content/10.1101/2025.09.04.25335099v1](https://www.medrxiv.org/content/10.1101/2025.09.04.25335099v1).
+
 aiDIVA is an analysis pipeline that combines a pathogenicity-based approach and an optional evidence-based approach with state-of-the-art large language models (LLMs) to identify potential disease causing variants in a given rare disease sample.
 
 aiDIVA comprises the following steps:
