@@ -663,6 +663,19 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, t
         #vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True) # -> leads to future warning
         vcf_as_dataframe = vcf_as_dataframe.map(lambda cell: np.nan if isinstance(cell, str) and (not cell or cell.isspace()) else cell)
 
+        # handle MutationAssessor annotation from VCF or dbNSFP
+        if "MutationAssessor_score" in vcf_as_dataframe.columns:
+            if "MutationAssessor" in vcf_as_dataframe.columns:
+                if vcf_as_dataframe["MutationAssessor"].isna().all():
+                    vcf_as_dataframe = vcf_as_dataframe.drop(columns=["MutationAssessor"])
+                    vcf_as_dataframe = vcf_as_dataframe.rename(columns={"MutationAssessor_score": "MutationAssessor"})
+
+                else:
+                    logger.info("It seems that MutationAssessor was annotated from VCF and dbNSFP. Will use VCF annotation as default!")
+
+            else:
+                vcf_as_dataframe = vcf_as_dataframe.rename(columns={"MutationAssessor_score": "MutationAssessor"})
+
     else:
         logger.error("The given VCF file is empty!")
 

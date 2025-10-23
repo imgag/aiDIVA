@@ -41,6 +41,11 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
         vep_command = f"{vep_command} --polyphen s"
 
         vep_command = f"{vep_command} --plugin AlphaMissense,file={vep_annotation_dict['plugin-files']['AlphaMissense']}"
+        
+        if "dbNSFP" in vep_annotation_dict['plugin-files'].keys():
+            print("Use dbNSFP for MutationAssessor annotation!")
+            logger.info("Use dbNSFP for MutationAssessor annotation!")
+            vep_command = f"{vep_command} --plugin dbNSFP,{vep_annotation_dict['plugin-files']['dbNSFP']},transcript_match=1,MutationAssessor_score"
 
     vep_command = f"{vep_command} -i " + input_vcf_file + " "
     vep_command = f"{vep_command} -o " + output_vcf_file + " "
@@ -113,7 +118,11 @@ def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded
             tmp.write(f"{vcf_annotation['CONDEL']}\t\tCONDEL\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['EIGEN_PHRED']}\t\tEIGEN_PHRED\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['FATHMM_XF']}\t\tFATHMM_XF\t\ttrue\n".encode())
-            #tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
+            
+            if "MutationAssessor" in vcf_annotation.keys():
+                logger.info("Use VCF annotation for MutationAssessor!")
+                tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
+            
             tmp.write(f"{vcf_annotation['CAPICE']}\t\tCAPICE\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['CADD']}\t\tCADD\t\ttrue\n".encode())
             tmp.write(f"{vcf_annotation['REVEL']}\t\tREVEL\t\ttrue\n".encode())

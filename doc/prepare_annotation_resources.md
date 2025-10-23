@@ -341,11 +341,26 @@ wget -c -O grch38_low_conf_region.bed https://github.com/imgag/megSAP/raw/master
 
 
 ### MutationAssessor
-
+GRCh38:
+<br>
 --- NOTE ---
-Unfortunately the MutationAssessor resource that we utilized in the previous releases is not available anymore. We are working on simplifying the whole annotation process and want to include MutationAssessor again from another source.
-For now we trained a new model with the same settings as before we just excluded the feature MutationAssessor. This new model can be found togehter with the previous models and in the release tab.
+Unfortunately the official MutationAssessor (r3) resource that we utilized for training the aiDIVA-RF model is not available anymore.
+We trained a new model with the same settings as before excluding the MutationAssessor feature. This new model can be found togehter with the previous models and in the release tab.
 If you use this model without MutationAssessor you need to also remove the feature from the feature list in the configuration file.
+
+As an alternative source for MutationAssessor you can use the dbNFSP database (the instructions shown here are for the academic version of the database). We show here the preparation for the latest academic legacy version (v4.9a) found [here](https://sites.google.com/site/jpopgen/dbNSFP). 
+You can also use the newer versions from [here](https://www.dbnsfp.org/) the newer versions (>= 5.x) does not need any further preparations, but you have to download the large BGZF file that contains all chromosomes in one file.
+To access the newer versions it is mandatory to create an account!
+
+```
+wget -c -O dbNSFP4.9a.zip https://usf.box.com/shared/static/0tq7q3b8ucaxxkmfyvnb0ss7g58ptgcl
+
+unzip dbNSFP4.9a.zip
+zcat dbNSFP4.9a_variant.chr1.gz | head -n1 > h
+
+zgrep -h -v ^#chr dbNSFP4.9a_variant.chr* | sort -k1,1 -k2,2n - | cat h - | bgzip -c > dbNSFP4.9a_grch38.gz
+tabix -s 1 -b 2 -e 2 dbNSFP4.9a_grch38.gz
+```
 
 <!-- 
 GRCh38:
