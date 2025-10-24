@@ -60,7 +60,7 @@ If a newer scikit-learn version is used it is advised to create a new model with
 
 To run the aiDIVA software you need a TAB separated file containing the annotation information for every variant present in your sample file.
 
-Detailed instructions on how to run the software and what columns need to be present in the input table can be found [here]().
+Detailed instructions on how to run the software and what columns need to be present in the input table can be found [here](https://github.com/imgag/aiDIVA/blob/master/doc/aidiva/run_aidiva.md).
 
 The following shows all columns that need to be present in the annotated input table for the software to work.
 The column names should exactly match the column name specified in the table if not otherwise specified in the description.
