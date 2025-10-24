@@ -1,0 +1,34 @@
+# Annotate VCF file for aiDIVA
+
+The `doc` folder contains documentation describing the following required steps to successfully run the annotation: 
+
+1) Installation of all necessary software dependencies ([*prepare\_annotation\_resources.md*](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/))
+2) Preparation of annotation resources required for running the pipeline ([*install\_additional\_tools.md*](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/install_additional_tools.md))
+
+
+## Running Annotation:
+
+```
+python3 run_annotation.py --vcf input.vcf --config configuration_annotation.yaml --out_folder output_path/ [--filtered] [--filtered_folder output_path/aidiva_filtered/] [--inhouse_sample] [--threads 1] [--log_file annotation_log.txt] [--log_level INFO]
+```
+mandatory parameters:
+
++ *vcf* -- Input VCF file containing all variants of the given sample
++ *config* -- YAML configuration file (in the `data` folder is an example configuration file)
++ *out\_folder* -- Folder where the resulting output file should be saved
+
+optional parameters:
+
++ *filtered* -- Skip filtering step if it was already done \[optional\]
++ *filtered\_folder* -- Folder where to find the already filtered VCF files \[optional\]
++ *inhouse\_sample* -- The input VCF was prepared inhouse (skips some additional preparation steps to prevent possible problems) \[optional\]
++ *output\_table* -- Save the annotations additionally as a TAB separated file \[optional\]
++ *threads* -- Number of threads that should be used (default: 1) \[optional\]
++ *log\_file* -- Specify a custom log file to store the log messages from the tool \[optional\]
++ *log\_level* -- Define logging level \[DEBUG, INFO\] (default: INFO) \[optional\]
+
+## Annotation Result
+
+After running the annotation script you will get the following annotated file that is ready to be used with the aiDIVA software:
+
++ *\<your-output-folder\>/\<input-filename\>\_annotated.tsv*

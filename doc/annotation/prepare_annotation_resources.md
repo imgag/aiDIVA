@@ -1,7 +1,7 @@
-# Preparation Of Annotation Resources
+# Preparation of Annotation Resources
 This document provides links to the annoation sources we used. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
 
-## Necessary tools
+## Necessary Tools
 Make sure that the following tools are installed on your system:
 - samtools [https://www.htslib.org/doc/samtools.html](https://www.htslib.org/doc/samtools.html)
 - bcftools [https://www.htslib.org/doc/bcftools.html](https://www.htslib.org/doc/bcftools.html)
@@ -326,7 +326,7 @@ rm grch38_gnomAD_genomes_v312_chrY.vcf
 ```
 
 
-### \[optional\] HGMD (needs license)
+### \[optional\] HGMD (needs a license)
 The possibility to use HGMD in aiDIVA is optional due to the fact that you need a license for it. If you choose to include HGMD in the aiDIVA analysis you can use the public/professional version of HGMD.
 
 

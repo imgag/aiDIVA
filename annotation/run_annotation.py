@@ -17,12 +17,12 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "Annotate VCF in preparation for aiDIVA")
     parser.add_argument("--vcf", type=str, dest="vcf", metavar="input.vcf(.gz)", required=True, help="VCF file with the variants to annotate [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for the annotation [required]")
-    parser.add_argument("--out_folder", type=str, dest="out_folder", metavar="/output_path/", required=True, help="Prefix that is used to save the annotated files [required]")
+    parser.add_argument("--out_folder", type=str, dest="out_folder", metavar="output_path/", required=True, help="Prefix that is used to save the annotated files [required]")
     parser.add_argument("--filtered", dest="filtered", action="store_true", required=False, help="Flag indicating that the filtered files already exist in the result folder (skips the prefiltering step to save time)")
-    parser.add_argument("--filtered_folder", type=str, dest="filtered_folder", metavar="/output_path/aidiva_filtered", required=False, help="Path to the prefiltered input VCF files")
+    parser.add_argument("--filtered_folder", type=str, dest="filtered_folder", metavar="output_path/aidiva_filtered", required=False, help="Path to the prefiltered input VCF files")
     parser.add_argument("--inhouse_sample", dest="inhouse_sample", action="store_true", required=False, help="Flag to indicate that we are annotating an inhouse sample (skips leftNormalize since it is already performed)")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
-    parser.add_argument("--log_file", type=str, dest="log_file", metavar="/output_path/logs/aidiva_log.txt", required=False, help="Path plus name of the log file to be saved, if not specified the log file is saved in the working directory")
+    parser.add_argument("--log_file", type=str, dest="log_file", metavar="annotation_log.txt", required=False, help="Path plus name of the log file to be saved, if not specified the log file is saved in the working directory")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO] (default: INFO)")
     args = parser.parse_args()
 
@@ -188,4 +188,4 @@ if __name__=="__main__":
 
     # Create combined annotated CSV file
     input_data_combined = pd.concat([input_data_snp_annotated, input_data_indel_combined_annotated]).sort_values(["#CHROM", "POS"], ascending=[True, True])
-    input_data_combined.to_csv(str(output_folder + "/" + input_filename + "_annotated.csv"), index=False, sep="\t")
+    input_data_combined.to_csv(str(output_folder + "/" + input_filename + "_annotated.tsv"), index=False, sep="\t")

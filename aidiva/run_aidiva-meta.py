@@ -18,11 +18,11 @@ from openai import OpenAI
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "aiDIVA-meta")
+    parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for aiDIVA [required]")
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.tsv", required=True, help="TSV file with the annotated variants [required]")
     parser.add_argument("--in_eb_dom", type=str, dest="in_eb_dom", metavar="in_eb_dom.GSvar", required=True, help="GSvar file containing the evidence dominant based ranking [required]")
     parser.add_argument("--in_eb_rec", type=str, dest="in_eb_rec", metavar="in_eb_rec.GSvar", required=True, help="GSvar file containing the evidence recessive based ranking [required]")
     parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="/output_path/aidiva_result", required=True, help="Prefix that is used to save the results [required]")
-    parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for aiDIVA [required]")
     parser.add_argument("--sample_id", type=str, dest="sample_id", metavar="NA12878_01", required=True, help="Sample ID that was used in previous annotations to store the genotype [required]")
     parser.add_argument("--workdir", type=str, dest="workdir", metavar="/tmp/aidiva_workdir/", required=False, help="Path to the working directory, here all intermediate files are saved (if not specified a temporary folder will be created and used)")
     parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient")
