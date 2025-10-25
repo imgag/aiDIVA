@@ -2,9 +2,9 @@
 
 The `doc` folder contains documentation describing the following required steps to successfully run the annotation: 
 
-1) Installation of all necessary software dependencies ([*prepare\_annotation\_resources.md*](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/))
-2) Preparation of annotation resources required for running the pipeline ([*install\_additional\_tools.md*](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/install_additional_tools.md))
+1) Installation of all necessary software dependencies ([*install\_additional\_tools.md*](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/install_additional_tools.md))
 
+2) Preparation of annotation resources required for running the pipeline ([*prepare\_annotation\_resources.md*](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/prepare_annotation_resources.md))
 
 ## Running Annotation:
 
