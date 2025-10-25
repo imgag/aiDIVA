@@ -12,13 +12,13 @@ It is possible to run only parts of our software. In total we have three differe
 ```
 python3 run_aiDIVA.py --config configuration_aiDIVA.yaml --in_data input.tsv --out_prefix output_folder/aidiva_result [--workdir aidiva_workdir/] [--hpo_list HP:xxxx,HP:xxxx] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--top_rank 25] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO] [--save_as_vcf]
 ```
-mandatory paramters:
+mandatory parameters:
 
 + *config* -- YAML configuration file (in the `data` folder there are example configuration files)
 + *in\_data* -- TAB separated input table with the annotated variants
 + *out\_prefix* -- A prefix for the resulting output files the output folder can also be specified with that parameter
 
-optional paramters:
+optional parameters:
 
 + *workdir* -- Working directory, where all temporary files are created and saved \[optional\]
 + *hpo\_list* -- Comma-separated list of HPO terms observed with the patient \[optional\]
@@ -38,7 +38,7 @@ optional paramters:
 ```
 python3 run_aiDIVA_with_metamodel.py --config aiDIVA_configuration_with_annotation.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --in_eb_dom in_eb_dom.GSvar --in_eb_rec in_eb_rec.GSvar --out_prefix output_path/aidiva_result --sample_id NA12878 [--workdir aidiva_workdir/] [--hpo_list HP:xxxx,HP:xxxx] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--top_rank 25] [--gender male/female] [--age 42] [--evidence_based] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO] [--save_as_vcf]
 ```
-mandatory paramters:
+mandatory parameters:
 
 + *config* -- YAML configuration file (in the `data` folder there are example configuration files)
 + *in\_data* -- TAB separated input table with the annotated variants
@@ -47,7 +47,7 @@ mandatory paramters:
 + *out\_prefix* -- A prefix for the resulting output files the output folder can also be specified with that parameter
 + *sample\_id* -- Sample ID this is used to access the genotype in the input table and the GSvar files
 
-optional paramters:
+optional parameters:
 
 + *workdir* -- Working directory, where all temporary files are created and saved \[optional\]
 + *hpo\_list* -- Comma-separated list of HPO terms observed with the patient \[optional\]
@@ -69,7 +69,7 @@ optional paramters:
 ```
 python3 run_aiDIVA_with_metamodel.py --config aiDIVA_configuration_with_annotation.yaml --snp_vcf annotated_snp.vcf --indel_vcf annotated_indel.vcf --expanded_indel_vcf annotated_expanded_indel.vcf --in_eb_dom in_eb_dom.GSvar --in_eb_rec in_eb_rec.GSvar --out_prefix output_path/aidiva_result --sample_id NA12878 [--workdir aidiva_workdir/] [--hpo_list HP:xxxx,HP:xxxx] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--only_top_results] [--top_rank 25] [--gender male/female] [--age 42] [--evidence_based] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO] [--save_as_vcf]
 ```
-mandatory paramters:
+mandatory parameters:
 
 + *config* -- YAML configuration file (in the `data` folder there are example configuration files)
 + *in\_data* -- TAB separated input table with the annotated variants
@@ -78,7 +78,7 @@ mandatory paramters:
 + *out\_prefix* -- A prefix for the resulting output files the output folder can also be specified with that parameter
 + *sample\_id* -- Sample ID this is used to extract the genotype in the VCF file
 
-optional paramters:
+optional parameters:
 
 + *workdir* -- Working directory, where all temporary files are created and saved \[optional\]
 + *hpo\_list* -- Comma-separated list of HPO terms observed with the patient
@@ -108,6 +108,10 @@ aiDIVA will produce multiple different output files. The following lists all pos
 
 
 ## Overview of Necessary and Optional Columns in the Input Table
+
+The following shows all columns that need to be present in the annotated input table for the software to work.
+
+The column names should exactly match the column name specified in the table if not otherwise specified in the description.
 
 ### Strictly necessary columns
 

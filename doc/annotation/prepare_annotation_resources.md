@@ -1,5 +1,5 @@
 # Preparation of Annotation Resources
-This document provides links to the annoation sources we used. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
+This document provides links to the annotation sources we used. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
 
 ## Necessary Tools
 Make sure that the following tools are installed on your system:

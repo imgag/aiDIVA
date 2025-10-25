@@ -1,6 +1,6 @@
 # Annotate VCF file for aiDIVA
 
-The `doc` folder contains documentation describing the following required steps to successfully run the annotation: 
+The `doc` folder contains the documentation for the following required steps to successfully run the annotation: 
 
 1) Installation of all necessary software dependencies ([*install\_additional\_tools.md*](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/install_additional_tools.md))
 
