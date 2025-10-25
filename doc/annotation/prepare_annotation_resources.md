@@ -9,6 +9,7 @@ Make sure that the following tools are installed on your system:
 - bgzip [https://www.htslib.org/doc/bgzip.html](https://www.htslib.org/doc/bgzip.html)
 
 <br>
+
 For some of the annotation sources there are no GRCh38/hg38 files available in these cases we lifted the GRCh37/hg19 sources manually to the new assembly using the tool [CrossMap](https://github.com/liguowang/CrossMap). For this manual liftover we also provide code snippets.
 
 
