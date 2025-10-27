@@ -9,33 +9,6 @@ import re
 import time
 
 
-RANDOM_SEED = 14038
-
-CONSEQUENCE_MAPPING = {"splice_acceptor_variant": "loss-of-function variant",
-                       "splice_donor_variant": "loss-of-function variant",
-                       "frameshift_variant": "loss-of-function variant",
-                       "stop_gained": "loss-of-function variant",
-                       "stop_lost": "loss-of-function variant",
-                       "start_lost": "loss-of-function variant",
-                       "inframe_insertion": "inframe insertion/deletion",
-                       "inframe_deletion": "inframe insertion/deletion",
-                       "missense_variant": "missense variant",
-                       "splice_donor_5th_base_variant": "splice region variant",
-                       "splice_region_variant": "splice region variant",
-                       "splice_donor_region_variant": "splice region variant",
-                       "splice_polypyrimidine_tract_variant": "splice region variant",
-                       "synonymous_variant": "synonymous variant",
-                       "start_retained_variant": "synonymous variant",
-                       "stop_retained_variant": "synonymous variant",
-                       "intron_variant": "intronic variant"}
-
-SUPPORTED_VARIANT_TYPES = ["loss-of-function variant",
-                           "inframe insertion/deletion",
-                           "missense variant",
-                           "splice region variant",
-                           "synonymous variant",
-                           "intronic variant"]
-
 logger = logging.getLogger(__name__)
 
 
@@ -74,7 +47,13 @@ def get_hpo_translations(hpo_terms, hpo2name_mapping):
     return hpo_translations
 
 
-def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, internal_parameter_dict, with_variant_type=True, with_genotype=True):
+def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, internal_parameter_dict, CONSTANT_DICTIONARY, with_variant_type=True, with_genotype=True):
+    # get constants
+    VARIANT_CONSEQUENCES = CONSTANT_DICTIONARY["VARIANT_CONSEQUENCES"]
+    CONSEQUENCE_MAPPING = CONSTANT_DICTIONARY["CONSEQUENCE_MAPPING"]
+    SUPPORTED_VARIANT_TYPES = CONSTANT_DICTIONARY["SUPPORTED_VARIANT_TYPES"]
+    RANDOM_SEED = CONSTANT_DICTIONARY["RANDOM_SEED"]
+
     hpo_2_name_f = get_resource_file(internal_parameter_dict["hpo2name-mapping"])
     hpo2name_mapping = load_from_json(hpo_2_name_f)
     hpo_translations = get_hpo_translations(hpo_terms, hpo2name_mapping)
@@ -286,7 +265,7 @@ def check_gene_rank(row):
         llm_gene_3 = str(llm_response["3rd ranked Gene"].values[0]).upper()
 
     else:
-        print("Empty result list")
+        logger.warning("Empty result list!")
         llm_gene_1 = "nan"
         llm_gene_2 = "nan"
         llm_gene_3 = "nan"

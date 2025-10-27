@@ -11,84 +11,6 @@ from functools import partial
 from operator import itemgetter
 
 
-VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
-                        "splice_acceptor_variant": 2,
-                        "splice_donor_variant": 3,
-                        "stop_gained": 4,
-                        "frameshift_variant": 5,
-                        "stop_lost": 6,
-                        "start_lost": 7,
-                        "transcript_amplification": 8,
-                        "inframe_insertion": 9,
-                        "inframe_deletion": 10,
-                        "missense_variant": 11,
-                        "protein_altering_variant": 12,
-                        "splice_region_variant": 13,
-                        "splice_donor_5th_base_variant": 14,
-                        "splice_donor_region_variant": 15,
-                        "splice_polypyrimidine_tract_variant": 16,
-                        "incomplete_terminal_codon_variant": 17,
-                        "start_retained_variant": 18,
-                        "stop_retained_variant": 19,
-                        "synonymous_variant": 20,
-                        "coding_sequence_variant": 21,
-                        "mature_miRNA_variant": 22,
-                        "5_prime_UTR_variant": 23,
-                        "3_prime_UTR_variant": 24,
-                        "non_coding_transcript_exon_variant": 25,
-                        "intron_variant": 26,
-                        "NMD_transcript_variant": 27,
-                        "non_coding_transcript_variant": 28,
-                        "upstream_gene_variant": 29,
-                        "downstream_gene_variant": 30,
-                        "TFBS_ablation": 31,
-                        "TFBS_amplification": 32,
-                        "TF_binding_site_variant": 33,
-                        "regulatory_region_ablation": 34,
-                        "regulatory_region_amplification": 35,
-                        "feature_elongation": 36,
-                        "regulatory_region_variant": 37,
-                        "feature_truncation": 38,
-                        "intergenic_variant": 39,
-                        # use "unknown" consequence as default if new consequence terms are added to the database that are not yet implemented (this prevents the program from exiting with an error)
-                        "unknown": 40}
-
-USED_INFO_FIELDS = ["INDEL_ID",
-                    "CSQ",
-                    "FATHMM_XF",
-                    "CONDEL",
-                    "EIGEN_PHRED",
-                    "MutationAssessor",
-                    "REVEL",
-                    "phyloP_primate",
-                    "phyloP_mammal",
-                    "phyloP_vertebrate",
-                    "phastCons_primate",
-                    "phastCons_mammal",
-                    "phastCons_vertebrate",
-                    "gnomAD_Hom",
-                    "gnomAD_AN",
-                    "gnomAD_AFR_AF",
-                    "gnomAD_AMR_AF",
-                    "gnomAD_EAS_AF",
-                    "gnomAD_NFE_AF",
-                    "gnomAD_SAS_AF",
-                    "CAPICE",
-                    "CADD",
-                    "ADA_SCORE",
-                    "RF_SCORE",
-                    "SpliceAI",
-                    "oe_lof",
-                    "oe_mis",
-                    "oe_syn",
-                    "SegDup",
-                    "SimpleRepeats",
-                    "CLINVAR_DETAILS",
-                    "HGMD_CLASS",
-                    "HGMD_RANKSCORE",
-                    "OMIM",
-                    "REPEATMASKER"]
-
 logger = logging.getLogger(__name__)
 
 
@@ -144,7 +66,7 @@ def extract_sample_header(header):
     return sample_header
 
 
-def extract_columns(cell, process_indel):
+def extract_columns(cell, process_indel, USED_INFO_FIELDS):
     info_fields = str(cell).split(";")
 
     indel_ID = np.nan
@@ -171,8 +93,6 @@ def extract_columns(cell, process_indel):
     capice = np.nan
     cadd = np.nan
     segDup = np.nan
-    ada = np.nan
-    rf = np.nan
     spliceAI = np.nan
     spliceAI_raw = []
     oe_lof = np.nan
@@ -343,20 +263,6 @@ def extract_columns(cell, process_indel):
                     else:
                         cadd = float(field_splitted[1])
 
-                elif field_splitted[0] == "ADA_SCORE":
-                    if "&" in field_splitted[1]:
-                        ada = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
-
-                    else:
-                        ada = float(field_splitted[1])
-
-                elif field_splitted[0] == "RF_SCORE":
-                    if "&" in field_splitted[1]:
-                        rf = max([float(value) for value in field_splitted[1].split("&") if (value != "." and value != "nan" and value !="")], default=np.nan)
-
-                    else:
-                        rf = float(field_splitted[1])
-
                 elif field_splitted[0] == "SpliceAI":
                     spliceAI_raw = field_splitted[1].split("|")
                     spliceAI = max([float(spliceAI_raw[2]), float(spliceAI_raw[3]), float(spliceAI_raw[4]), float(spliceAI_raw[5])], default=np.nan)
@@ -391,6 +297,7 @@ def extract_columns(cell, process_indel):
                     else:
                         hgmd_rankscore = float(field_splitted[1])
 
+                ## currently not used
                 elif field_splitted[0] == "OMIM":
                     omim_details = field_splitted[1]
 
@@ -412,15 +319,15 @@ def extract_columns(cell, process_indel):
     max_af = max([gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af], default=np.nan)
 
     if process_indel:
-        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, oe_mis, oe_syn, segDup, simpleRepeat, ada, rf, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig] #, abb_score]
+        extracted_columns = [indel_ID, annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, oe_mis, oe_syn, segDup, simpleRepeat, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig] #, abb_score]
 
     else:
-        extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, oe_mis, oe_syn, segDup, simpleRepeat, ada, rf, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig, abb_score]
+        extracted_columns = [annotation, fathmm_xf, condel, eigen_phred, mutation_assessor, revel, phyloP_primate, phyloP_mammal, phyloP_vertebrate, phastCons_primate, phastCons_mammal, phastCons_vertebrate, gnomAD_homAF, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, capice, cadd, oe_lof, oe_mis, oe_syn, segDup, simpleRepeat, spliceAI, repeat_masker, clinvar_details, hgmd_class, hgmd_rankscore, omim_details] #, details, class_orig, abb_score]
 
     return extracted_columns
 
 
-def extract_vep_annotation(cell, annotation_header, canonical_transcripts=[]):
+def extract_vep_annotation(cell, annotation_header, VARIANT_CONSEQUENCES, canonical_transcripts=[]):
     annotation_fields = str(cell["CSQ"]).split(",")
     new_cols = []
 
@@ -618,22 +525,22 @@ def convert_variant_representation(row):
     return normalized_variant
 
 
-def add_INFO_fields_to_dataframe(process_indel, expanded_indel, vcf_as_dataframe):
-    indel_annotation_columns = ["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "oe_mis", "oe_syn", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
-    snp_annotation_columns = ["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "oe_mis", "oe_syn", "segmentDuplication", "simpleRepeat", "ada_score", "rf_score", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
+def add_INFO_fields_to_dataframe(process_indel, expanded_indel, USED_INFO_FIELDS, vcf_as_dataframe):
+    indel_annotation_columns = ["INDEL_ID", "CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "oe_mis", "oe_syn", "segmentDuplication", "simpleRepeat", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
+    snp_annotation_columns = ["CSQ", "FATHMM_XF", "CONDEL", "EIGEN_PHRED", "MutationAssessor", "REVEL", "phyloP_primate", "phyloP_mammal", "phyloP_vertebrate", "phastCons_primate", "phastCons_mammal", "phastCons_vertebrate", "homAF", "gnomAD_AFR_AF", "gnomAD_AMR_AF", "gnomAD_EAS_AF", "gnomAD_NFE_AF", "gnomAD_SAS_AF", "MAX_AF", "CAPICE", "CADD_PHRED", "oe_lof", "oe_mis", "oe_syn", "segmentDuplication", "simpleRepeat", "SpliceAI", "REPEATMASKER", "CLINVAR_DETAILS", "HGMD_CLASS", "HGMD_RANKSCORE", "OMIM"]
 
     if process_indel:
         if not expanded_indel:
             vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
-            vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+            vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel, USED_INFO_FIELDS)))
             vcf_as_dataframe["IS_INDEL"] = 1
 
         else:
-            vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+            vcf_as_dataframe[indel_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel, USED_INFO_FIELDS)))
 
     else:
         vcf_as_dataframe["GSVAR_VARIANT"] = vcf_as_dataframe.apply(lambda row: convert_variant_representation(row), axis=1)
-        vcf_as_dataframe[snp_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel)))
+        vcf_as_dataframe[snp_annotation_columns] = vcf_as_dataframe["INFO"].apply(lambda x: pd.Series(extract_columns(x, process_indel, USED_INFO_FIELDS)))
         vcf_as_dataframe["IS_INDEL"] = 0
 
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["INFO"])
@@ -642,20 +549,21 @@ def add_INFO_fields_to_dataframe(process_indel, expanded_indel, vcf_as_dataframe
    
 
 # extract the most severe consequence if overlapping consequences were found
-def get_most_severe_consequence(row):
+def get_most_severe_consequence(row, VARIANT_CONSEQUENCES):
     consequences = str(row["Consequence"])
     found_consequences = consequences.split("&")
 
     # use most severe consequence for filtering if overlapping consequences are present
     if len(found_consequences) > 1:
         most_severe_consequence = found_consequences[0]
-        
+
         for consequence in found_consequences:
             if VARIANT_CONSEQUENCES[consequence] < VARIANT_CONSEQUENCES[most_severe_consequence]:
                 most_severe_consequence = consequence
+
     else:
         most_severe_consequence = found_consequences[0]
-    
+
     return most_severe_consequence
 
 
@@ -670,14 +578,14 @@ def specify_impact_class(row):
         return 0
 
 
-def add_VEP_annotation_to_dataframe(annotation_header, canonical_transcripts, vcf_as_dataframe):
-    vcf_as_dataframe[annotation_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header, canonical_transcripts)), axis=1)
+def add_VEP_annotation_to_dataframe(annotation_header, canonical_transcripts, VARIANT_CONSEQUENCES, vcf_as_dataframe):
+    vcf_as_dataframe[annotation_header] = vcf_as_dataframe.apply(lambda x: pd.Series(extract_vep_annotation(x, annotation_header, VARIANT_CONSEQUENCES, canonical_transcripts)), axis=1)
     vcf_as_dataframe = vcf_as_dataframe.drop(columns=["CSQ"])
     vcf_as_dataframe = vcf_as_dataframe.rename(columns={"am_class": "ALPHA_MISSENSE_CLASS"})
     vcf_as_dataframe = vcf_as_dataframe.rename(columns={"am_pathogenicity": "ALPHA_MISSENSE_SCORE"})
 
     vcf_as_dataframe["HIGH_IMPACT"] = vcf_as_dataframe.apply(lambda row: specify_impact_class(row), axis=1)
-    vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row), axis=1)
+    vcf_as_dataframe["MOST_SEVERE_CONSEQUENCE"] = vcf_as_dataframe.apply(lambda row: get_most_severe_consequence(row, VARIANT_CONSEQUENCES), axis=1)
 
     return vcf_as_dataframe
 
@@ -705,7 +613,11 @@ def add_sample_information_to_dataframe(sample_ids, sample_header, vcf_as_datafr
     return vcf_as_dataframe
 
 
-def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, transcript_file_path, num_cores):
+def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, transcript_file_path, num_cores, CONSTANT_DICTIONARY):
+    # get constants
+    VARIANT_CONSEQUENCES = CONSTANT_DICTIONARY["VARIANT_CONSEQUENCES"]
+    USED_INFO_FIELDS = CONSTANT_DICTIONARY["USED_INFO_FIELDS"]
+
     header, vcf_as_dataframe = reformat_vcf_file_and_read_into_pandas_and_extract_header(input_file)
 
     logger.debug("Convert VCF file")
@@ -733,8 +645,8 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, t
     annotation_header = extract_annotation_header(header)
 
     if not vcf_as_dataframe.empty:
-        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_INFO_fields_to_dataframe, process_indel, expanded_indel), num_cores)
-        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_VEP_annotation_to_dataframe, annotation_header, canonical_transcripts), num_cores)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_INFO_fields_to_dataframe, process_indel, expanded_indel, USED_INFO_FIELDS), num_cores)
+        vcf_as_dataframe = parallelize_dataframe_processing(vcf_as_dataframe, partial(add_VEP_annotation_to_dataframe, annotation_header, canonical_transcripts, VARIANT_CONSEQUENCES), num_cores)
 
         if len(vcf_as_dataframe.columns) > 8:
             if "FORMAT" in vcf_as_dataframe.columns:
@@ -748,7 +660,21 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel, t
             logger.error("MISSING SAMPLE INFORMATION!")
 
         # replace empty strings or only spaces with NaN
-        vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True)
+        #vcf_as_dataframe = vcf_as_dataframe.replace(r"^\s*$", np.nan, regex=True) # -> leads to future warning
+        vcf_as_dataframe = vcf_as_dataframe.map(lambda cell: np.nan if isinstance(cell, str) and (not cell or cell.isspace()) else cell)
+
+        # handle MutationAssessor annotation from VCF or dbNSFP
+        if "MutationAssessor_score" in vcf_as_dataframe.columns:
+            if "MutationAssessor" in vcf_as_dataframe.columns:
+                if vcf_as_dataframe["MutationAssessor"].isna().all():
+                    vcf_as_dataframe = vcf_as_dataframe.drop(columns=["MutationAssessor"])
+                    vcf_as_dataframe = vcf_as_dataframe.rename(columns={"MutationAssessor_score": "MutationAssessor"})
+
+                else:
+                    logger.info("It seems that MutationAssessor was annotated from VCF and dbNSFP. Will use VCF annotation as default!")
+
+            else:
+                vcf_as_dataframe = vcf_as_dataframe.rename(columns={"MutationAssessor_score": "MutationAssessor"})
 
     else:
         logger.error("The given VCF file is empty!")
@@ -760,10 +686,15 @@ def parallelize_dataframe_processing(vcf_as_dataframe, function, num_cores):
     num_partitions = num_cores * 2
 
     if len(vcf_as_dataframe) <= num_partitions:
-        dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
+        dataframe_splitted = [vcf_as_dataframe]
+        #dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
 
     else:
-        dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
+        ## TODO: replace np.array_split() with iloc to prevent problems in future pandas versions
+        # usage of floor division (//) makes sure that we get an absolute number as result
+        chunk_size = vcf_as_dataframe.shape[0] // num_partitions
+        dataframe_splitted = [vcf_as_dataframe[i:i+chunk_size].copy() for i in range(0, vcf_as_dataframe.shape[0], chunk_size)]
+        #dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
 
     try:
         pool = mp.Pool(num_cores)

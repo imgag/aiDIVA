@@ -11,19 +11,7 @@ from functools import partial
 logger = logging.getLogger(__name__)
 
 
-SYNONYMOUS_VARIANTS = ["synonymous_variant",
-                       "start_retained_variant",
-                       "stop_retained_variant"]
-
-SPLICE_VARIANTS = ["splice_acceptor_variant",
-                   "splice_donor_variant",
-                   "splice_donor_5th_base_variant",
-                   "splice_region_variant",
-                   "splice_donor_region_variant",
-                   "splice_polypyrimidine_tract_variant"]
-
-
-def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature):
+def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature, SPLICE_VARIANTS, SYNONYMOUS_VARIANTS):
     with warnings.catch_warnings():
         # we expect to see RuntimeWarnings if the values for a certain variant are missing (the following filter will prevent them from bloating the log file)
         warnings.filterwarnings(action='ignore', message='Mean of empty slice')
@@ -34,17 +22,17 @@ def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, fe
 
         else:
             current_group = grouped_expanded_vcf.get_group(row["INDEL_ID"])
-            
+
             # we only use non-splicing und non-synonymous variants with impact High or Moderate
             current_group = current_group[(~(current_group["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SYNONYMOUS_VARIANTS))) & ~(current_group["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS)))) & ((current_group["IMPACT"] == "HIGH") | (current_group["IMPACT"] == "MODERATE"))]
 
             # to prevent underscoring of High impact variants
-            current_group.loc[(current_group["IMPACT"] == "High") & (current_group[feature].isna()), feature] = 1.0
+            current_group.loc[(current_group["IMPACT"] == "HIGH") & (current_group[feature].isna()), feature] = 1.0
 
             return current_group[feature].mean()
 
 
-def combine_vcf_dataframes(feature_list, grouped_expanded_vcf, vcf_as_dataframe):
+def combine_vcf_dataframes(feature_list, SPLICE_VARIANTS, SYNONYMOUS_VARIANTS, grouped_expanded_vcf, vcf_as_dataframe):
     for feature in feature_list:
         if (feature == "MaxAF") or (feature == "MAX_AF"):
             continue
@@ -65,12 +53,16 @@ def combine_vcf_dataframes(feature_list, grouped_expanded_vcf, vcf_as_dataframe)
             continue
 
         else:
-            vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature)), axis=1)
+            vcf_as_dataframe[feature] = vcf_as_dataframe.apply(lambda row : pd.Series(annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, feature, SPLICE_VARIANTS, SYNONYMOUS_VARIANTS)), axis=1)
 
     return vcf_as_dataframe
 
 
-def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, features, num_cores):
+def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, features, num_cores, CONSTANT_DICTIONARY):
+    # get constants
+    SPLICE_VARIANTS = CONSTANT_DICTIONARY["SPLICE_VARIANTS"]
+    SYNONYMOUS_VARIANTS = CONSTANT_DICTIONARY["SYNONYMOUS_VARIANTS"]
+
     feature_list = features
 
     for feature in feature_list:
@@ -103,13 +95,18 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
     num_partitions = num_cores * 2
 
     if len(vcf_as_dataframe) <= num_partitions:
-        dataframe_splitted = np.array_split(vcf_as_dataframe, 1)
+        # do not split dataframe
+        dataframe_splitted = [vcf_as_dataframe]
 
     else:
-        dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions)
+        ## TODO: replace np.array_split() with iloc to prevent problems in future pandas versions
+        # usage of floor division (//) makes sure that we get an absolute number as result
+        #dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions) # -> uses deprecated functionality that will behave differently in future pandas versions
+        chunk_size = vcf_as_dataframe.shape[0] // num_partitions
+        dataframe_splitted = [vcf_as_dataframe[i:i+chunk_size].copy() for i in range(0, vcf_as_dataframe.shape[0], chunk_size)]
 
     try:
-        function_to_parallelize = partial(combine_vcf_dataframes, feature_list, grouped_expanded_vcf)
+        function_to_parallelize = partial(combine_vcf_dataframes, feature_list, SPLICE_VARIANTS, SYNONYMOUS_VARIANTS, grouped_expanded_vcf)
         pool = mp.Pool(num_cores)
         vcf_as_dataframe = pd.concat(pool.map(function_to_parallelize, dataframe_splitted))
 

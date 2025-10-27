@@ -8,74 +8,17 @@ import random
 import re
 
 
-RANDOM_SEED = 14038
-
-CONSEQUENCE_MAPPING = {"splice_acceptor_variant": "loss of function variant",
-                       "splice_donor_variant": "loss of function variant",
-                       "frameshift_variant": "loss of function variant",
-                       "stop_gained": "loss of function variant",
-                       "stop_lost": "loss of function variant",
-                       "start_lost": "loss of function variant",
-                       "inframe_insertion": "inframe insertion/deletion",
-                       "inframe_deletion": "inframe insertion/deletion",
-                       "missense_variant": "missense variant",
-                       "splice_donor_5th_base_variant": "splice region variant",
-                       "splice_region_variant": "splice region variant",
-                       "splice_donor_region_variant": "splice region variant",
-                       "splice_polypyrimidine_tract_variant": "splice region variant"}
-
-VARIANT_CONSEQUENCES = {"transcript_ablation": 1,
-                        "splice_acceptor_variant": 2,
-                        "splice_donor_variant": 3,
-                        "stop_gained": 4,
-                        "frameshift_variant": 5,
-                        "stop_lost": 6,
-                        "start_lost": 7,
-                        "transcript_amplification": 8,
-                        "inframe_insertion": 9,
-                        "inframe_deletion": 10,
-                        "missense_variant": 11,
-                        "protein_altering_variant": 12,
-                        "splice_region_variant": 13,
-                        "splice_donor_5th_base_variant": 14,
-                        "splice_donor_region_variant": 15,
-                        "splice_polypyrimidine_tract_variant": 16,
-                        "incomplete_terminal_codon_variant": 17,
-                        "start_retained_variant": 18,
-                        "stop_retained_variant": 19,
-                        "synonymous_variant": 20,
-                        "coding_sequence_variant": 21,
-                        "mature_miRNA_variant": 22,
-                        "5_prime_UTR_variant": 23,
-                        "3_prime_UTR_variant": 24,
-                        "non_coding_transcript_exon_variant": 25,
-                        "intron_variant": 26,
-                        "NMD_transcript_variant": 27,
-                        "non_coding_transcript_variant": 28,
-                        "upstream_gene_variant": 29,
-                        "downstream_gene_variant": 30,
-                        "TFBS_ablation": 31,
-                        "TFBS_amplification": 32,
-                        "TF_binding_site_variant": 33,
-                        "regulatory_region_ablation": 34,
-                        "regulatory_region_amplification": 35,
-                        "feature_elongation": 36,
-                        "regulatory_region_variant": 37,
-                        "feature_truncation": 38,
-                        "intergenic_variant": 39,
-                        # use "unknown" consequence as default if new consequence terms are added to the database that are not yet implemented (this prevents the program from exiting with an error)
-                        "unknown": 40}
-
 logger = logging.getLogger(__name__)
 
 
-def extract_gene_info(row, sample_id):
+def extract_gene_info(row, sample_id, CONSEQUENCE_MAPPING):
     current_gene = row["SYMBOL"]
     current_ref = row["REF"]
     current_alt = row["ALT"]
     current_consequence = row["MOST_SEVERE_CONSEQUENCE"]
     current_rank = int(row["AIDIVA_RANK"])
     current_score = float(row["FINAL_AIDIVA_SCORE"])
+    current_gsvar_variant = row["GSVAR_VARIANT"]
 
     # fixed for single case samples or if multisample it should now default to the index patient
     current_genotype = row[f"GT_{sample_id}"]
@@ -114,14 +57,17 @@ def extract_gene_info(row, sample_id):
             current_consequence_type = "unspecified variant"
             logger.warning(f"Unsupported variant: {current_consequence}, {row['GSVAR_VARIANT']}")
 
-    result_string = f"{current_gene}(Consequence: {current_consequence}, Type: {current_consequence_type}, Rank: {int(current_rank)}, Score: {current_score}, Genotype: {current_genotype}, Variant: {row['GSVAR_VARIANT']})"
+    result_string = f"{current_gene}(Consequence: {current_consequence}, Type: {current_consequence_type}, Rank: {int(current_rank)}, Score: {current_score}, Genotype: {current_genotype}, Variant: {current_gsvar_variant})"
 
     return result_string
 
 
-def extract_top_ranking_entries_random_forest_based(sample_id, result_data_random_forest, maximum_rank):
+def extract_top_ranking_entries_random_forest_based(sample_id, result_data_random_forest, maximum_rank, CONSTANT_DICTIONARY):
+    # get constants
+    VARIANT_CONSEQUENCES = CONSTANT_DICTIONARY["VARIANT_CONSEQUENCES"]
+    CONSEQUENCE_MAPPING = CONSTANT_DICTIONARY["CONSEQUENCE_MAPPING"]
     top_ranking_results = result_data_random_forest[result_data_random_forest["AIDIVA_RANK"] <= maximum_rank].copy(deep=True)
-    top_ranking_results["extracted_gene_info"] = top_ranking_results.apply(lambda row: extract_gene_info(row, sample_id), axis=1)
+    top_ranking_results["extracted_gene_info"] = top_ranking_results.apply(lambda row: extract_gene_info(row, sample_id, CONSEQUENCE_MAPPING), axis=1)
     top_ranking_entries = ";".join(top_ranking_results["extracted_gene_info"].to_list())
 
     logger.debug("Top ranking results random forest:\n", top_ranking_results)
@@ -130,7 +76,7 @@ def extract_top_ranking_entries_random_forest_based(sample_id, result_data_rando
     return top_ranking_entries
 
 
-def get_most_severe_consequence(current_consequence):
+def get_most_severe_consequence(current_consequence, VARIANT_CONSEQUENCES):
     found_consequences = current_consequence.split("&")
     # choose most severe consequence if overlapping consequences are present
     most_severe_consequence = found_consequences[0]
@@ -145,7 +91,7 @@ def get_most_severe_consequence(current_consequence):
     return most_severe_consequence
 
 
-def extract_gene_info_gsvar(row, sample_id):
+def extract_gene_info_gsvar(row, sample_id, VARIANT_CONSEQUENCES, CONSEQUENCE_MAPPING):
     current_ref = row["ref"]
     current_alt = row["obs"]
     current_rank = row["GSvar_rank"]
@@ -187,7 +133,7 @@ def extract_gene_info_gsvar(row, sample_id):
 
             else:
                 if "&" in current_consequence:
-                    current_consequence = get_most_severe_consequence(current_consequence)
+                    current_consequence = get_most_severe_consequence(current_consequence, VARIANT_CONSEQUENCES)
 
                 current_consequence_type = CONSEQUENCE_MAPPING[current_consequence]
 
@@ -227,11 +173,15 @@ def extract_gene_info_gsvar(row, sample_id):
     return result_string
 
 
-def extract_top_ranking_entries_evidence_based(sample_id, in_data_evidence, maximum_rank):
+def extract_top_ranking_entries_evidence_based(sample_id, in_data_evidence, maximum_rank, CONSTANT_DICTIONARY):
+    # get constants
+    VARIANT_CONSEQUENCES = CONSTANT_DICTIONARY["VARIANT_CONSEQUENCES"]
+    CONSEQUENCE_MAPPING = CONSTANT_DICTIONARY["CONSEQUENCE_MAPPING"]
+
     gsvar_header = extract_gsvar_header(in_data_evidence)
     result_data_evidence = pd.read_csv(in_data_evidence, comment="#", names=gsvar_header, sep="\t", low_memory=False, on_bad_lines="warn")
     top_ranking_results_evidence = result_data_evidence[result_data_evidence["GSvar_rank"] <= maximum_rank].copy(deep=True)
-    top_ranking_results_evidence["extracted_gene_info"] = top_ranking_results_evidence.apply(lambda row: extract_gene_info_gsvar(row, sample_id), axis=1)
+    top_ranking_results_evidence["extracted_gene_info"] = top_ranking_results_evidence.apply(lambda row: extract_gene_info_gsvar(row, sample_id, VARIANT_CONSEQUENCES, CONSEQUENCE_MAPPING), axis=1)
     top_ranking_entries_evidence = ";".join(top_ranking_results_evidence["extracted_gene_info"].to_list())
 
     logger.debug("Top ranking results evidence based:\n", top_ranking_results_evidence)

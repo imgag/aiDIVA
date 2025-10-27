@@ -1,0 +1,251 @@
+## aiDIVA -- augmented intelligence-based DIsease Variant Analysis
+# Configuration file specifiying all the parameters that are needed to run aiDIVA in the different modes
+# if you modify the key names make sure to also update them in the run_aiDIVA.py script
+---
+# used assembly build, valid values: [GRCh38]
+Assembly-Build: GRCh38
+Reference-Genome: <full-path-to-file>/GRCh38.fa
+
+
+Analysis-Input:
+    # trained scoring models used to predict the pathogenicity score
+    # if no trained model is present you can use the train_model.py script to train a new custom model
+    # If you train your own models make sure to set the full path here, also if you save the models not in "aiDIVA/data/prediction_models/"
+    scoring-model: <full-path-to-model>/aidiva-rf.pkl.gz
+
+    prioritization-information:
+        # Identifier to get the score from the annotated file
+        repeat-identifier: simpleRepeat
+        duplication-identifier: segmentDuplication
+
+    # Weights are used in the prioritization step
+    # You can change these weights, but make sure that they sum up to 1.0
+    # The default values were obtained through a simple weight optimization
+    prioritization-weights:
+        pathogenicity-weight: 0.34
+        hpo-weight: 0.65
+        hpo-interacting-weight: 0.01
+
+
+LLM-Input:
+    llm-api: LOCAL # (LOCAL, OPENAI)
+
+    llm-api-url: http://127.0.0.1 # URL for the locally hosted LLM
+    llm-api-port: 8000 # port for the locally hosted LLM
+
+    # API key used to access the LLM API (OpenAI/MistralAI API)
+    llm-api-key: <full-path-to-file>/API_KEY.txt # leave blank if a local model is used
+
+    # 
+    meta-model: <full-path-to-file>/aidiva-meta.pkl.gz
+    meta-model-rf: <full-path-to-file>/aidiva-meta-rf.pkl.gz
+    
+    # specify the LLM model that the api should call
+    llm-model: "meta/llama-3.1-8b-instruct" # ("meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "gpt-4o", ...)
+
+    # system instructions for the LLM
+    # enable reasoning in the system intructions by adding 'Advanced reasoning ON' (works only when using a reasoning model)
+    llm-instruction: |
+        Create a clinical expert in rare diseases that answers given prompts in the following way:
+        Please create table with 8 columns with one row for each question. Do answer every question independently, treat every question as a new, standalone question and answer without referring to previous interactions.
+        Write my complete prompt into the first column.
+        Now I want to explain you the table properties. The table has 8 columns.
+        Column 1 should have the name 'prompt' and should contain my entire question. Do not modify it.
+        Column 2 should have the name '1st ranked Gene' and should contain your 1st choice of the causal gene for the given phenotype.
+        Column 3 should have the name '1st ranked Gene explanation' and should contain the explanation for your 1st choice for causal gene. Please add the source for your answer in your text inside the table.
+        Column 4 should have the name '2nd ranked Gene' and should contain your 2nd choice of the causal gene.
+        Column 5 should have the name '2nd ranked Gene explanation' and should contain the explanation for your 2nd choice for causal gene. Please add the source for your answer in your text inside the table.
+        Column 6 should have the name '3rd ranked Gene' and should contain your 3rd choice of the causal gene.
+        Column 7 should have the name '3rd ranked Gene explanation' and should contain the explanation for your 3rd choice for causal gene. Please add the source for your answer in your text inside the table.
+        Column 8 should have the name 'source' and should contain all sources and bibliography of your sources you needed to answer this question. Please add sources in form of full web addresses within your answer in your text inside the table.
+        Please provide the result table in plain json.
+
+
+Model-Features:
+    # List containing the names of the allele frequency sources (populations) that are present in the input table (the MAX_AF will be based on these)
+    allele-frequency-list:
+        - gnomAD_AFR_AF
+        - gnomAD_AMR_AF
+        - gnomAD_EAS_AF
+        - gnomAD_NFE_AF
+        - gnomAD_SAS_AF
+        #- gnomAD_ASJ_AF
+        #- gnomAD_FIN_AF
+        #- gnomAD_OTH_AF
+
+    # List containing the names of the features used for the model training
+    # the exact order of the features is crucial (make sure to have the exact same order as in the training step)
+    feature-list:
+        - SIFT
+        - PolyPhen
+        - CADD_PHRED
+        - REVEL
+        - MAX_AF
+        - EIGEN_PHRED
+        - CONDEL
+        - FATHMM_XF
+        - MutationAssessor
+        - phastCons_mammal
+        - phastCons_primate
+        - phastCons_vertebrate
+        - phyloP_mammal
+        - phyloP_primate
+        - phyloP_vertebrate
+        - oe_lof
+        - homAF
+        - CAPICE
+        - ALPHA_MISSENSE_SCORE
+        - HIGH_IMPACT
+        - IS_INDEL
+
+
+# DO NOT CHANGE IF YOU DON'T KNOW WHAT YOU DO!
+# In case you change the following parameters (eg. if you recomputed the hpo resources) make sure to specify the full path to the newly created resources
+Internal-Parameters:
+    # resources used in the tool
+    gene2hpo-mapping: ../../data/hpo_resources/gene2hpo.json
+    gene2interacting-mapping: ../../data/hpo_resources/gene2interacting.json
+    transcript2length-mapping: ../../data/hpo_resources/grch38transcript2length.json
+    hgnc2gene-mapping: ../../data/hpo_resources/hgnc2gene.json
+    hpo-graph: ../../data/hpo_resources/hpo_graph.gexf
+    hpo2replacement-mapping: ../../data/hpo_resources/hpo2replacement.json
+    hpo2name-mapping: ../../data/hpo_resources/hpo2name.json
+
+    # defines constants used in different parts of the tool
+    CONSTANTS:
+        # random seed that is used when random numbers or decisions are used
+        # not used in the LLM part
+        RANDOM_SEED: 14038
+
+        # number mapping of the calculated variant consequences from ensembl (https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html)
+        # lower numbers means higher impact
+        VARIANT_CONSEQUENCES:
+            transcript_ablation: 1
+            splice_acceptor_variant: 2
+            splice_donor_variant: 3
+            stop_gained: 4
+            frameshift_variant: 5
+            stop_lost: 6
+            start_lost: 7
+            transcript_amplification: 8
+            feature_elongation: 9
+            feature_truncation: 10
+            inframe_insertion: 11
+            inframe_deletion: 12
+            missense_variant: 13
+            protein_altering_variant: 14
+            splice_donor_5th_base_variant: 15
+            splice_region_variant: 16
+            splice_donor_region_variant: 17
+            splice_polypyrimidine_tract_variant: 18
+            incomplete_terminal_codon_variant: 19
+            start_retained_variant: 20
+            stop_retained_variant: 21
+            synonymous_variant: 22
+            coding_sequence_variant: 23
+            mature_miRNA_variant: 24
+            5_prime_UTR_variant: 25
+            3_prime_UTR_variant: 26
+            non_coding_transcript_exon_variant: 27
+            intron_variant: 28
+            NMD_transcript_variant: 29
+            non_coding_transcript_variant: 30
+            coding_transcript_variant: 31
+            upstream_gene_variant: 32
+            downstream_gene_variant: 33
+            TFBS_ablation: 34
+            TFBS_amplification: 35
+            TF_binding_site_variant: 36
+            regulatory_region_ablation: 37
+            regulatory_region_amplification: 38
+            regulatory_region_variant: 39
+            intergenic_variant: 40
+            sequence_variant: 41
+            # use "unknown" consequence as default if new consequence terms are added to the database that are not yet in this mapping (this prevents the program from exiting with an error)
+            unknown: 42
+
+        CODING_VARIANTS:
+            - coding_sequence_variant
+            - frameshift_variant
+            - incomplete_terminal_codon_variant
+            - inframe_deletion
+            - inframe_insertion
+            - missense_variant
+            - protein_altering_variant
+            - start_lost
+            - stop_gained
+            - stop_lost
+
+        SPLICE_VARIANTS:
+            - splice_acceptor_variant
+            - splice_donor_5th_base_variant
+            - splice_donor_region_variant
+            - splice_donor_variant
+            - splice_polypyrimidine_tract_variant
+            - splice_region_variant
+
+        SYNONYMOUS_VARIANTS:
+            - start_retained_variant
+            - stop_retained_variant
+            - synonymous_variant
+
+        # key must match the name in the feature list
+        MEAN_DICT:
+            ALPHA_MISSENSE_SCORE: 0.4074365673385914
+            CADD_PHRED: 4.471745325
+            CAPICE: 0.04487945928377704
+            CONDEL: 0.49699016949707825
+            EIGEN_PHRED: 4.342947928406315
+            FATHMM_XF: 0.35846023623584666
+            MutationAssessor: 1.7961304794577417
+            oe_lof: 0.53667483333333332
+            oe_mis: 0.8742450611581991 ## currently not used
+            oe_syn: 1.0262797714053697 ## currently not used
+            phastCons_mammal: 0.09691308336428194
+            phastCons_primate: 0.12353343703613741
+            phastCons_vertebrate: 0.1366339183101041
+            phyloP_mammal: -0.0063575303590607925
+            phyloP_primate: -0.012076641890840553
+            phyloP_vertebrate: 0.06761867323083483
+            PolyPhen: 0.5169017014355943
+            REVEL: 0.28019263637740743
+            SIFT: 0.35216996259535444
+
+        # key must match the name in the feature list
+        MEDIAN_DICT:
+            ALPHA_MISSENSE_SCORE: 0.2509
+            CADD_PHRED: 3.99
+            CAPICE: 0.0006
+            CONDEL: 0.4805749233199981
+            EIGEN_PHRED: 3.010301
+            FATHMM_XF: 0.209614
+            MutationAssessor: 1.87
+            oe_lof: 0.48225
+            oe_mis: 0.87952 ## currently not used
+            oe_syn: 1.004 ## currently not used
+            PolyPhen: 0.547
+            REVEL: 0.193
+            SIFT: 0.153
+
+        CONSEQUENCE_MAPPING: 
+            splice_acceptor_variant: loss of function variant
+            splice_donor_variant: loss of function variant
+            frameshift_variant: loss of function variant
+            stop_gained: loss of function variant
+            stop_lost: loss of function variant
+            start_lost: loss of function variant
+            inframe_insertion: inframe insertion/deletion
+            inframe_deletion: inframe insertion/deletion
+            missense_variant: missense variant
+            splice_donor_5th_base_variant: splice region variant
+            splice_region_variant: splice region variant
+            splice_donor_region_variant: splice region variant
+            splice_polypyrimidine_tract_variant: splice region variant
+
+        SUPPORTED_VARIANT_TYPES: 
+            - loss-of-function variant
+            - inframe insertion/deletion
+            - missense variant
+            - splice region variant
+            - synonymous variant
+            - intronic variant
