@@ -1,5 +1,5 @@
 # Recreation of the Included HPO Resources
-It is recommended to regularly recreate the HPO resources that are included in the repository (data/hpo_resources/). To include the newest changes from the underlying databases.
+It is recommended to regularly recreate the HPO resources that are included in the repository (`data/hpo_resources`). To include the newest changes from the underlying databases.
 
 ## Preparation and Download of Needed Resources
 HPO graph:

@@ -1,6 +1,8 @@
 # Preparation of Annotation Resources
 This document provides links to the annotation sources we used. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
 
+The preparation of the annotation resources needs a lot of disk space, you should make sure that you have at least 500GB of free space available. Furthermore it is adviced to prepare one resource after another and to remove all files that are not needed after preparation to save disk space.
+
 ## Necessary Tools
 Make sure that the following tools are installed on your system:
 - samtools [https://www.htslib.org/doc/samtools.html](https://www.htslib.org/doc/samtools.html)

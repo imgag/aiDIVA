@@ -75,7 +75,7 @@ Instructions on how to use the annotation script and prepare the annotation reso
 
 The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location. Although we used networkx v3.4 to create the HPO graph it should also be possible to use networkx in version 1 or 2. We included some workarounds to still support the older versions.
 
-To recreate the HPO resources please head over to the detailed [instructions](https://github.com/imgag/aiDIVA/blob/master/doc/aidiva/recreate_hpo_resources.md) found in the `doc` folder.
+To recreate the HPO resources please head over to the detailed [instructions](https://github.com/imgag/aiDIVA/blob/master/doc/aidiva/recreate_hpo_resources.md) found in the `doc/aidiva` folder.
 
 Protein interactions based on String-DB v11.0b
 

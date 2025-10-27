@@ -8,6 +8,8 @@ Just make sure to give the correct paths to the tools in the configuration file.
 ## ngs-bits
 Ngs-bits is used to annotate the VCF files.
 
+Please check that your system fulfills all the requirements needed for ngs-bits to prevent problems with the following commands. ([install ngs-bits on linux](https://github.com/imgag/ngs-bits/blob/master/doc/install_unix.md))
+
 ```
 git clone https://github.com/imgag/ngs-bits.git
 cd ngs-bits
@@ -18,9 +20,9 @@ make build_tools_release
 ```
 
 ## Variant Effect Predictor (VEP)
-VEP is used for all annotations that cannot be done using ngs-bits
+VEP is used for all annotations that cannot be done using ngs-bits. Please check the official website for requirements that your system needs to fulfill before proceeding. ([VEP download and install](https://www.ensembl.org/info/docs/tools/vep/script/vep_download.html))
 
-Make sure to specify the correct paths for the VEP installation and the VEP cache data directory in the YAML configuration file
+Make sure to specify the correct paths for the VEP installation and the VEP cache data directory in the YAML configuration file. Otherwise the local installed modules cannot be found. (Alternatively you can install the perl modules system wide with sudo)
 
 ```
 # specify the installation directory to match your own setup
