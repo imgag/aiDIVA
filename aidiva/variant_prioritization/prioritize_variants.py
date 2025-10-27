@@ -441,6 +441,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
                 hgnc_id = str(variant["HGNC_ID"])
 
             else:
+                hgnc_id = "nan"
                 logger.warning("HGNC_ID column missing! The tool cannot try to resolve unknown or deprecated gene symbols!")
 
             gene_similarities = []

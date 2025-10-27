@@ -11,6 +11,93 @@ import re
 logger = logging.getLogger(__name__)
 
 
+# Find and return shared prefix of two strings
+def find_shared_prefix(string_a, string_b):
+    prefix_end_position = 0
+
+    length_string_a = len(string_a)
+    length_string_b = len(string_b)
+    max_length_prefix = min(length_string_a, length_string_b)
+
+    while prefix_end_position < max_length_prefix and string_a[prefix_end_position] == string_b[prefix_end_position]:
+        prefix_end_position += 1
+
+    shared_prefix = string_a[:prefix_end_position]
+
+    return shared_prefix
+
+
+# Find and return shared suffix of two strings
+def find_shared_suffix(string_a, string_b):
+    suffix_start_position = 0
+
+    length_string_a = len(string_a)
+    length_string_b = len(string_b)
+    max_length_suffix = min(length_string_a, length_string_b)
+
+    while suffix_start_position < max_length_suffix and string_a[length_string_a-suffix_start_position-1] == string_b[length_string_b-suffix_start_position-1]:
+        suffix_start_position += 1
+
+    if suffix_start_position == 0:
+        return ""
+
+    shared_suffix = string_a[suffix_start_position:]
+
+    return shared_suffix
+
+
+def convert_variant_representation(row):
+    chrom = row["#CHROM"]
+    start_position = row["POS"]
+    ref = row["REF"].upper()
+    alt = row["ALT"].upper()
+
+    # remove common first base
+    if ref != "" and alt != "" and ref[0] == alt[0]:
+        ref = ref[1:]
+        alt = alt[1:]
+        start_position +=1;
+
+    # remove shared suffix
+    suffix_length = len(find_shared_suffix(ref, alt));
+    if suffix_length > 0:
+        ref = ref[:-suffix_length]
+        alt = alt[:-suffix_length]
+
+    # remove shared prefix
+    prefix_length = len(find_shared_prefix(ref, alt))
+    if prefix_length > 0:
+        ref = ref[prefix_length:]
+        alt = alt[prefix_length:]
+        start_position += prefix_length
+
+    # determine start and end
+    end_position = start_position
+    ref_length = len(ref)
+    alt_length = len(alt)
+
+    if alt_length == 1 and ref_length == 1: # SNV
+        # nothing to do for SNVs
+        pass
+
+    elif ref_length == 0: # insertion
+        ref = "-"
+        # change insertions from before the coordinate to after the coordinate!!!!
+        start_position -= 1
+        end_position -= 1
+
+    elif alt_length == 0: # deletion
+        end_position = start_position + ref_length - 1
+        alt="-"
+
+    elif alt_length >= 1 and ref_length > 1: #complex indel
+        end_position = start_position + ref_length - 1
+
+    normalized_variant = f"{chrom}:{start_position}-{end_position}_{ref}>{alt}"
+
+    return normalized_variant
+
+
 def extract_gene_info(row, sample_id, CONSEQUENCE_MAPPING):
     current_gene = row["SYMBOL"]
     current_ref = row["REF"]
@@ -18,10 +105,20 @@ def extract_gene_info(row, sample_id, CONSEQUENCE_MAPPING):
     current_consequence = row["MOST_SEVERE_CONSEQUENCE"]
     current_rank = int(row["AIDIVA_RANK"])
     current_score = float(row["FINAL_AIDIVA_SCORE"])
-    current_gsvar_variant = row["GSVAR_VARIANT"]
+
+    # convert variant representation to match variant in GSvar file
+    if "GSVAR_VARIANT" in list(row.index):
+        current_gsvar_variant = row["GSVAR_VARIANT"]
+
+    else:
+        current_gsvar_variant = convert_variant_representation(row)
 
     # fixed for single case samples or if multisample it should now default to the index patient
-    current_genotype = row[f"GT_{sample_id}"]
+    if f"GT_{sample_id}" in list(row.index):
+        current_genotype = row[f"GT_{sample_id}"]
+
+    else:
+        current_genotype = "nan"
 
     if current_genotype == "1/1" or current_genotype == "1|1":
         current_genotype = "hom"

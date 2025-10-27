@@ -30,7 +30,7 @@ def read_input_data(input_file):
 
 # extract the most severe consequence if overlapping consequences were found
 def get_most_severe_consequence(variant, VARIANT_CONSEQUENCES):
-    consequences = str(row["Consequence"])
+    consequences = str(variant["Consequence"])
     found_consequences = consequences.split("&")
 
     # use most severe consequence for filtering if overlapping consequences are present
