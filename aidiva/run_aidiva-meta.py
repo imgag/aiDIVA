@@ -30,6 +30,7 @@ if __name__=="__main__":
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the sample relations of the current data")
     parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="In case of multisample data the kind of sample relation [SINGLE, TRIO]")
     parser.add_argument("--skip_db_check", dest="skip_db_check", action="store_true", required=False, help="Flag to skip database (ClinVar, HGMD) lookup")
+    parser.add_argument("--rare_disease", dest="rare_disease", action="store_true", required=False, help="Set rare disease mode: Activate initial filtering to remove all variants with a maximum allele frequency of more than 2%. This setting is meant to speed up the software in a rare disease setting.")
     parser.add_argument("--only_top_results", dest="only_top_results", action="store_true", required=False, help="Report only the top ranking variants as result. The desired rank can be given as parameter with '--top_rank' (default: 25)")
     parser.add_argument("--top_rank", type=str, dest="top_rank", metavar="25", required=False, help="Rank parameter for '--only_top_results' (default: 25)")
     parser.add_argument("--sex", type=str, dest="sex", metavar="male/female", required=False, help="Sex of the current patient")
@@ -129,6 +130,7 @@ if __name__=="__main__":
         family_file = None
         family_type = "SINGLE"
 
+    rare_disease = args.rare_disease
     skip_db_check = args.skip_db_check
     only_top_results = args.only_top_results
 
@@ -233,6 +235,23 @@ if __name__=="__main__":
     if input_table is not None:
         ## TODO: Add possibility to add comments above the header line in the input table
         variant_table = pd.read_csv(input_table, sep="\t", low_memory=False)
+
+        # prefilter input table for rare disease mode
+        if rare_disease:
+            logger.info("Rare disease mode activated! Filter out all variants with allele frequence higher than 2%")
+            if "MAX_AF" in variant_table.columns:
+                variant_table = variant_table[variant_table["MAX_AF"] <= 0.02]
+
+            else:
+                if allele_frequency_list:
+                    for allele_frequency in allele_frequency_list:
+                        variant_table[allele_frequency] = variant_table[allele_frequency].fillna(0)
+                        variant_table[allele_frequency] = variant_table.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
+
+                    variant_table["MAX_AF"] = variant_table.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
+
+                else:
+                    raise SystemExit("Could not identify the allele frequency information in the input table!")
 
     else:
         variant_table = pd.DataFrame()

@@ -731,7 +731,7 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
 
     except Exception as e:
         logger.debug("Skip additional simpleRepeat filter!")
-        repeat=""
+        repeat = ""
 
     try:
         duplication_identifier = filter_identifiers["duplication-identifier"]
@@ -740,7 +740,14 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
     except Exception as e:
         logger.debug("Use 0.0 for missing segment duplication entries! Skip segment duplication filter!")
         seg_dup = 0.0
-    
+
+    try:
+        max_maf = filter_identifiers["allele-frequency-filter"]
+
+    except Exception as e:
+        logger.debug("Set default MAX_AF filter to 1%!")
+        max_maf = 0.01
+
     if "REPEATMASKER" in list(variant.index):
         repeat_masker_data = str(variant["REPEATMASKER"]).strip()
     
@@ -851,8 +858,8 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
 
         return filter_passed, filter_comment
 
-    # MAF threshold could be changed dynamically based on inheritance mode (hom/het)
-    if maf <= 0.01 or np.isnan(maf):
+    # MAF threshold is set in the configuration file
+    if maf <= max_maf or np.isnan(maf):
         # check if most severe consequence is supported
         if (most_severe_consequence in CODING_VARIANTS) or (most_severe_consequence in SPLICE_VARIANTS):
                 if not np.isnan(variant["FINAL_AIDIVA_SCORE"]):
