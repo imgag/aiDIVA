@@ -249,6 +249,7 @@ if __name__=="__main__":
                         variant_table[allele_frequency] = variant_table.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
 
                     variant_table["MAX_AF"] = variant_table.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
+                    variant_table = variant_table[variant_table["MAX_AF"] <= 0.02]
 
                 else:
                     raise SystemExit("Could not identify the allele frequency information in the input table!")
