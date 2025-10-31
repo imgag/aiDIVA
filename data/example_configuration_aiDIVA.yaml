@@ -18,6 +18,9 @@ Analysis-Input:
         repeat-identifier: simpleRepeat
         duplication-identifier: segmentDuplication
 
+        # Threshold used to filter the variants according to their maximum minor allele frequence
+        allele-frequency-filter: 0.01
+
     # Weights are used in the prioritization step
     # You can change these weights, but make sure that they sum up to 1.0
     # The default values were obtained through a simple weight optimization

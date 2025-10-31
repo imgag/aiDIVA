@@ -22,7 +22,6 @@ optional parameters:
 + *filtered* -- Skip filtering step if it was already done \[optional\]
 + *filtered\_folder* -- Folder where to find the already filtered VCF files \[optional\]
 + *inhouse\_sample* -- The input VCF was prepared inhouse (skips some additional preparation steps to prevent possible problems) \[optional\]
-+ *output\_table* -- Save the annotations additionally as a TAB separated file \[optional\]
 + *threads* -- Number of threads that should be used (default: 1) \[optional\]
 + *log\_file* -- Specify a custom log file to store the log messages from the tool \[optional\]
 + *log\_level* -- Define logging level \[DEBUG, INFO\] (default: INFO) \[optional\]
