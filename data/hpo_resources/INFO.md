@@ -1,12 +1,16 @@
 # Data information
-HPO annotations: 2023-04-05 (downloaded 22.05.2023)
-    - phenotype.hpoa
-    - phenotype_to_genes.txt
-    - hp.obo
+This folder is meant to host the following files:
 
-String DB: v11.0b (downloaded 22.05.2023)
+- gene2hpo.json
+- gene2interacting.json
+- grch37transcript2length.json
+- grch38transcript2length.json
+- hgnc2gene.json
+- hpo_graph.gexf
+- hpo2name.json
+- hpo2replacement.json
 
-HGNC resources: downloaded 22.05.2023
 
-transcript length resources: downloaded 22.05.2023
+These resource files are needed to successfully run aiDIVA!
+You need to generate these necessary files yourself following the instructions provided in the generate_hpo_resources.md in the doc/aidiva folder.
 

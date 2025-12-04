@@ -68,16 +68,16 @@ def prepare_input_data(feature_list, allele_frequency_list, MEAN_DICT, MEDIAN_DI
             continue
 
         elif "SIFT" == feature:
-            input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
+            input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != "NA") and (value != ""))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(MEDIAN_DICT["SIFT"])
 
         elif feature == "oe_lof" or feature == "oe_mis" or feature == "oe_syn":
-            input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != "") and (":" not in value) and ("-" not in value))], default=np.nan), axis=1)
+            input_data[feature] = input_data.apply(lambda row: min([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != "NA") and (value != "") and (":" not in value) and ("-" not in value))], default=np.nan), axis=1)
             input_data[feature] = input_data[feature].fillna(MEDIAN_DICT[feature])
 
         # REVEL and ALPHA_MISSENSE score only missense variants so for missing high impact variants we fill with 1 instead of median/mean value
         elif feature == "REVEL" or feature == "ALPHA_MISSENSE_SCORE":
-            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") & (value != "") & (not ":" in value) & (not "-" in value))], default=np.nan), axis=1)
+            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") & (value != "nan") and (value != "NA") & (value != "") & (not ":" in value) & (not "-" in value))], default=np.nan), axis=1)
 
             # check if information about the variant impact is present in the input table, otherwise fallback to fill missing values with median/mean
             if "IMPACT" in input_data.columns:
@@ -92,7 +92,7 @@ def prepare_input_data(feature_list, allele_frequency_list, MEAN_DICT, MEDIAN_DI
                 input_data[feature] = input_data[feature].fillna(MEDIAN_DICT[feature])
 
         else:
-            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != ""))], default=np.nan), axis=1)
+            input_data[feature] = input_data.apply(lambda row: max([float(value) for value in str(row[feature]).split("&") if ((value != ".") and (value != "nan") and (value != "NA") and (value != ""))], default=np.nan), axis=1)
             if ("phastCons" in feature) or ("phyloP" in feature):
                 input_data[feature] = input_data[feature].fillna(MEAN_DICT[feature])
 

@@ -85,10 +85,10 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
             continue
 
         elif (feature == "SIFT"):
-            expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
+            expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: min([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan") & (value != "NA"))], default=np.nan))
 
         else:
-            expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan"))], default=np.nan))
+            expanded_vcf_as_dataframe[feature] = expanded_vcf_as_dataframe[feature].apply(lambda row: max([float(value) for value in str(row).split("&") if ((value != ".") & (value != "nan")  & (value != "NA"))], default=np.nan))
 
     grouped_expanded_vcf = expanded_vcf_as_dataframe.groupby("INDEL_ID")
 
@@ -99,9 +99,7 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
         dataframe_splitted = [vcf_as_dataframe]
 
     else:
-        ## TODO: replace np.array_split() with iloc to prevent problems in future pandas versions
         # usage of floor division (//) makes sure that we get an absolute number as result
-        #dataframe_splitted = np.array_split(vcf_as_dataframe, num_partitions) # -> uses deprecated functionality that will behave differently in future pandas versions
         chunk_size = vcf_as_dataframe.shape[0] // num_partitions
         dataframe_splitted = [vcf_as_dataframe[i:i+chunk_size].copy() for i in range(0, vcf_as_dataframe.shape[0], chunk_size)]
 

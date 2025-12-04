@@ -12,16 +12,46 @@ import time
 logger = logging.getLogger(__name__)
 
 
-def load_from_json(json_file):
-    if json_file.endswith(".gz"):
-        with gzip.open(json_file, "rt") as json_f:
-            loaded_resource = json.load(json_f)
+# generate mapping HPO -> translation
+def generate_hpo2name_dict(hpo_ontology):
+    hpo_mapping = dict()
+    token = False
 
-    else:
-        with open(json_file, "r") as json_f:
-            loaded_resource = json.load(json_f)
+    with open(hpo_ontology, "r") as ontology:
+        for line in ontology:
+            if line.startswith("[Term]"):
+                if token:
+                    hpo_mapping[hpo_term] = dict()
+                    hpo_mapping[hpo_term]["name"] = name
+                    hpo_mapping[hpo_term]["synonyms"] = synonyms
 
-    return loaded_resource
+                token = True
+                synonyms = []
+                name = ""
+
+            elif line.startswith("id:"):
+                hpo_term = line.strip().split("id: ")[1]
+
+            elif line.startswith("name:"):
+                name = line.strip().split("name: ")[1]
+
+            elif line.startswith('synonym:'):
+                synonyms.append(line.strip().split('"')[1])
+
+            elif line.startswith("[Typedef]"):
+                break
+
+            else:
+                continue
+
+        # add information of the last entry of the file to the HPO edges file
+        if token:
+            hpo_mapping[hpo_term] = dict()
+            hpo_mapping[hpo_term]["name"] = name
+            hpo_mapping[hpo_term]["synonyms"] = synonyms
+
+    logger.info(f"HPO to name mapping successfully loaded and prepared")
+    return hpo_mapping
 
 
 def get_resource_file(resource_path):
@@ -54,8 +84,8 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
     SUPPORTED_VARIANT_TYPES = CONSTANT_DICTIONARY["SUPPORTED_VARIANT_TYPES"]
     RANDOM_SEED = CONSTANT_DICTIONARY["RANDOM_SEED"]
 
-    hpo_2_name_f = get_resource_file(internal_parameter_dict["hpo2name-mapping"])
-    hpo2name_mapping = load_from_json(hpo_2_name_f)
+    hpo_ontology_f = get_resource_file(internal_parameter_dict["hpo-ontology"])
+    hpo2name_mapping = generate_hpo2name_dict(hpo_ontology_f)
     hpo_translations = get_hpo_translations(hpo_terms, hpo2name_mapping)
     phenotype_information = ", ".join(hpo_translations)
     gene_list = top_ranking_genes

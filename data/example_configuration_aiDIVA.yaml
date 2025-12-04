@@ -103,16 +103,17 @@ Model-Features:
 
 
 # DO NOT CHANGE IF YOU DON'T KNOW WHAT YOU DO!
-# In case you change the following parameters (eg. if you recomputed the hpo resources) make sure to specify the full path to the newly created resources
+# In case you change the following parameters (eg. if you updated the hpo resources) make sure to specify the full path to the new resources
 Internal-Parameters:
     # resources used in the tool
-    gene2hpo-mapping: ../../data/hpo_resources/gene2hpo.json
-    gene2interacting-mapping: ../../data/hpo_resources/gene2interacting.json
-    transcript2length-mapping: ../../data/hpo_resources/grch38transcript2length.json
-    hgnc2gene-mapping: ../../data/hpo_resources/hgnc2gene.json
-    hpo-graph: ../../data/hpo_resources/hpo_graph.gexf
-    hpo2replacement-mapping: ../../data/hpo_resources/hpo2replacement.json
-    hpo2name-mapping: ../../data/hpo_resources/hpo2name.json
+    # INFO if you did not put the downloaded resource file (see documentation for more information) into the data/hpo_resources folder you need to specify the full path to the files here
+    hpo-ontology: ../../data/hpo_resources/hp.obo
+    phenotype-information: ../../data/hpo_resources/phenotype.hpoa
+    phenotype-to-genes: ../../data/hpo_resources/phenotype_to_genes.txt
+    transcript-information: ../../data/hpo_resources/grch38_ensembl_transcript_length_and_strand.tsv
+    hgnc-information: ../../data/hpo_resources/hgnc_complete_set.txt
+    string-db-information: ../../data/hpo_resources/9606.protein.links.detailed.v12.0.txt.gz
+    string-db-aliases: ../../data/hpo_resources/9606.protein.aliases.v12.0.txt.gz
 
     # defines constants used in different parts of the tool
     CONSTANTS:

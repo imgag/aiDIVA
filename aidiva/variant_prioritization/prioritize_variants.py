@@ -15,21 +15,10 @@ from itertools import combinations
 
 if not __name__=="__main__":
     from . import get_HPO_similarity_score as gs
+    from . import prepare_hpo_resources as hpo_res
 
 
 logger = logging.getLogger(__name__)
-
-
-def load_from_json(json_file):
-    if json_file.endswith(".gz"):
-        with gzip.open(json_file, "rt") as json_f:
-            loaded_resource = json.load(json_f)
-
-    else:
-        with open(json_file, "r") as json_f:
-            loaded_resource = json.load(json_f)
-
-    return loaded_resource
 
 
 def parse_ped_file(family_file):
@@ -139,7 +128,7 @@ def compare_polyphen_and_sift_prediction(variant):
 
     polyphen_sift_opposed = 0
 
-    if str(polyphen_score) != "nan" and str(polyphen_score) != "" and str(sift_score) != "nan" and str(sift_score) != "":
+    if str(polyphen_score) != "nan" and str(polyphen_score) != "NA" and str(polyphen_score) != "" and str(sift_score) != "nan" and str(sift_score) != "NA" and str(sift_score) != "":
         polyphen_score = float(polyphen_score)
         sift_score = float(sift_score)
 
@@ -160,12 +149,13 @@ def prioritize_variants(variant_data, internal_parameter_dict, prioritization_we
     SYNONYMOUS_VARIANTS = CONSTANT_DICTIONARY["SYNONYMOUS_VARIANTS"]
 
     # load HPO resources
-    hpo_graph_f = get_resource_file(internal_parameter_dict["hpo-graph"])
-    hpo_replacement_f = get_resource_file(internal_parameter_dict["hpo2replacement-mapping"])
-    gene_2_HPO_f = get_resource_file(internal_parameter_dict["gene2hpo-mapping"])
-    hgnc_2_gene_f = get_resource_file(internal_parameter_dict["hgnc2gene-mapping"])
-    gene_2_interacting_f = get_resource_file(internal_parameter_dict["gene2interacting-mapping"])
-    transcript_length_mapping_f = get_resource_file(internal_parameter_dict["transcript2length-mapping"])
+    hpo_ontology_f = get_resource_file(internal_parameter_dict["hpo-ontology"])
+    phenotype_information_f = get_resource_file(internal_parameter_dict["phenotype-information"])
+    phenotype_to_genes_f = get_resource_file(internal_parameter_dict["phenotype-to-genes"])
+    hgnc_information_f = get_resource_file(internal_parameter_dict["hgnc-information"])
+    string_db_information_f = get_resource_file(internal_parameter_dict["string-db-information"])
+    string_db_alias_f = get_resource_file(internal_parameter_dict["string-db-aliases"])
+    transcript_infromation_f = get_resource_file(internal_parameter_dict["transcript-information"])
 
     if not (build == "GRCh37" or build == "GRCh38"):
         logger.error(f"Unrecognized assembly build given: {build}")
@@ -173,17 +163,16 @@ def prioritize_variants(variant_data, internal_parameter_dict, prioritization_we
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 
-    hgnc_2_gene = load_from_json(hgnc_2_gene_f)
-    gene_2_interacting = load_from_json(gene_2_interacting_f)
-    gene_2_hpo = load_from_json(gene_2_HPO_f)
-    hpo_replacement_information = load_from_json(hpo_replacement_f)
-    transcript_length_mapping = load_from_json(transcript_length_mapping_f)
+    hgnc_2_gene = hpo_res.create_gene2hgnc_mapping(hgnc_information_f)
+    gene_2_interacting = hpo_res.create_gene2interacting_mapping(string_db_alias_f, string_db_information_f)
+    gene_2_hpo = hpo_res.generate_gene2hpo_dict(phenotype_to_genes_f)
+    transcript_length_mapping = hpo_res.create_transcript_length_mapping(transcript_infromation_f)
 
     genes2exclude = parse_gene_list(gene_exclusion_file)
     hpo_query = parse_hpo_list(hpo_list_file)
     family = parse_ped_file(family_file)
 
-    hpo_graph = nx.read_gexf(hpo_graph_f)
+    hpo_graph, hpo_replacement_information = hpo_res.create_hpo_graph(hpo_ontology_f, phenotype_information_f)
     information_content_per_node = nx.get_node_attributes(hpo_graph, "IC")
     node_ancestor_mapping = {hpo_term: nx.ancestors(hpo_graph, hpo_term) for hpo_term in hpo_graph}
 
@@ -265,7 +254,7 @@ def investigate_transcript_cds_position(variant, transcript_dict):
     start_percentage = np.nan
     predicted_score = variant["AIDIVA_SCORE"]
 
-    if str(variant["CDS_position"]) != "nan" and str(variant["CDS_position"]) != "":
+    if str(variant["CDS_position"]) != "nan" and str(variant["CDS_position"]) != "NA" and str(variant["CDS_position"]) != "":
         transcript = str(variant["Feature"])
 
         if "-" in str(variant["CDS_position"]):
@@ -417,14 +406,14 @@ def check_databases_for_pathogenicity_classification(variant):
 
 def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, prioritization_weights=None):
     if HPO_query:
-        if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["SpliceAI"]) == "nan") or (str(variant["SpliceAI"]) == "")):
+        if np.isnan(variant["AIDIVA_SCORE"]) and ((str(variant["SpliceAI"]) == "nan") or (str(variant["SpliceAI"]) == "NA") or (str(variant["SpliceAI"]) == "")):
             final_score = np.nan
             hpo_relatedness = np.nan
             hpo_relatedness_interacting = np.nan
 
         else:
             if np.isnan(variant["AIDIVA_SCORE"]):
-                if ((str(variant["SpliceAI"]) != "nan") and (str(variant["SpliceAI"]) != "")):
+                if ((str(variant["SpliceAI"]) != "nan") and (str(variant["SpliceAI"]) != "NA") and (str(variant["SpliceAI"]) != "")):
                     pathogenictiy_prediction = float(variant["SpliceAI"])
 
                 else:
@@ -513,7 +502,7 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
 
     else:
         if np.isnan(variant["AIDIVA_SCORE"]):
-            if ((str(variant["SpliceAI"]) == "") or (str(variant["SpliceAI"]) == "nan")):
+            if ((str(variant["SpliceAI"]) == "") or (str(variant["SpliceAI"]) == "nan") or (str(variant["SpliceAI"]) == "NA")):
                 pathogenictiy_prediction = np.nan
 
             else:
@@ -775,6 +764,14 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
         filter_comment = "off target"
 
         return filter_passed, filter_comment
+
+    # the new annotation is not in the FILTER column anymore
+    if "low_conf_region" in list(variant.index):
+        if str(variant["low_conf_region"]) != "" and str(variant["low_conf_region"]) != "nan":
+            filter_passed = 0 # low confidence region
+            filter_comment = "low confidence region"
+
+            return filter_passed, filter_comment
 
     # exclude gene, if it is in the exclusion list
     if len(genes2exclude & genenames) > 0:
@@ -1223,6 +1220,7 @@ def check_xlinked(variant, family):
 
 if __name__=="__main__":
     import get_HPO_similarity_score as gs
+    import prepare_hpo_resources as hpo_res
 
     parser = argparse.ArgumentParser(description = "Filter variants and finalize the AIDIVA_SCORE based on the given HPO terms (if this information is present)")
     parser.add_argument("--in_file", type=str, dest="in_file", required=True, help="Tab separated input annotated and scored file [required]")
@@ -1258,12 +1256,13 @@ if __name__=="__main__":
     else:
         genome_build = "GRCh38"
 
-    internal_parameter_dict = {"gene2hpo-mapping": "../../data/hpo_resources/gene2hpo.json",
-                               "gene2interacting-mapping": "../../data/hpo_resources/gene2interacting.json",
-                               "transcript2length-mapping": "../../data/hpo_resources/grch38transcript2length.json",
-                               "hgnc2gene-mapping": "../../data/hpo_resources/hgnc2gene.json",
-                               "hpo-graph": "../../data/hpo_resources/hpo_graph.gexf",
-                               "hpo2replacement-mapping": "../../data/hpo_resources/hpo2replacement.json"}
+    internal_parameter_dict = {"hpo_ontology": "../../data/hpo_resources/hp.obo",
+                               "phenotype_information": "../../data/hpo_resources/phenotype.hpoa",
+                               "phenotype_to_genes": "../../data/hpo_resources/phenotype_to_genes.txt",
+                               "transcript_information": "../../data/hpo_resources/grch38_ensembl_transcript_length_and_strand.tsv",
+                               "hgnc_infromation": "../../data/hpo_resources/hgnc_complete_set.txt",
+                               "string_db_information": "../../data/hpo_resources/9606.protein.links.detailed.v12.0.txt.gz",
+                               "string_db_aliases": "../../data/hpo_resources/9606.protein.aliases.v12.0.txt.gz"}
 
     if args.threads:
         num_threads = int(args.threads)

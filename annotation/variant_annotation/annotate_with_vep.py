@@ -4,47 +4,114 @@ import tempfile
 import os
 import logging
 import yaml
+import sys
 
 
 logger = logging.getLogger(__name__)
 
 
-# TODO: restrict annotation to SIFT and PolyPhen (get rid of VEP in the long run)
-def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh38", basic=False, expanded=False, num_cores=1):
-    # the path to the executable
-    vep_command = f"{vep_annotation_dict['vep']}/vep "
+def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_dict, annotation_dict, assembly_build="GRCh38", basic=False, expanded=False, num_cores=1):
+    vep_mode = vep_dict["vep-mode"]
 
-    # set the correct paths to the needed perl modules
-    if "PERL5LIB" in os.environ:
-        os.environ["PERL5LIB"] = f"{os.environ['PERL5LIB']}:{vep_annotation_dict['vep']}/Bio/:{vep_annotation_dict['vep-plugin-path']}:{vep_annotation_dict['vep-cpan']}"
+    if vep_mode == "LOCAL":
+        logger.info("Using local VEP installation.")
+
+        # the path to the executable
+        vep_command = f"{vep_dict['vep-local']['vep']}/vep"
+
+        # set the correct paths to the needed perl modules
+        if "PERL5LIB" in os.environ:
+            os.environ["PERL5LIB"] = f"{os.environ['PERL5LIB']}:{vep_dict['vep-local']['vep']}/Bio/:{vep_dict['vep-local']['vep-plugin-path']}:{vep_dict['vep-local']['vep-cpan']}"
+
+        else:
+            os.environ["PERL5LIB"] = f"{vep_dict['vep-local']['vep']}/Bio/:{vep_dict['vep-local']['vep-plugin-path']}:{vep_dict['vep-local']['vep-cpan']}"
+
+        plugin_path = vep_dict['vep-local']['vep-plugin-path'] + "/"
+
+    elif vep_mode == "APPTAINER":
+        logger.info("Using containerized VEP with Apptainer.")
+        vep_command = f"apptainer exec --bind {annotation_dict['resources-base-path']}:{annotation_dict['resources-base-path']}:ro,{input_vcf_file}:{input_vcf_file}:ro"
+        vep_command = f"{vep_command} {vep_dict['vep-container']['vep-image']} vep"
+
+    elif vep_mode == "SINGULARITY":
+        logger.info("Using containerized VEP with Singularity.")
+        vep_command = f"singularity exec --bind {annotation_dict['resources-base-path']}:{annotation_dict['resources-base-path']}:ro,{input_vcf_file}:{input_vcf_file}:ro"
+        vep_command = f"{vep_command} {vep_dict['vep-container']['vep-image']} vep"
+
+    #elif vep_mode == "DOCKER":
+    #    logger.info("Using containerized VEP with Docker.")
+    #    vep_command = f"docker run {vep_dict['vep-container']['vep-docker']} vep"
 
     else:
-        os.environ["PERL5LIB"] = f"{vep_annotation_dict['vep']}/Bio/:{vep_annotation_dict['vep-plugin-path']}:{vep_annotation_dict['vep-cpan']}"
+        sys.exit()
 
-    cache_path = vep_annotation_dict['vep-cache'] + "/"
-    plugin_path = vep_annotation_dict['vep-plugin-path'] + "/"
+    cache_path = annotation_dict['vep-cache'] + "/"
 
     # add essential parameters
-    vep_command = f"{vep_command} --species homo_sapiens --assembly {build} "
+    vep_command = f"{vep_command} --species homo_sapiens --assembly {assembly_build} "
     vep_command = f"{vep_command} --offline"
     vep_command = f"{vep_command} --cache"
     vep_command = f"{vep_command} --dir_cache {cache_path}"
-    vep_command = f"{vep_command} --dir_plugins {plugin_path}"
+
+    if vep_mode == "LOCAL":
+        vep_command = f"{vep_command} --dir_plugins {plugin_path}"
+
     vep_command = f"{vep_command} --gencode_basic"
     vep_command = f"{vep_command} --symbol"
     vep_command = f"{vep_command} --biotype"
     vep_command = f"{vep_command} --variant_class"
+    vep_command = f"{vep_command} --af_gnomadg"
 
     # vep plugins to use
     if not basic:
         vep_command = f"{vep_command} --sift s"
         vep_command = f"{vep_command} --polyphen s"
 
-        vep_command = f"{vep_command} --plugin AlphaMissense,file={vep_annotation_dict['plugin-files']['AlphaMissense']}"
+        # specify all the Plugins that VEP should use
+        vep_command = f"{vep_command} --plugin AlphaMissense,file={annotation_dict['vep-plugin-files']['AlphaMissense']}"
+        vep_command = f"{vep_command} --plugin dbNSFP,{annotation_dict['vep-plugin-files']['dbNSFP']},transcript_match=1,MutationAssessor_score"
 
-        if "dbNSFP" in vep_annotation_dict['plugin-files'].keys():
-            logger.info("Use dbNSFP for MutationAssessor annotation!")
-            vep_command = f"{vep_command} --plugin dbNSFP,{vep_annotation_dict['plugin-files']['dbNSFP']},transcript_match=1,MutationAssessor_score"
+    if not expanded:
+        vep_command = f"{vep_command} --plugin SpliceAI,snv={annotation_dict['vcf-files']['SpliceAI-SNV']},indel={annotation_dict['vcf-files']['SpliceAI-InDel']}"
+
+    # all vcf annotations
+    if not basic:
+        vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['CONDEL']},short_name=VEP_CONDEL,format=vcf,type=exact,fields=CONDEL"
+        vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['EIGEN_PHRED']},short_name=VEP_EIGEN,format=vcf,type=exact,fields=EIGEN_PHRED"
+        vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['FATHMM_XF']},short_name=VEP_FATHMM_XF,format=vcf,type=exact,fields=FATHMM_XF"
+
+        vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['CAPICE']},short_name=VEP_CAPICE,format=vcf,type=exact,fields=CAPICE"
+        vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['CADD']},short_name=VEP_CADD,format=vcf,type=exact,fields=CADD"
+        vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['REVEL']},short_name=VEP_REVEL,format=vcf,type=exact,fields=REVEL"
+
+        vep_command = f"{vep_command} --custom file={annotation_dict['bigwig-files']['phyloP_primate']},short_name=phyloP_primate,format=bigwig,type=exact,coords=0"
+        vep_command = f"{vep_command} --custom file={annotation_dict['bigwig-files']['phyloP_mammal']},short_name=phyloP_mammal,format=bigwig,type=exact,coords=0"
+        vep_command = f"{vep_command} --custom file={annotation_dict['bigwig-files']['phyloP_vertebrate']},short_name=phyloP_vertebrate,format=bigwig,type=exact,coords=0"
+        vep_command = f"{vep_command} --custom file={annotation_dict['bigwig-files']['phastCons_primate']},short_name=phastCons_primate,format=bigwig,type=exact,coords=0"
+        vep_command = f"{vep_command} --custom file={annotation_dict['bigwig-files']['phastCons_mammal']},short_name=phastCons_mammal,format=bigwig,type=exact,coords=0"
+        vep_command = f"{vep_command} --custom file={annotation_dict['bigwig-files']['phastCons_vertebrate']},short_name=phastCons_vertebrate,format=bigwig,type=exact,coords=0"
+
+    if not expanded:
+        vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['gnomAD']},short_name=gnomAD,format=vcf,type=exact,fields=AN%Hom"
+
+        # HGMD needs a valid license, therefore we check if the file exists otherwise this annotation is skipped
+        if os.path.isfile(f"{annotation_dict['vcf-files']['hgmd']}"):
+            vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['hgmd']},short_name=HGMD,format=vcf,type=exact,fields=CLASS%RANKSCORE"
+
+        else:
+            logger.warning("HGMD file is not found! Skip HGMD annotation!")
+
+        vep_command = f"{vep_command} --custom file={annotation_dict['bed-files']['segmentDuplication']},short_name=SegDup,format=bed,type=overlap,coords=0"
+        vep_command = f"{vep_command} --custom file={annotation_dict['bed-files']['simpleRepeat']},short_name=SimpleRepeats,format=bed,type=overlap,coords=0"
+        vep_command = f"{vep_command} --custom file={annotation_dict['bed-files']['oe_lof']},short_name=oe_lof,format=bed,type=overlap,coords=0"
+        vep_command = f"{vep_command} --custom file={annotation_dict['bed-files']['repeatMasker']},short_name=REPEATMASKER,format=bed,type=overlap,coords=0"
+        vep_command = f"{vep_command} --custom file={annotation_dict['low-confidence']},short_name=low_conf_region,format=bed,type=overlap,coords=0"
+
+        if os.path.isfile(f"{annotation_dict['bed-files']['omim']}"):
+            vep_command = f"{vep_command} --custom file={annotation_dict['bed-files']['omim']},short_name=OMIM,format=bed,type=overlap,coords=0"
+
+        else:
+            logger.warning("OMIM file is not found! Skip OMIM annotation!")
 
     vep_command = f"{vep_command} -i " + input_vcf_file + " "
     vep_command = f"{vep_command} -o " + output_vcf_file + " "
@@ -61,26 +128,49 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_annotation_di
     vep_command = f"{vep_command} --no_stats" + " "
     vep_command = f"{vep_command} --force_overwrite"
 
+    print(vep_command)
     subprocess.run(vep_command, shell=True, check=True)
     logger.debug("The VEP annotated VCF is saved as %s" % (output_vcf_file))
 
 
-# TODO rewrite method to use consequence annotation from ngs-bits instead of VEP
-def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annotation_dict, build="GRCh38", num_cores=1):
-    # the path to the executable
-    vep_command = vep_annotation_dict["vep"] + "/" + "vep "
+## TODO do we need to add the filtered_folder as additional bind path?
+def call_vep_and_annotate_consequence_information(input_vcf_file, output_vcf_file, vep_dict, annotation_dict, assembly_build="GRCh38", num_cores=1):
+    vep_mode = vep_dict["vep-mode"]
 
-    # set the correct paths to the needed perl modules
-    if "PERL5LIB" in os.environ:
-        os.environ["PERL5LIB"] = f"{vep_annotation_dict['vep']}/Bio/:{vep_annotation_dict['vep-cpan']}:{vep_annotation_dict['vep-plugin-path']}:{os.environ['PERL5LIB']}"
+    if vep_mode == "LOCAL":
+        logger.info("Using local VEP installation for consequence annotation.")
+        # the path to the executable
+        vep_command = f"{vep_dict['vep-local']['vep']}/vep"
+
+        # set the correct paths to the needed perl modules
+        if "PERL5LIB" in os.environ:
+            os.environ["PERL5LIB"] = f"{os.environ['PERL5LIB']}:{vep_dict['vep-local']['vep']}/Bio/:{vep_dict['vep-local']['vep-cpan']}"
+
+        else:
+            os.environ["PERL5LIB"] = f"{vep_dict['vep-local']['vep']}/Bio/:{vep_dict['vep-local']['vep-plugin-path']}:{vep_dict['vep-local']['vep-cpan']}"
+
+    elif vep_mode == "APPTAINER":
+        logger.info("Using containerized VEP with Apptainer for consequence annotation.")
+        vep_command = f"apptainer exec --bind {annotation_dict['resources-base-path']}:{annotation_dict['resources-base-path']}:ro,{input_vcf_file}:{input_vcf_file}:ro"
+        vep_command = f"{vep_command} {vep_dict['vep-container']['vep-image']} vep"
+
+    elif vep_mode == "SINGULARITY":
+        logger.info("Using containerized VEP with Singularity for consequence annotation.")
+        vep_command = f"singularity exec --bind {annotation_dict['resources-base-path']}:{annotation_dict['resources-base-path']}:ro,{input_vcf_file}:{input_vcf_file}:ro"
+        vep_command = f"{vep_command} {vep_dict['vep-container']['vep-image']} vep"
+
+    #elif vep_mode == "DOCKER":
+    #    logger.info("Using containerized VEP with Docker for consequence annotation.")
+    #    vep_command = f"docker run -v {annotation_dict['resources-base-path']}:{annotation_dict['resources-base-path']}:ro -v {input_vcf_file}:{input_vcf_file}:ro
+    #    vep_command = f"{vep_command} {vep_dict['vep-container']['vep-docker']} vep"
 
     else:
-        os.environ["PERL5LIB"] = f"{vep_annotation_dict['vep']}/Bio/:{vep_annotation_dict['vep-cpan']}:{vep_annotation_dict['vep-plugin-path']}"
+        sys.exit()
 
-    cache_path = vep_annotation_dict['vep-cache'] + "/"
+    cache_path = annotation_dict['vep-cache'] + "/"
 
     # add essential parameters
-    vep_command = f"{vep_command} --species homo_sapiens --assembly {build}"
+    vep_command = f"{vep_command} --species homo_sapiens --assembly {assembly_build}"
     vep_command = f"{vep_command} --offline"
     vep_command = f"{vep_command} --cache"
     vep_command = f"{vep_command} --dir_cache {cache_path}"
@@ -102,166 +192,9 @@ def annotate_consequence_information(input_vcf_file, output_vcf_file, vep_annota
     vep_command = f"{vep_command} --no_stats"
     vep_command = f"{vep_command} --force_overwrite"
 
+    print(vep_command)
     subprocess.run(vep_command, shell=True, check=True)
     logger.debug(f"The consequence annotated VCF is saved as {output_vcf_file}")
-
-
-def annotate_from_vcf(input_vcf_file, output_vcf_file, annotation_dict, expanded=False, basic=False, num_cores=1):
-    tmp = tempfile.NamedTemporaryFile(mode="w+b", suffix=".config", delete=False)
-
-    vcf_annotation = annotation_dict['vcf-files']
-    command = f"{annotation_dict['ngs-bits']}/VcfAnnotateFromVcf"
-
-    try:
-        if not basic:
-            tmp.write(f"{vcf_annotation['CONDEL']}\t\tCONDEL\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['EIGEN_PHRED']}\t\tEIGEN_PHRED\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['FATHMM_XF']}\t\tFATHMM_XF\t\ttrue\n".encode())
-
-            if "MutationAssessor" in vcf_annotation.keys():
-                logger.info("Use VCF annotation for MutationAssessor!")
-                tmp.write(f"{vcf_annotation['MutationAssessor']}\t\tMutationAssessor\t\ttrue\n".encode())
-
-            tmp.write(f"{vcf_annotation['CAPICE']}\t\tCAPICE\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['CADD']}\t\tCADD\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['REVEL']}\t\tREVEL\t\ttrue\n".encode())
-
-        if not expanded:
-            tmp.write(f"{vcf_annotation['gnomAD']}\tgnomAD\tAN,Hom,AFR_AF,AMR_AF,EAS_AF,NFE_AF,SAS_AF\t\ttrue\n".encode())
-            tmp.write(f"{vcf_annotation['clinvar']}\tCLINVAR\tDETAILS\t\ttrue\n".encode())
-
-            # HGMD needs a valid license, therefore we check if the file exists otherwise this annotation is skipped
-            if os.path.isfile(f"{vcf_annotation['hgmd']}"):
-                tmp.write(f"{vcf_annotation['hgmd']}\tHGMD\tCLASS,RANKSCORE\t\ttrue\n".encode())
-
-            else:
-                logger.warning("HGMD file is not found! Skip HGMD annotation!")
-
-            # switch between SNV and InDel file
-            if basic:
-                tmp.write(f"{vcf_annotation['SpliceAI-InDel']}\t\tSpliceAI\t\ttrue\n".encode())
-
-            else:
-                tmp.write(f"{vcf_annotation['SpliceAI-SNV']}\t\tSpliceAI\t\ttrue\n".encode())
-
-        # close temporary file to make it accessible
-        tmp.close()
-
-        command = f"{command} -config_file {tmp.name} -in {input_vcf_file} -out {output_vcf_file} -threads {num_cores}"
-        subprocess.run(command, shell=True, check=True)
-
-    finally:
-        # clean up
-        os.remove(tmp.name)
-
-
-def annotate_from_bed(input_vcf_file, output_vcf_file, annotation_dict, num_cores=1):
-    bed_annotation = annotation_dict['bed-files']
-    command = f"{annotation_dict['ngs-bits']}/VcfAnnotateFromBed"
-
-    try:
-        tmp_segDup = tempfile.NamedTemporaryFile(mode="w+b", suffix="_segDup.vcf", delete=False)
-        tmp_simpleRepeat = tempfile.NamedTemporaryFile(mode="w+b", suffix="_simpleRepeat.vcf", delete=False)
-        tmp_oe_lof = tempfile.NamedTemporaryFile(mode="w+b", suffix="_oe_lof.vcf", delete=False)
-        #tmp_oe_mis = tempfile.NamedTemporaryFile(mode="w+b", suffix="_oe_mis.vcf", delete=False) ## currently not used
-        #tmp_oe_syn = tempfile.NamedTemporaryFile(mode="w+b", suffix="_oe_syn.vcf", delete=False) ## currently not used
-        tmp_repeatmasker = tempfile.NamedTemporaryFile(mode="w+b", suffix="_repeatmasker.vcf", delete=False)
-
-        # close temporary files to make them accessible
-        tmp_segDup.close()
-        tmp_simpleRepeat.close()
-        tmp_oe_lof.close()
-        #tmp_oe_mis.close() ## currently not used
-        #tmp_oe_syn.close() ## currently not used
-        tmp_repeatmasker.close()
-
-        subprocess.run(f"{command} -bed {bed_annotation['segmentDuplication']} -name SegDup -sep '&' -in {input_vcf_file} -out {tmp_segDup.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bed {bed_annotation['simpleRepeat']} -name SimpleRepeats -sep '&' -in {tmp_segDup.name} -out {tmp_simpleRepeat.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bed {bed_annotation['oe_lof']} -name oe_lof -sep '&' -in {tmp_simpleRepeat.name} -out {tmp_oe_lof.name} -threads {num_cores}", shell=True, check=True)
-
-        ## currently not used
-        #subprocess.run(f"{command} -bed {bed_annotation['oe_mis']} -name oe_mis -sep '&' -in {tmp_oe_lof.name} -out {tmp_oe_mis.name} -threads {num_cores}", shell=True, check=True)
-        #subprocess.run(f"{command} -bed {bed_annotation['oe_syn']} -name oe_syn -sep '&' -in {tmp_oe_mis.name} -out {tmp_oe_syn.name} -threads {num_cores}", shell=True, check=True)
-
-        # OMIM needs a valid license, therefore we check if the file exists otherwise this annotation is skipped
-        if ("omim" in bed_annotation.keys()) and (os.path.isfile(f"{bed_annotation['omim']}")):
-            subprocess.run(f"{command} -bed {bed_annotation['repeatMasker']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {tmp_repeatmasker.name} -threads {num_cores}", shell=True, check=True)
-            subprocess.run(f"{command} -bed {bed_annotation['omim']} -name OMIM -sep '&' -in {tmp_repeatmasker.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
-
-        else:
-            subprocess.run(f"{command} -bed {bed_annotation['repeatMasker']} -name REPEATMASKER -sep '&' -in {tmp_oe_lof.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
-            logger.warn("OMIM file is not found! Skip OMIM annotation!")
-
-    finally:
-        # clean up
-        os.remove(tmp_segDup.name)
-        os.remove(tmp_simpleRepeat.name)
-        os.remove(tmp_oe_lof.name)
-        #os.remove(tmp_oe_mis.name) ## currently not used
-        #os.remove(tmp_oe_syn.name) ## currently not used
-        os.remove(tmp_repeatmasker.name)
-
-
-def annotate_from_bigwig(input_vcf_file, output_vcf_file, annotation_dict, num_cores=1):
-    bigwig_annotation = annotation_dict['bigwig-files']
-    command = f"{annotation_dict['ngs-bits']}/VcfAnnotateFromBigWig"
-
-    try:
-        tmp_phyloP_primate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP_primate.vcf", delete=False)
-        tmp_phyloP_mammal = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP_mammal.vcf", delete=False)
-        tmp_phyloP_vertebrate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phyloP_vertebrate.vcf", delete=False)
-
-        tmp_phastCons_primate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons_primate.vcf", delete=False)
-        tmp_phastCons_mammal = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons_mammal.vcf", delete=False)
-        tmp_phastCons_vertebrate = tempfile.NamedTemporaryFile(mode="w+b", suffix="_phastCons_vertebrate.vcf", delete=False)
-
-        # close temporary files to make them accessible
-        tmp_phyloP_primate.close()
-        tmp_phyloP_mammal.close()
-        tmp_phyloP_vertebrate.close()
-        tmp_phastCons_primate.close()
-        tmp_phastCons_mammal.close()
-        tmp_phastCons_vertebrate.close()
-
-        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_primate']} -name phyloP_primate -mode avg -in {input_vcf_file} -out {tmp_phyloP_primate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_mammal']} -name phyloP_mammal -mode avg -in {tmp_phyloP_primate.name} -out {tmp_phyloP_mammal.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phyloP_vertebrate']} -name phyloP_vertebrate -mode avg -in {tmp_phyloP_mammal.name} -out {tmp_phyloP_vertebrate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_primate']} -name phastCons_primate -mode avg -in {tmp_phyloP_vertebrate.name} -out {tmp_phastCons_primate.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_mammal']} -name phastCons_mammal -mode avg -in {tmp_phastCons_primate.name} -out {tmp_phastCons_mammal.name} -threads {num_cores}", shell=True, check=True)
-        subprocess.run(f"{command} -bw {bigwig_annotation['phastCons_vertebrate']} -name phastCons_vertebrate -mode avg -in {tmp_phastCons_mammal.name} -out {output_vcf_file} -threads {num_cores}", shell=True, check=True)
-
-    finally:
-        # clean up
-        os.remove(tmp_phyloP_primate.name)
-        os.remove(tmp_phyloP_mammal.name)
-        os.remove(tmp_phyloP_vertebrate.name)
-        os.remove(tmp_phastCons_primate.name)
-        os.remove(tmp_phastCons_mammal.name)
-        os.remove(tmp_phastCons_vertebrate.name)
-
-
-def filter_regions(input_vcf_file, output_vcf_file, annotation_dict):
-    command = f"{annotation_dict['ngs-bits']}/VariantFilterRegions"
-
-    low_confidence_filter = annotation_dict['low-confidence']
-    command = f"{command} -in {input_vcf_file} -mark low_conf_region -inv -reg {low_confidence_filter} -out {output_vcf_file}"
-    subprocess.run(command, shell=True, check=True)
-
-
-def left_normalize_and_sort_vcf(input_vcf_file, output_vcf_file, vep_annotation_dict, ref_path, inhouse_sample):
-    if inhouse_sample:
-        subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfSort -in {input_vcf_file} -out {output_vcf_file}", shell=True, check=True)
-
-    else:
-        try:
-            tmp_left_normalized = tempfile.NamedTemporaryFile(mode="w+b", suffix="_left_normalized.vcf", delete=False)
-
-            subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfLeftNormalize -in {input_vcf_file} -out {tmp_left_normalized.name} -ref {ref_path}", shell=True, check=True)
-            subprocess.run(f"{vep_annotation_dict['ngs-bits']}/VcfSort -in {tmp_left_normalized.name} -out {output_vcf_file}", shell=True, check=True)
-
-        finally:
-            # clean up
-            os.remove(tmp_left_normalized.name)
 
 
 if __name__=="__main__":

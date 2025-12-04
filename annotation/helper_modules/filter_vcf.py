@@ -105,7 +105,7 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name, CONSTA
             ## TODO: check if the for loop can be dropped maybe use any() in the if condition instead
             for term in [*CODING_VARIANTS, *SPLICE_VARIANTS, *SYNONYMOUS_VARIANTS]:
                 if term in consequences:
-                    splitted_line[7] = "CODING_FILTERED=TRUE"
+                    splitted_line[7] += ";CODING_FILTERED=TRUE"
                     outfile.write(str("\t".join(splitted_line) + "\n"))
                     break
 
@@ -125,4 +125,8 @@ if __name__=="__main__":
     parser.add_argument("--annotation_field", type=str, dest="annotation_field", metavar="CSQ", required=True, help="ID of the annotation field with the Consequence information\n")
     args = parser.parse_args()
 
-    filter_coding_variants(args.in_file, args.out_file, args.annotation_field)
+    CONSTANT_DICTIONARY = {"CODING_VARIANTS": ["coding_sequence_variant", "frameshift_variant", "incomplete_terminal_codon_variant", "inframe_deletion", "inframe_insertion", "missense_variant", "protein_altering_variant", "start_lost", "stop_gained", "stop_lost"],
+                           "SPLICE_VARIANTS": ["splice_acceptor_variant", "splice_donor_5th_base_variant", "splice_donor_region_variant", "splice_donor_variant", "splice_polypyrimidine_tract_variant", "splice_region_variant"],
+                           "SYNONYMOUS_VARIANTS": ["start_retained_variant", "stop_retained_variant", "synonymous_variant"]}
+
+    filter_coding_variants(args.in_file, args.out_file, args.annotation_field, CONSTANT_DICTIONARY)
