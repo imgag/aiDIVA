@@ -5,6 +5,7 @@ The folder of each respective tool can be moved to another place after the insta
 
 Just make sure to give the correct paths to the tools in the configuration file.
 
+<!--
 ## ngs-bits
 Ngs-bits is used to annotate the VCF files.
 
@@ -18,12 +19,27 @@ make build_3rdparty
 make build_libs_release
 make build_tools_release
 ```
+-->
 
 ## Variant Effect Predictor (VEP)
-VEP is used for all annotations that cannot be done using ngs-bits. Please check the official website for requirements that your system needs to fulfill before proceeding. ([VEP download and install](https://www.ensembl.org/info/docs/tools/vep/script/vep_download.html))
+VEP is used for all annotations. Please check the official website for requirements that your system needs to fulfill before proceeding. VEP can be used in a containerized or locally installed version. Please head over to the official VEP documentation if you encounter any problems with VEP. ([VEP download and install](https://www.ensembl.org/info/docs/tools/vep/script/vep_download.html))
 
 Make sure to specify the correct paths for the VEP installation and the VEP cache data directory in the YAML configuration file. Otherwise the local installed modules cannot be found. (Alternatively you can install the perl modules system wide with sudo)
+For the containerized version you also need to specify the path to the folder, where all your annotation sources are lying. We need to bind that path to the container, otherwise VEP won't be able to read the data.
 
+# Container version
+Here you find instructions to create the Singularity image for later use. The benefits of the container version are that you don't need to set it up completely and everything is already included.
+```
+# download the Docker image and convert it to a singularity image named "vep_115-2.sif"
+singularity pull --name vep_115-2.sif docker://ensemblorg/ensembl-vep:release_115.2
+
+# you can use this image to install and prepare the cache files MAKE SURE TO SPECIFY THE CORRECT PATH
+vep_data_dir=<full-path-to-folder>/vep_data
+mkdir $vep_data_dir
+singularity exec --bind $vep_data_dir:$vep_data_dir vep.sif INSTALL.pl -c $vep_data_dir -a cf -s homo_sapiens -y GRCh38
+```
+
+# Local installation
 ```
 # specify the installation directory to match your own setup
 # You should use absolute paths
@@ -39,6 +55,21 @@ rm 115.2.tar.gz
 # Install dependencies
 mkdir -p $vep_cpan_dir
 cpanm -l $vep_cpan_dir -L $vep_cpan_dir Set::IntervalTree URI::Escape DB_File Carp::Assert JSON::XS PerlIO::gzip DBI
+
+#install BigWig support (needed to annotate phyloP)
+cd $vep_install_dir
+export KENT_SRC=$vep_install_dir/kent-335_base/src
+export MACHTYPE=$(uname -m)
+export CFLAGS="-fPIC"
+wget https://github.com/ucscGenomeBrowser/kent/archive/v335_base.tar.gz
+tar xzf v335_base.tar.gz
+rm v335_base.tar.gz
+cd $KENT_SRC/lib
+echo 'CFLAGS="-fPIC"' > $KENT_SRC/inc/localEnvironment.mk
+make clean && make
+cd $KENT_SRC/jkOwnLib
+make clean && make
+cpanm -l $vep_cpan_dir -L $vep_cpan_dir Bio::DB::BigFile
 
 # Download VEP cache data
 mkdir -p $vep_data_dir

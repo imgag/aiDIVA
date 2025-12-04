@@ -73,13 +73,7 @@ Instructions on how to use the annotation script and prepare the annotation reso
 
 ## HPO Resources
 
-The HPO resources needed for the prioritization step can be found in the `data` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location. Although we used networkx v3.4 to create the HPO graph it should also be possible to use networkx in version 1 or 2. We included some workarounds to still support the older versions.
-
-To recreate the HPO resources please head over to the detailed [instructions](https://github.com/imgag/aiDIVA/blob/master/doc/aidiva/recreate_hpo_resources.md) found in the `doc/aidiva` folder.
-
-Protein interactions based on String-DB v11.0b
-
-Last update of HPO and other resources: 22nd May, 2023
+The HPO resources required for the prioritization step need to be downloaded before using aiDIVA. See the [instructions](https://github.com/imgag/aiDIVA/blob/master/doc/aidiva/hpo_resources.md) (found in the `doc/aidiva` folder) for the relevant download links. You can place the generated files in the `data/hpo_resources` folder. The path to the files is specified in the configuration file make sure that it leads to the correct location.
 
 
 ## Pathogenicity Prediction
@@ -102,4 +96,21 @@ Alternatively it is possible to set up your own local LLM (eg., LLama-8b, Mistra
 ## Meta Model
 
 You can download the pretrained meta models (*aidiva-meta* & *aidiva-meta-rf*) [here](https://download.imgag.de/aidiva/aidiva_pretrained_models/). For these two models we used a random forest model that takes as features the ranking position and scores from the initial rankings (pathogenicity-based and evidence-based) plus the ranking result from the LLMs and the inheritance mode used in the evidence-based model.
+
+
+## License and Disclaimer
+
+### Medical Use Disclaimer
+This software is provided for research and informational purposes only.  
+It is not intended to provide medical, clinical, diagnostic, or therapeutic advice, and it must not be used as a substitute for professional judgment.
+
+The software has not been validated, certified, or approved by any regulatory authority (including but not limited to the FDA, EMA, or other healthcare agencies).  
+It is not designed or intended for use in real-world medical or clinical decision-making.
+
+Always consult qualified healthcare professionals for medical advice, diagnosis, or treatment.
+
+### Data Usage Disclaimer
+This software is released under the MIT License; however, it may reference or interoperate with external datasets or databases that are subject to their own license restrictions or terms of use.
+
+Users are solely responsible for ensuring they have the legal right to access and use any external databases required by this project, and must comply with all applicable terms set by the data providers.
 

@@ -4,6 +4,8 @@ aiDIVA expects a TAB separted table as input (see [here](https://github.com/imga
 
 It is possible to run only parts of our software. In total we have three different modi in which our software can be run: *aiDIVA-RF*, *aiDIVA-meta*, *aiDIVA-meta-RF*.
 
+Please be adviced that for the *aiDIVA-meta* mode you need the two evidence-based files *eb_dom.GSvar* and *eb_rec.GSvar*. These files can be created using the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool which is part of the [ngs-bits](https://github.com/imgag/ngs-bits) tool collection. The VariantRanking tool needs as input a GSvar file which can be created if you process your VCF file with the [megSAP](https://github.com/imgag/megSAP) pipeline. Please head over to these repositories to have detailled instructions on how to use the tools.
+
 
 ## Modes for Running aiDIVA
 
@@ -34,6 +36,36 @@ optional parameters:
 + *log\_level* -- Define logging level \[DEBUG, INFO\] (default: INFO) \[optional\]
 
 
+### aiDIVA-meta-RF:
+
+```
+python3 run_aidiva-meta-rf.py --config configuration_aiDIVA.yaml --in_data input.tsv --out_prefix output_folder/aidiva_result --sample_id NA12878 [--workdir aidiva_workdir/] [--hpo_list HP:xxxx,HP:xxxx] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--rare_disease] [--only_top_results] [--top_rank 25] [--gender male/female] [--age 42] [--evidence_based] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO]
+```
+mandatory parameters:
+
++ *config* -- YAML configuration file (in the `data` folder is an example configuration file)
++ *in\_data* -- TAB separated input table with the annotated variants
++ *out\_prefix* -- A prefix for the resulting output files the output folder can also be specified with that parameter
++ *sample\_id* -- Sample ID this is used to extract the genotype in the VCF file
+
+optional parameters:
+
++ *workdir* -- Working directory, where all temporary files are created and saved \[optional\]
++ *hpo\_list* -- Comma-separated list of HPO terms observed with the patient
++ *gene\_exclusion* -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness \[optional\]
++ *family\_file* -- TXT file containing the sample information if run on multisample VCF files \[optional\]
++ *family\_type* -- Type of the family relation \[SINGLE, TRIO\] (default: SINGLE) \[optional\]
++ *skip\_db\_check* -- Skip the database checkup for existing entries in ClinVar (and HGMD) \[optional\]
++ *rare\_disease* -- Adds initial allele frequence filter to only keep variants with allele frequence of less than 2%\[optional\]
++ *only\_top\_results* -- Restrict the results to only report the top X variants (default: 25) \[optional\]
++ *top\_rank* -- Rank that should be used as maximum for the top ranking results to report (default: 25) \[optional\]
++ *gender* -- Gender of the patient if known \[optional\]
++ *age* -- Age of the patient if known \[optional\]
++ *threads* -- Number of threads that should be used (default: 1) \[optional\]
++ *log\_file* -- Specify a custom log file to store the log messages from the tool \[optional\]
++ *log\_level* -- Define logging level \[DEBUG, INFO\] (default: INFO) \[optional\]
+
+
 ### aiDIVA-meta:
 
 ```
@@ -52,36 +84,6 @@ optional parameters:
 
 + *workdir* -- Working directory, where all temporary files are created and saved \[optional\]
 + *hpo\_list* -- Comma-separated list of HPO terms observed with the patient \[optional\]
-+ *gene\_exclusion* -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness \[optional\]
-+ *family\_file* -- TXT file containing the sample information if run on multisample VCF files \[optional\]
-+ *family\_type* -- Type of the family relation \[SINGLE, TRIO\] (default: SINGLE) \[optional\]
-+ *skip\_db\_check* -- Skip the database checkup for existing entries in ClinVar (and HGMD) \[optional\]
-+ *rare\_disease* -- Adds initial allele frequence filter to only keep variants with allele frequence of less than 2%\[optional\]
-+ *only\_top\_results* -- Restrict the results to only report the top X variants (default: 25) \[optional\]
-+ *top\_rank* -- Rank that should be used as maximum for the top ranking results to report (default: 25) \[optional\]
-+ *gender* -- Gender of the patient if known \[optional\]
-+ *age* -- Age of the patient if known \[optional\]
-+ *threads* -- Number of threads that should be used (default: 1) \[optional\]
-+ *log\_file* -- Specify a custom log file to store the log messages from the tool \[optional\]
-+ *log\_level* -- Define logging level \[DEBUG, INFO\] (default: INFO) \[optional\]
-
-
-### aiDIVA-meta-RF:
-
-```
-python3 run_aidiva-meta-rf.py --config configuration_aiDIVA.yaml --in_data input.tsv --out_prefix output_folder/aidiva_result --sample_id NA12878 [--workdir aidiva_workdir/] [--hpo_list HP:xxxx,HP:xxxx] [--gene_exclusion gene_exclusion.txt] [--family_file family.txt] [--family_type SINGLE] [--skip_db_check] [--rare_disease] [--only_top_results] [--top_rank 25] [--gender male/female] [--age 42] [--evidence_based] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO]
-```
-mandatory parameters:
-
-+ *config* -- YAML configuration file (in the `data` folder is an example configuration file)
-+ *in\_data* -- TAB separated input table with the annotated variants
-+ *out\_prefix* -- A prefix for the resulting output files the output folder can also be specified with that parameter
-+ *sample\_id* -- Sample ID this is used to extract the genotype in the VCF file
-
-optional parameters:
-
-+ *workdir* -- Working directory, where all temporary files are created and saved \[optional\]
-+ *hpo\_list* -- Comma-separated list of HPO terms observed with the patient
 + *gene\_exclusion* -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness \[optional\]
 + *family\_file* -- TXT file containing the sample information if run on multisample VCF files \[optional\]
 + *family\_type* -- Type of the family relation \[SINGLE, TRIO\] (default: SINGLE) \[optional\]

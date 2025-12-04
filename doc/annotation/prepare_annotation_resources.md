@@ -1,7 +1,7 @@
 # Preparation of Annotation Resources
 This document provides links to the annotation sources we used. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
 
-The preparation of the annotation resources needs a lot of disk space, you should make sure that you have at least 500GB of free space available. Furthermore it is adviced to prepare one resource after another and to remove all files that are not needed after preparation to save disk space.
+The preparation of the annotation resources needs a lot of disk space, you should make sure that you have at least 1000GB of free space available. Furthermore it is adviced to prepare one resource after another and to remove all files that are not needed after preparation to save disk space.
 
 ## Necessary Tools
 Make sure that the following tools are installed on your system:
@@ -63,7 +63,7 @@ wget -c https://zenodo.org/record/3928295/files/capice_v1.0_build37_snvs.tsv.gz
 
 python3 prepare_Capice_vcf.py capice_v1.0_build37_snvs.tsv.gz grch37_capice_v1_snvs.vcf
 
-CrossMap.py vcf --chromid l hg19ToHg38.over.chain.gz grch37_capice_v1_snvs.vcf hg38.fa grch38_capice_v1_snvs_unsort.vcf
+CrossMap vcf --chromid l hg19ToHg38.over.chain.gz grch37_capice_v1_snvs.vcf hg38.fa grch38_capice_v1_snvs_unsort.vcf
 
 # Make sure that the created VCF is sorted
 cat grch38_capice_v1_snvs_unsort.vcf | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > grch38_capice_v1_snvs.vcf
@@ -162,7 +162,7 @@ rm fathmm_xf_coding_hg38.vcf.gz
 ```
 
 
-### GnomAD (oe_lof and homAF and MAX_AF)
+### GnomAD (oe_lof and homAF)
 GRCh38:
 \
 https://storage.googleapis.com/gcp-public-data--gnomad/release/2.1.1/constraint/gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz
@@ -183,152 +183,6 @@ cat gnomad_OE_grch38.bed | sort -k1,1 -k2,2n -k3,3n -t '	' | sed '/NA/s/\bNA//g'
 rm gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz
 rm gnomAD_OE_sorted.bed
 ```
-
-\
-GRCh38:
-\
---- NOTE ---
-The gnomAD 3.1.2 genome dataset very big so make sure that you have enough disk space for the data preparation. To save space it is possible to remove the downloaded .bgz file after running the `prepare_gnomAD_vcf.py` script and only keep the prepared VCF file until they are concatenated.:
-\
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr1.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr2.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr3.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr4.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr5.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr6.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr7.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr8.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr9.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr10.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr11.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr12.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr13.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr14.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr15.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr16.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr17.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr18.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr19.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr20.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr21.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr22.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chrX.vcf.bgz <br>
-https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chrY.vcf.bgz <br>
-
-
-```
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr1.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr2.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr3.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr4.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr5.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr6.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr7.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr8.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr9.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr10.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr11.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr12.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr13.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr14.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr15.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr16.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr17.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr18.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr19.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr20.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr21.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr22.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chrX.vcf.bgz
-wget -c https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chrY.vcf.bgz
-
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr1.vcf.bgz grch38_gnomAD_genomes_v312_chr1.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr2.vcf.bgz grch38_gnomAD_genomes_v312_chr2.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr3.vcf.bgz grch38_gnomAD_genomes_v312_chr3.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr4.vcf.bgz grch38_gnomAD_genomes_v312_chr4.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr5.vcf.bgz grch38_gnomAD_genomes_v312_chr5.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr6.vcf.bgz grch38_gnomAD_genomes_v312_chr6.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr7.vcf.bgz grch38_gnomAD_genomes_v312_chr7.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr8.vcf.bgz grch38_gnomAD_genomes_v312_chr8.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr9.vcf.bgz grch38_gnomAD_genomes_v312_chr9.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr10.vcf.bgz grch38_gnomAD_genomes_v312_chr10.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr11.vcf.bgz grch38_gnomAD_genomes_v312_chr11.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr12.vcf.bgz grch38_gnomAD_genomes_v312_chr12.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr13.vcf.bgz grch38_gnomAD_genomes_v312_chr13.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr14.vcf.bgz grch38_gnomAD_genomes_v312_chr14.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr15.vcf.bgz grch38_gnomAD_genomes_v312_chr15.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr16.vcf.bgz grch38_gnomAD_genomes_v312_chr16.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr17.vcf.bgz grch38_gnomAD_genomes_v312_chr17.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr18.vcf.bgz grch38_gnomAD_genomes_v312_chr18.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr19.vcf.bgz grch38_gnomAD_genomes_v312_chr19.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr20.vcf.bgz grch38_gnomAD_genomes_v312_chr20.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr21.vcf.bgz grch38_gnomAD_genomes_v312_chr21.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chr22.vcf.bgz grch38_gnomAD_genomes_v312_chr22.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chrX.vcf.bgz grch38_gnomAD_genomes_v312_chrX.vcf
-python3 prepare_gnomAD_vcf.py gnomad.genomes.v3.1.2.sites.chrY.vcf.bgz grch38_gnomAD_genomes_v312_chrY.vcf
-
-# Concatenate the prepared VCF files
-bcftools concat grch38_gnomAD_genomes_v312_chr1.vcf grch38_gnomAD_genomes_v312_chr2.vcf grch38_gnomAD_genomes_v312_chr3.vcf grch38_gnomAD_genomes_v312_chr4.vcf grch38_gnomAD_genomes_v312_chr5.vcf \
-grch38_gnomAD_genomes_v312_chr6.vcf grch38_gnomAD_genomes_v312_chr7.vcf grch38_gnomAD_genomes_v312_chr8.vcf grch38_gnomAD_genomes_v312_chr9.vcf grch38_gnomAD_genomes_v312_chr10.vcf \
-grch38_gnomAD_genomes_v312_chr11.vcf grch38_gnomAD_genomes_v312_chr12.vcf grch38_gnomAD_genomes_v312_chr13.vcf grch38_gnomAD_genomes_v312_chr14.vcf grch38_gnomAD_genomes_v312_chr15.vcf \
-grch38_gnomAD_genomes_v312_chr16.vcf grch38_gnomAD_genomes_v312_chr17.vcf grch38_gnomAD_genomes_v312_chr18.vcf grch38_gnomAD_genomes_v312_chr19.vcf grch38_gnomAD_genomes_v312_chr20.vcf \
-grch38_gnomAD_genomes_v312_chr21.vcf grch38_gnomAD_genomes_v312_chr22.vcf grch38_gnomAD_genomes_v312_chrX.vcf grch38_gnomAD_genomes_v312_chrY.vcf -o grch38_gnomAD_genomes_v312.vcf
-
-bgzip grch38_gnomAD_genomes_v312.vcf
-tabix -p vcf grch38_gnomAD_genomes_v312.vcf.gz
-
-# Clean up
-rm gnomad.genomes.v3.1.2.sites.chr1.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr2.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr3.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr4.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr5.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr6.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr7.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr8.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr9.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr10.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr11.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr12.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr13.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr14.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr15.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr16.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr17.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr18.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr19.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr20.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr21.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chr22.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chrX.vcf.bgz
-rm gnomad.genomes.v3.1.2.sites.chrY.vcf.bgz
-
-rm grch38_gnomAD_genomes_v312_chr1.vcf
-rm grch38_gnomAD_genomes_v312_chr2.vcf
-rm grch38_gnomAD_genomes_v312_chr3.vcf
-rm grch38_gnomAD_genomes_v312_chr4.vcf
-rm grch38_gnomAD_genomes_v312_chr5.vcf
-rm grch38_gnomAD_genomes_v312_chr6.vcf
-rm grch38_gnomAD_genomes_v312_chr7.vcf
-rm grch38_gnomAD_genomes_v312_chr8.vcf
-rm grch38_gnomAD_genomes_v312_chr9.vcf
-rm grch38_gnomAD_genomes_v312_chr10.vcf
-rm grch38_gnomAD_genomes_v312_chr11.vcf
-rm grch38_gnomAD_genomes_v312_chr12.vcf
-rm grch38_gnomAD_genomes_v312_chr13.vcf
-rm grch38_gnomAD_genomes_v312_chr14.vcf
-rm grch38_gnomAD_genomes_v312_chr15.vcf
-rm grch38_gnomAD_genomes_v312_chr16.vcf
-rm grch38_gnomAD_genomes_v312_chr17.vcf
-rm grch38_gnomAD_genomes_v312_chr18.vcf
-rm grch38_gnomAD_genomes_v312_chr19.vcf
-rm grch38_gnomAD_genomes_v312_chr20.vcf
-rm grch38_gnomAD_genomes_v312_chr21.vcf
-rm grch38_gnomAD_genomes_v312_chr22.vcf
-rm grch38_gnomAD_genomes_v312_chrX.vcf
-rm grch38_gnomAD_genomes_v312_chrY.vcf
-```
-
 
 ### \[optional\] HGMD (needs a license)
 The possibility to use HGMD in aiDIVA is optional due to the fact that you need a license for it. If you choose to include HGMD in the aiDIVA analysis you can use the public/professional version of HGMD.
