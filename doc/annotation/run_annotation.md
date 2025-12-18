@@ -32,3 +32,10 @@ optional parameters:
 After running the annotation script you will get the following annotated file that is ready to be used with the aiDIVA software:
 
 + *\<your-output-folder\>/\<input-filename\>\_annotated.tsv*
+
+### Convert Annotated Table to GSvar
+To convert the annotated table *\<input-filename\>\_annotated.tsv* to the GSvar format needed to run the VariantRanking tool you can use the `convert_annotated_table_to_gsvar.py` script found in the `scripts` folder.
+
+```
+python3 convert_annotated_table_to_gsvar.py --in_file NA12878_annotated.tsv --out_file NA12878_annotated.GSvar --sample_id NA12878
+```

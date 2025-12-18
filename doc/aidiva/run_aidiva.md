@@ -6,6 +6,12 @@ It is possible to run only parts of our software. In total we have three differe
 
 Please be adviced that for the *aiDIVA-meta* mode you need the two evidence-based files *eb_dom.GSvar* and *eb_rec.GSvar*. These files can be created using the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool which is part of the [ngs-bits](https://github.com/imgag/ngs-bits) tool collection. The VariantRanking tool needs as input a GSvar file which can be created if you process your VCF file with the [megSAP](https://github.com/imgag/megSAP) pipeline. Please head over to these repositories to have detailled instructions on how to use the tools.
 
+To test aiDIVA-meta without the need to install the whole [megSAP](https://github.com/imgag/megSAP) pipeline we included a conversion script to convert the annotated table into a basic GSvar file that includes all necessary information needed to run the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool (please be adviced that not all optional information used by [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) are included in htis converted file many of these informations are missing). This converison script is meant for initial tests, but is highly recommended to use the whole [megSAP](https://github.com/imgag/megSAP) pipeline to generate the GSvar files to use the full potential of the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool. The [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool was written specifically with the [megSAP](https://github.com/imgag/megSAP) annotation in mind.
+
+Head over to the [documentation](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/run_annotation.md#convert-annotated-table-to-gsvar) of the annotion part to see how to use the conversion script.
+
+Please be aware that the annotation from the [megSAP](https://github.com/imgag/megSAP) pipeline and the annotation script shipped in this repository are not identical. 
+
 
 ## Modes for Running aiDIVA
 
@@ -116,7 +122,7 @@ The following shows all columns that need to be present in the annotated input t
 
 The column names should exactly match the column name specified in the table if not otherwise specified in the description.
 
-### Strictly necessary columns
+### Strictly Necessary Columns
 
 These columns give the basic information for each variant in the table.
 
@@ -129,7 +135,7 @@ These columns give the basic information for each variant in the table.
 + *IMPACT* -- Impact of the variant according to ensembl (HIGH, MODERATE, LOW, MODIFIER)
 
 
-### Necessary feature columns
+### Necessary Feature Columns
 
 These column names must match the feature-list specified in the configuration file. The following shows the column names for the feature-list specified in the example configuration given in the `data` folder.
 
@@ -156,7 +162,7 @@ These column names must match the feature-list specified in the configuration fi
 + *IS_INDEL*
 
 
-### Necessary allele frequency columns
+### Necessary Allele Frequency Columns
 
 These columns are necessary if the MAX_AF column from the feature list is not present in the table. Not restricted to the columns shown below. column names must match the entries in the allele-frequency-list specified in the configuration file.
 
@@ -167,14 +173,14 @@ These columns are necessary if the MAX_AF column from the feature list is not pr
 + *gnomAD_SAS_AF*
 
 
-### Necessary splicing features
+### Necessary Splicing Features
 
 Scores used to handle splicing variants.
 
 + *SpliceAI* -- Single SpliceAI score per variant (we use the maximum of the four scores)
 
 
-### Necessary variant consequence information
+### Necessary Variant Consequence Information
 
 Variant consequence terms annotated with ensembl VEP. The terms are shown in the overview on the ensembl [website](https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html). This site was also used as reference to determine the severity of the different terms.
 
@@ -188,7 +194,7 @@ Information on the genotype of the variant. \<sample-id\> must match the one you
 + *GT_\<sample-id\>* -- Genotype information of the sample (\<sample-id\> must match the id of the sample you are currently analyzing)
 
 
-### Optional columns
+### Optional Columns
 
 The following columns are not necessarily needed to run aiDIVA.
 
