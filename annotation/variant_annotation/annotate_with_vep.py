@@ -93,6 +93,7 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_dict, annotat
 
     if not expanded:
         vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['gnomAD']},short_name=gnomAD,format=vcf,type=exact,fields=AN%Hom"
+        vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['clinvar']},short_name=CLINVAR,format=vcf,type=exact,fields=DETAILS"
 
         # HGMD needs a valid license, therefore we check if the file exists otherwise this annotation is skipped
         if os.path.isfile(f"{annotation_dict['vcf-files']['hgmd']}"):
