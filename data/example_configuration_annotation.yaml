@@ -3,23 +3,25 @@
 ---
 # used assembly build, valid values: [GRCh38]
 Assembly-Build: GRCh38
-Reference-Genome: <full-path-to-reference>/GRCh38.fa
+Reference-Genome: <full-path-to-file>/GRCh38.fa
 
-# this file can be used to pick a transcript during the annotation if not specified or 'None' the default is to pick the allele with the most severe consequence
+# Used to pick a transcript during the annotation if not specified or 'None' the default is to pick the allele with the most severe consequence
+# This file should only contain the ensembl transcript IDs. One ID per row.
 Canonical-Transcripts: <full-path-to-file>/mane_grch38_v13_transcript_ids.txt
 
 
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the data set (the MaxAF will be based on these)
     allele-frequency-list:
-        - gnomAD_AFR_AF
-        - gnomAD_AMR_AF
-        - gnomAD_EAS_AF
-        - gnomAD_NFE_AF
-        - gnomAD_SAS_AF
-        #- gnomAD_ASJ_AF
-        #- gnomAD_FIN_AF
-        #- gnomAD_OTH_AF
+        - gnomADg_AFR_AF
+        - gnomADg_AMR_AF
+        - gnomADg_EAS_AF
+        - gnomADg_NFE_AF
+        - gnomADg_SAS_AF
+        #- gnomADg_AMI_AF
+        #- gnomADg_ASJ_AF
+        #- gnomADg_FIN_AF
+        #- gnomADg_REMAINING_AF
 
     # List containing the names of the features used for the model training
     # the exact order of the features is crucial (make sure to have the exact same order as in the training step)
@@ -47,73 +49,87 @@ Model-Features:
         - IS_INDEL
 
 
+Variant-Effect-Predictor:
+    # Specify if vep is used as a container or from a local installation
+    vep-mode: APPTAINER # [LOCAL, APPTAINER/SINGULARITY]
+
+    vep-local:
+        # VEP: path to the VEP executable
+        vep: <full-path-to-folder>/ensembl-vep-release/
+
+        # VEP: path where the needed perl modules are installed
+        vep-cpan: <full-path-to-folder>/ensembl-vep-release/cpan/
+
+        # VEP: path where the the VEP plugins were put
+        vep-plugin-path: <full-path-to-folder>/vep_plugins/
+
+    vep-container:
+        # Specify Docker image to use (URL to docker hub) 
+        # NOTE: docker is currently not tested!!!
+        #vep-docker: docker://ensemblorg/ensembl-vep:release_115.2
+
+        # Path to the created Singularity/Apptainer image file
+        vep-image: <full-path-to-file>/vep_release-115-2.sif
+
+
 Annotation-Resources:
-    # VEP: path to the VEP executable
-    vep: <full-path-to-folder>/ensembl-vep-release/vep
-
-    # VEP: path where the needed perl modules are installed
-    vep-cpan: <full-path-to-folder>/ensembl-vep-release/cpan/
-
-    # VEP: path where the the VEP plugins were put
-    vep-plugin-path: <full-path-to-folder>/vep_plugins/
+    # Base path where the annotation resources are stored used as bind path for the container
+    # here we assume that all annotation resources are in a folder called 'databases'
+    resources-base-path: <full-path-to-folder/databases/
 
     # VEP cache directory
-    vep-cache: <full-path-to-folder>/ensembl-vep/cache
+    vep-cache: <full-path-to-folder>/databases/ensembl-vep/cache
 
-    # ngs-bits install path
-    ngs-bits: <full-path-to-folder>/ngs-bits/
+    ## The following paths to the annotation resource files are relative paths from the resources-base-path
 
     # low-confidence filter file
-    low-confidence: <full-path-to-file>/grch38_low_conf_regions.bed
+    low-confidence: <full-path-to-file>/databases/grch38_low_conf_regions.bed.gz
 
     # BED like files here the key of the dictionary is used as the name to present the feature in the annotated file
     bed-files:
-        simpleRepeat: <full-path-to-file>/grch38_simpleRepeat.bed
-        segmentDuplication: <full-path-to-file>/grch38_genomicSuperDups.bed
-        oe_lof: <full-path-to-file>/gnomAD_oe_lof_grch38_sorted.bed
-        #oe_mis: <full-path-to-file>/gnomAD_oe_mis_grch38_sorted.bed
-        #oe_syn: <full-path-to-file>/gnomAD_oe_syn_grch38_sorted.bed
-        repeatMasker: <full-path-to-file>/grch38_repeatmasker.bed
+        simpleRepeat: <full-path-to-file>/databases/grch38_simpleRepeat.bed.gz
+        segmentDuplication: <full-path-to-file>/databases/grch38_genomicSuperDups.bed.gz
+        oe_lof: <full-path-to-file>/databases/gnomAD_oe_lof_grch38_sorted.bed.gz
+        #oe_mis: <full-path-to-file>/databases/gnomAD_oe_mis_grch38_sorted.bed.gz
+        #oe_syn: <full-path-to-file>/databases/gnomAD_oe_syn_grch38_sorted.bed.gz
+        repeatMasker: <full-path-to-file>/databases/grch38_repeatmasker.bed.gz
 
         # OPTIONAL: only used if DB check is not skipped
         # NOTE: currently not implemented
         # NOTE: the following annotation needs a valid license
-        omim: <full-path-to-file>/omim.bed
+        omim: <full-path-to-file>/databases/omim.bed.gz
 
-    plugin-files:
-        AlphaMissense: <full-path-to-file>/AlphaMissense_hg38.tsv.gz
-        # if you use the VCF file for MutationAssessor comment the following entry
-        dbNSFP: <full-path-to-file>dbNSFP4.9a_grch38.gz
+    vep-plugin-files:
+        AlphaMissense: <full-path-to-file>/databases/AlphaMissense_hg38.tsv.gz
+        dbNSFP: <full-path-to-file>/databases/dbNSFP4.9a_grch38.gz
 
     # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
     vcf-files:
-        EIGEN_PHRED: <full-path-to-file>/grch38_eigen_phred_coding.vcf.gz
-        CONDEL: <full-path-to-file>/grch38_fannsDB_Condel.vcf.gz
-        FATHMM_XF: <full-path-to-file>/grch38_fathmm_xf_coding.vcf.gz
-        # if you use dbNSFP to annotate MutationAssessor comment the MutationAssessor entry
-        #MutationAssessor: <full-path-to-file>/grch38_precomputed_MutationAssessor.vcf.gz
-        gnomAD: <full-path-to-file>/grch38_gnomad_genome_v3.1.2.vcf.gz
-        CADD: <full-path-to-file>/grch38_CADD_snvs_v16.vcf.gz
-        CAPICE: <full-path-to-file>/capice_v1_grch38_snvs.vcf.gz
-        REVEL: <full-path-to-file>/grch38_revel_v13.vcf.gz
-        SpliceAI-SNV: <full-path-to-file>/spliceai_scores.masked.snv.hg38.vcf.gz
-        SpliceAI-InDel: <full-path-to-file>/spliceai_scores.masked.indel.hg38.vcf.gz
+        EIGEN_PHRED: <full-path-to-file>/databases/grch38_eigen_phred_coding.vcf.gz
+        CONDEL: <full-path-to-file>/databases/grch38_fannsDB_Condel.vcf.gz
+        FATHMM_XF: <full-path-to-file>/databases/grch38_fathmm_xf_coding.vcf.gz
+        gnomAD: <full-path-to-file>/databases/grch38_gnomad_genome_v3.1.2.vcf.gz
+        CADD: <full-path-to-file>/databases/grch38_CADD_snvs_v16.vcf.gz
+        CAPICE: <full-path-to-file>/databases/capice_v1_grch38_snvs.vcf.gz
+        REVEL: <full-path-to-file>/databases/grch38_revel_v13.vcf.gz
+        SpliceAI-SNV: <full-path-to-file>/databases/spliceai_scores.masked.snv.hg38.vcf.gz
+        SpliceAI-InDel: <full-path-to-file>/databases/spliceai_scores.masked.indel.hg38.vcf.gz
 
         # OPTIONAL: only used if DB check is not skipped
-        clinvar: <full-path-to-file>/clinvar.vcf.gz
+        clinvar: <full-path-to-file>/databases/clinvar.vcf.gz
 
         # OPTIONAL: only used if DB check is not skipped
         # NOTE: the following annotation needs a valid license
-        hgmd: <full-path-to-file>/HGMD.vcf.gz
+        hgmd: <full-path-to-file>/databases/HGMD.vcf.gz
 
     # Bigwig files the key of the dictionary is used as the name to present the feature in the annotated file
     bigwig-files:
-        phastCons_primate: <full-path-to-file>/hg38_phastCons17way_primate.bw
-        phastCons_mammal: <full-path-to-file>/hg38_phastCons30way_mammal.bw
-        phastCons_vertebrate: <full-path-to-file>/hg38_phastCons100way_vertebrate.bw
-        phyloP_primate: <full-path-to-file>/hg38_phyloP17way_primate.bw
-        phyloP_mammal: <full-path-to-file>/hg38_phyloP30way_mammal.bw
-        phyloP_vertebrate: <full-path-to-file>/hg38_phyloP100way_vertebrate.bw
+        phastCons_primate: <full-path-to-file>/databases/hg38_phastCons17way_primate.bw
+        phastCons_mammal: <full-path-to-file>/databases/hg38_phastCons30way_mammal.bw
+        phastCons_vertebrate: <full-path-to-file>/databases/hg38_phastCons100way_vertebrate.bw
+        phyloP_primate: <full-path-to-file>/databases/hg38_phyloP17way_primate.bw
+        phyloP_mammal: <full-path-to-file>/databases/hg38_phyloP30way_mammal.bw
+        phyloP_vertebrate: <full-path-to-file>/databases/hg38_phyloP100way_vertebrate.bw
 
 
 # DO NOT CHANGE THE FOLLOWING IF YOU DON'T KNOW WHAT YOU DO

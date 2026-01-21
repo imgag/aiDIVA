@@ -67,14 +67,14 @@ LLM-Input:
 Model-Features:
     # List containing the names of the allele frequency sources (populations) that are present in the input table (the MAX_AF will be based on these)
     allele-frequency-list:
-        - gnomAD_AFR_AF
-        - gnomAD_AMR_AF
-        - gnomAD_EAS_AF
-        - gnomAD_NFE_AF
-        - gnomAD_SAS_AF
-        #- gnomAD_ASJ_AF
-        #- gnomAD_FIN_AF
-        #- gnomAD_OTH_AF
+        - gnomADg_AFR_AF
+        - gnomADg_AMR_AF
+        - gnomADg_EAS_AF
+        - gnomADg_NFE_AF
+        - gnomADg_SAS_AF
+        #- gnomADg_ASJ_AF
+        #- gnomADg_FIN_AF
+        #- gnomADg_OTH_AF
 
     # List containing the names of the features used for the model training
     # the exact order of the features is crucial (make sure to have the exact same order as in the training step)
