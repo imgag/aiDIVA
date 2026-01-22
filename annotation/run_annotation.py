@@ -21,7 +21,6 @@ if __name__=="__main__":
     parser.add_argument("--out_folder", type=str, dest="out_folder", metavar="output_path/", required=True, help="Prefix that is used to save the annotated files [required]")
     parser.add_argument("--filtered", dest="filtered", action="store_true", required=False, help="Flag indicating that the filtered files already exist in the result folder (skips the prefiltering step to save time)")
     parser.add_argument("--filtered_folder", type=str, dest="filtered_folder", metavar="output_path/aidiva_filtered", required=False, help="Path to the prefiltered input VCF files")
-    parser.add_argument("--inhouse_sample", dest="inhouse_sample", action="store_true", required=False, help="Flag to indicate that we are annotating an inhouse sample (skips leftNormalize since it is already performed)")
     parser.add_argument("--compress", dest="compress", action="store_true", required=False, help="Flag to indicate that we want to compress our result with gzip.")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use. (default: 1)")
     parser.add_argument("--log_file", type=str, dest="log_file", metavar="annotation_log.txt", required=False, help="Path plus name of the log file to be saved, if not specified the log file is saved in the working directory")
@@ -34,7 +33,6 @@ if __name__=="__main__":
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
 
-    inhouse_sample = args.inhouse_sample
     is_filtered = args.filtered
     compress_results = args.compress
 

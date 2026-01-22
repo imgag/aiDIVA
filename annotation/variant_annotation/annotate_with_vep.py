@@ -69,7 +69,10 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_dict, annotat
 
         # specify all the Plugins that VEP should use
         vep_command = f"{vep_command} --plugin AlphaMissense,file={annotation_dict['vep-plugin-files']['AlphaMissense']}"
-        vep_command = f"{vep_command} --plugin dbNSFP,{annotation_dict['vep-plugin-files']['dbNSFP']},transcript_match=1,MutationAssessor_score"
+
+        if "dbNSFP" in annotation_dict['vep-plugin-files'].keys():
+            logger.info("Use dbNSFP for MutationAssessor annotation!")
+            vep_command = f"{vep_command} --plugin dbNSFP,{annotation_dict['vep-plugin-files']['dbNSFP']},transcript_match=1,MutationAssessor_score"
 
     if not expanded:
         vep_command = f"{vep_command} --plugin SpliceAI,snv={annotation_dict['vcf-files']['SpliceAI-SNV']},indel={annotation_dict['vcf-files']['SpliceAI-InDel']}"
@@ -83,6 +86,10 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_dict, annotat
         vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['CAPICE']},short_name=VEP_CAPICE,format=vcf,type=exact,fields=CAPICE"
         vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['CADD']},short_name=VEP_CADD,format=vcf,type=exact,fields=CADD"
         vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['REVEL']},short_name=VEP_REVEL,format=vcf,type=exact,fields=REVEL"
+
+        if "MutationAssessor" in annotation_dict['vcf-files'].keys():
+            logger.info("Use dbNSFP for MutationAssessor annotation!")
+            vep_command = f"{vep_command} --custom file={annotation_dict['vcf-files']['MutationAssessor']},short_name=VEP_MutationAssessor,format=vcf,type=exact,fields=MutationAssessor"
 
         vep_command = f"{vep_command} --custom file={annotation_dict['bigwig-files']['phyloP_primate']},short_name=phyloP_primate,format=bigwig,type=exact,coords=0"
         vep_command = f"{vep_command} --custom file={annotation_dict['bigwig-files']['phyloP_mammal']},short_name=phyloP_mammal,format=bigwig,type=exact,coords=0"

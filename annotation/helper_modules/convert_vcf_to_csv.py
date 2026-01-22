@@ -459,6 +459,10 @@ def convert_vcf_to_pandas_dataframe(input_file, allele_frequency_list, process_i
         # compute MAX_AF based on allele frequency list
         vcf_as_dataframe["MAX_AF"] = vcf_as_dataframe.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
 
+        # Check for VCF annotation of MutationAssessor
+        if "VEP_MutationAssessor_MutationAssessor" in vcf_as_dataframe.columns:
+            vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_MutationAssessor_MutationAssessor": "MutationAssessor"})
+
         # handle MutationAssessor annotation from VCF or dbNSFP
         if "MutationAssessor_score" in vcf_as_dataframe.columns:
             if "MutationAssessor" in vcf_as_dataframe.columns:
@@ -472,13 +476,13 @@ def convert_vcf_to_pandas_dataframe(input_file, allele_frequency_list, process_i
             else:
                 vcf_as_dataframe = vcf_as_dataframe.rename(columns={"MutationAssessor_score": "MutationAssessor"})
 
-            # rename vep annotated columns to match expected feature names
-            vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_CONDEL_CONDEL": "CONDEL"})
-            vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_EIGEN_EIGEN_PHRED": "EIGEN_PHRED"})
-            vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_FATHMM_XF_FATHMM_XF": "FATHMM_XF"})
-            vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_CAPICE_CAPICE": "CAPICE"})
-            vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_CADD_CADD": "CADD_PHRED"})
-            vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_REVEL_REVEL": "REVEL"})
+        # rename vep annotated columns to match expected feature names
+        vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_CONDEL_CONDEL": "CONDEL"})
+        vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_EIGEN_EIGEN_PHRED": "EIGEN_PHRED"})
+        vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_FATHMM_XF_FATHMM_XF": "FATHMM_XF"})
+        vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_CAPICE_CAPICE": "CAPICE"})
+        vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_CADD_CADD": "CADD_PHRED"})
+        vcf_as_dataframe = vcf_as_dataframe.rename(columns={"VEP_REVEL_REVEL": "REVEL"})
 
         if not expanded_indel:
             spliceAI_columns = ["SpliceAI_pred_DS_AG", "SpliceAI_pred_DS_AL", "SpliceAI_pred_DS_DG", "SpliceAI_pred_DS_DL"]

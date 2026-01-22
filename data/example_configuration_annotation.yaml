@@ -101,6 +101,7 @@ Annotation-Resources:
 
     vep-plugin-files:
         AlphaMissense: <full-path-to-file>/databases/AlphaMissense_hg38.tsv.gz
+        # if you use the VCF file for MutationAssessor comment the following entry
         dbNSFP: <full-path-to-file>/databases/dbNSFP4.9a_grch38.gz
 
     # VCF files the key of the dictionary is used to identify the feature in the INFO column of hte VCF file
@@ -108,6 +109,8 @@ Annotation-Resources:
         EIGEN_PHRED: <full-path-to-file>/databases/grch38_eigen_phred_coding.vcf.gz
         CONDEL: <full-path-to-file>/databases/grch38_fannsDB_Condel.vcf.gz
         FATHMM_XF: <full-path-to-file>/databases/grch38_fathmm_xf_coding.vcf.gz
+        # if you use dbNSFP to annotate MutationAssessor comment the MutationAssessor entry
+        #MutationAssessor: <full-path-to-file>/databases/grch38_precomputed_MutationAssessor_r3.vcf.gz
         gnomAD: <full-path-to-file>/databases/grch38_gnomad_genome_v3.1.2.vcf.gz
         CADD: <full-path-to-file>/databases/grch38_CADD_snvs_v16.vcf.gz
         CAPICE: <full-path-to-file>/databases/capice_v1_grch38_snvs.vcf.gz
