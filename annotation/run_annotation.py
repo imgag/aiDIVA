@@ -30,6 +30,8 @@ if __name__=="__main__":
     workdir = tempfile.TemporaryDirectory(suffix="", prefix="annotation_workdir_", dir=None)
     working_directory = workdir.name
 
+    #working_directory = "/tmp/aidiva_debug/"
+
     if not working_directory.endswith("/"):
         working_directory = working_directory + "/"
 

@@ -75,11 +75,11 @@ def extract_columns(cell, process_indel, USED_INFO_FIELDS):
     for field in info_fields:
         field_splitted = field.split("=")
 
-        # skip empty INFO field annotations to prevent problems
-        if field_splitted[1] != "nan" and field_splitted[1] != "."  and field_splitted[1] != "":
+        # skip unsupported INFO fields
+        if field_splitted[0] in USED_INFO_FIELDS:
 
-            # skip unsupported INFO fields
-            if field_splitted[0] in USED_INFO_FIELDS:
+            # skip empty INFO field annotations to prevent problems
+            if field_splitted[1] != "nan" and field_splitted[1] != "."  and field_splitted[1] != "":
 
                 if field_splitted[0] == "INDEL_ID":
                     indel_ID = field_splitted[1]
@@ -91,10 +91,10 @@ def extract_columns(cell, process_indel, USED_INFO_FIELDS):
                     logger.error(f"Could not recognize INFO field {field}")
 
             else:
-                logger.debug(f"Skip unused INFO field value {field}!")
+                logger.debug(f"Skip empty (NaNs are handled as empty) INFO field {field}")
 
         else:
-            logger.debug(f"Skip empty (NaNs are handled as empty) INFO field {field}")
+            logger.debug(f"Skip unused INFO field value {field}!")
 
     if process_indel:
         extracted_columns = [indel_ID, annotation]
