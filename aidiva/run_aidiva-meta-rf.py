@@ -33,6 +33,7 @@ if __name__=="__main__":
     parser.add_argument("--top_rank", type=str, dest="top_rank", metavar="25", required=False, help="Rank parameter for '--only_top_results' (default: 25)")
     parser.add_argument("--sex", type=str, dest="sex", metavar="male/female", required=False, help="Sex of the current patient")
     parser.add_argument("--age", type=str, dest="age", metavar="10", required=False, help="Age of the current patient")
+    parser.add_argument("--skip_llm_api_call", dest="skip_llm_api_call", action="store_true", required=False, help="Flag to skip LLM API call (requires that the LLM result tables are already present in the output folder!)")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use (default: 1)")
     parser.add_argument("--log_file", type=str, dest="log_file", metavar="/output_path/logs/aidiva_log.txt", required=False, help="Path plus name of the log file to be saved, if not specified the log file is saved in the working directory")
     parser.add_argument("--log_level", type=str, dest="log_level", metavar="INFO", required=False, help="Define logging level, if unsure just leave the default [DEBUG, INFO] (default: INFO)")
@@ -124,6 +125,7 @@ if __name__=="__main__":
     rare_disease = args.rare_disease
     skip_db_check = args.skip_db_check
     only_top_results = args.only_top_results
+    skip_llm_api_call = args.skip_llm_api_call
 
     if args.threads is not None:
         num_cores = int(args.threads)
@@ -219,8 +221,26 @@ if __name__=="__main__":
     # load LLM API keyfile
     llm_model = configuration["LLM-Input"]["llm-model"]
 
+    # load LLM output mode
+    llm_output_mode = configuration["LLM-Input"]["llm-output-mode"]
+
     # load LLM system instructions
-    llm_instructions = configuration["LLM-Input"]["llm-instruction"]
+    llm_instructions_normal = configuration["LLM-Input"]["llm-instruction-normal"]
+    llm_instructions_structured = configuration["LLM-Input"]["llm-instruction-structured"]
+
+    # load LLM output JSON schema
+    llm_output_schema = configuration["LLM-Input"]["llm-output-schema"]
+
+    if llm_output_mode == "STRUCTURED":
+        llm_instructions = llm_instructions_structured
+        llm_structured_output = True
+
+    elif llm_output_mode == "NORMAL":
+        llm_instructions = llm_instructions_normal
+        llm_structured_output = False
+
+    else:
+        raise SystemExit(f"Unrecognized LLM output mode: {llm_output_mode}!")
 
     # convert splitted input data to vcf and annotate
     if input_table is not None:
@@ -282,33 +302,37 @@ if __name__=="__main__":
         # extract top 10 gene list from random forest ranking
         top_ranking_genes_random_forest = top_ranking.extract_top_ranking_entries_random_forest_based(sample_id, result_data_random_forest, 10, CONSTANT_DICTIONARY)
 
-        if llm_api == "LOCAL":
-            ## use this client definition to use a local LLM (make sure that the service serving the model is accessible)
-            client = OpenAI(base_url=f"{llm_api_url}:{llm_api_port}/v1/", api_key="UNKNOWN")
-
-        elif llm_api == "OPENAI":
-            # Get your OpenAI API key
-            with open(llm_api_key_file, "r") as keyfile:
-                llm_api_key = keyfile.readline().rstrip()
-
-            # Initialize the OpenAI API client
-            client = OpenAI(api_key=llm_api_key)
-
-        #elif llm_api == "MISTRALAI"
-        #    # Get your MistralAI API key
-        #    with open(llm_api_key_file, "r") as keyfile:
-        #        llm_api_key = keyfile.readline().rstrip()
-
-        #    # Initialize the MistralAI API client
-        #    client = Mistral(api_key=llm_api_key)
+        if skip_llm_api_call:
+            llm_refined_results_random_forest = pd.read_csv(str(output_filename + "_aidiva-rf_based_llm_results.tsv"), sep="\t", low_memory=False)
 
         else:
-            raise SystemExit("You need to specify a valid LLM api (OPENAI, LOCAL)!")
+            if llm_api == "LOCAL":
+                ## use this client definition to use a local LLM (make sure that the service serving the model is accessible)
+                client = OpenAI(base_url=f"{llm_api_url}:{llm_api_port}/v1/", api_key="UNKNOWN")
 
-        llm_prompt_random_forest = llm_handler.create_llm_prompt(sex, age, hpo_terms, top_ranking_genes_random_forest, "rf", internal_parameter_dict, CONSTANT_DICTIONARY, True, True)
-        llm_refined_results_random_forest = llm_handler.call_llm_api(client, llm_prompt_random_forest, llm_instructions, llm_model, llm_api)
+            elif llm_api == "OPENAI":
+                # Get your OpenAI API key
+                with open(llm_api_key_file, "r") as keyfile:
+                    llm_api_key = keyfile.readline().rstrip()
 
-        llm_refined_results_random_forest.to_csv(str(output_filename + "_aidiva-rf_based_llm_results.tsv"), sep="\t", index=False)
+                # Initialize the OpenAI API client
+                client = OpenAI(api_key=llm_api_key)
+
+            #elif llm_api == "MISTRALAI"
+            #    # Get your MistralAI API key
+            #    with open(llm_api_key_file, "r") as keyfile:
+            #        llm_api_key = keyfile.readline().rstrip()
+
+            #    # Initialize the MistralAI API client
+            #    client = Mistral(api_key=llm_api_key)
+
+            else:
+                raise SystemExit("You need to specify a valid LLM api (OPENAI, LOCAL)!")
+
+            llm_prompt_random_forest = llm_handler.create_llm_prompt(sex, age, hpo_terms, top_ranking_genes_random_forest, "rf", internal_parameter_dict, CONSTANT_DICTIONARY, True, True)
+            llm_refined_results_random_forest = llm_handler.call_llm_api(client, llm_prompt_random_forest, llm_instructions, llm_output_schema, llm_model, llm_api, llm_structured_output, False)
+
+            llm_refined_results_random_forest.to_csv(str(output_filename + "_aidiva-rf_based_llm_results.tsv"), sep="\t", index=False)
 
         # create metascore table
         metascore_table_random_forest = meta_handler.create_table_rf_based(llm_refined_results_random_forest, top_ranking_genes_random_forest, False, CONSTANT_DICTIONARY)

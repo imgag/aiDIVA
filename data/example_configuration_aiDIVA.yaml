@@ -46,6 +46,9 @@ LLM-Input:
     # specify the LLM model that the api should call
     llm-model: "meta/llama-3.1-8b-instruct" # ("meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "gpt-4o", ...)
 
+    # if mode is STRUCTURED the tool will pass a json schema to the model that is used to structure the output
+    llm-output-mode: STRUCTURED # [STRUCTURED, NORMAL]
+
     # system instructions for the LLM
     # enable reasoning in the system intructions by adding 'Advanced reasoning ON' (works only when using a reasoning model)
     llm-instruction: |
@@ -62,6 +65,69 @@ LLM-Input:
         Column 7 should have the name '3rd ranked Gene explanation' and should contain the explanation for your 3rd choice for causal gene. Please add the source for your answer in your text inside the table.
         Column 8 should have the name 'source' and should contain all sources and bibliography of your sources you needed to answer this question. Please add sources in form of full web addresses within your answer in your text inside the table.
         Please provide the result table in plain json.
+
+    # structured system instructions for the LLM
+    # enable reasoning in the system intructions by adding 'Advanced reasoning ON' (works only when using a reasoning model)
+    llm-instruction-structured: |
+        Create a clinical expert in rare diseases that answers given prompts in the following way: 
+        Do answer every question independently, treat every question as a new, standalone question and answer without referring to previous interactions. 
+        Give the result as JSON following the given schema.
+
+    # JSON schema that should be used for the output structure
+    llm-output-schema: |
+        {
+            "name": "gene_ranking_schema",
+            "strict": true,
+            "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["ranked_genes"],
+                "properties": {
+                    "ranked_genes": {
+                        "type": "array",
+                        "description": "Ranked gene candidates.",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": ["rank", "gene_name", "explanation", "confidence", "sources"],
+                            "properties": {
+                                "rank": {
+                                    "type": "integer",
+                                    "enum": [1, 2, 3],
+                                    "description": "Rank (1 = best)."
+                                },
+                                "gene_name": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "HGNC gene symbol."
+                                },
+                                "explanation": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Brief explanation/rationale."
+                                },
+                                "confidence": {
+                                    "type": "integer",
+                                    "enum": [1, 2, 3],
+                                    "description": "Confidence level (1=low, 2=moderate, 3=high)."
+                                },
+                                "sources": {
+                                    "type": "array",
+                                    "description": "Reference URLs or PubMed IDs.",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 
 Model-Features:

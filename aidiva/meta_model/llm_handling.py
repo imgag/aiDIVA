@@ -163,13 +163,13 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
     random.seed(RANDOM_SEED)
     random.shuffle(list_of_gene_dicts)
 
-    if sex != "" and str(age) != "nan":
+    if sex != "" and str(age) != "nan" and str(age) != ".":
         llm_prompt = f"A {sex} rare disease patient of age {int(age)} has the following symptoms: {phenotype_information}. "
 
-    elif sex != "" and str(age) == "nan":
+    elif sex != "" and str(age) == "nan" and str(age) != ".":
         llm_prompt = f"A {sex} rare disease patient has the following symptoms: {phenotype_information}. "
 
-    elif sex == "" and str(age) != "nan":
+    elif sex == "" and str(age) != "nan" and str(age) != ".":
         llm_prompt = f"A rare disease patient of age {int(age)} has the following symptoms: {phenotype_information}. "
 
     else:
@@ -185,10 +185,13 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
                 if entry['genotype'] == "homozygous":
                     causal_genes.append(str(f"{entry['gene']} ({entry['genotype']} {entry['variant_type']})"))
 
+                elif entry['genotype'] == "heterozygous":
+                    causal_genes.append(str(f"{entry['gene']} ({entry['genotype']} {entry['variant_type']})"))
+
                 else:
                     causal_genes.append(str(f"{entry['gene']} ({entry['variant_type']})"))
 
-            llm_prompt += "For each candidate gene the type of the variant is given in brackets. Furthermore the genotype of the variant is included in the brackets if it is a homozygous variant. "
+            llm_prompt += "For each candidate gene the type and the zygosity of the variant is given in brackets. "
             llm_prompt += f"Candidate genes: {', '.join(causal_genes)}"
 
         else:
@@ -211,16 +214,35 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
     return llm_prompt
 
 
-def call_llm_api(client, prompt, llm_instructions, model_id, llm_api, use_random_seed=False):
+def call_llm_api(client, prompt, llm_instructions, llm_output_schema, model_id, llm_api, llm_structured_output=False, use_random_seed=False):
+    llm_json_schema = json.loads(llm_output_schema)
+
+    if llm_api == "LOCAL" and llm_structured_output:
+        print("Use structured output!")
+        # Add JSON output schema to the system instructions
+        llm_instructions = f"{llm_instructions} \n\nJSON schema: {llm_json_schema}\n"
+
     # Define your messages for the chat
     messages = [
                 {"role": "system", "content": llm_instructions},
                 {"role": "user", "content": prompt}
                ]
 
-    if llm_api == "OPENAI" or llm_api == "LOCAL":
+    if llm_api == "OPENAI":
         # Make a request to the OpenAI API using the chat endpoint
-        response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1)
+        if llm_structured_output:
+            response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1, response_format={"type": "json_schema", "json_schema": llm_json_schema})
+
+        else:
+            response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1)
+
+    elif llm_api == "LOCAL":
+        # Make a request to the OpenAI API using the chat endpoint
+        if llm_structured_output:
+            response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1, extra_body={"guided_json": llm_json_schema})
+
+        else:
+            response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1)
 
     #elif llm_api == "MISTRALAI":
     #    response = client.chat.complete(model=model_id, messages=messages, temperature=0.1)
@@ -277,11 +299,84 @@ def call_llm_api(client, prompt, llm_instructions, model_id, llm_api, use_random
 
         break
 
-    if not isinstance(list_of_answers, list):
-        if isinstance(list_of_answers, dict):
-            list_of_answers = [list_of_answers]
+    if llm_structured_output:
+        first_ranked_gene = ""
+        first_ranked_gene_confidence = ""
+        first_ranked_gene_explanation = ""
+        second_ranked_gene = ""
+        second_ranked_gene_confidence = ""
+        second_ranked_gene_explanation = ""
+        third_ranked_gene = ""
+        third_ranked_gene_confidence = ""
+        third_ranked_gene_explanation = ""
+        sources = ""
 
-    results = pd.DataFrame(list_of_answers)
+        for element in list_of_answers["ranked_genes"]:
+            rank = str(element["rank"])
+            gene_name = element["gene_name"]
+            explanation = element["explanation"]
+            confidence = str(element["confidence"])
+            source = element["sources"]
+
+            if rank == "1":
+                first_ranked_gene = gene_name
+                first_ranked_gene_confidence = confidence
+                first_ranked_gene_explanation = explanation
+
+                if sources != "":
+                    sources = sources + "," + ",".join(source)
+
+                else:
+                    sources = sources + ",".join(source)
+
+            elif rank == "2":
+                second_ranked_gene = gene_name
+                second_ranked_gene_confidence = confidence
+                second_ranked_gene_explanation = explanation
+
+                if sources != "":
+                    sources = sources + "," + ",".join(source)
+
+                else:
+                    sources = sources + ",".join(source)
+
+            elif rank == "3":
+                third_ranked_gene = gene_name
+                third_ranked_gene_confidence = confidence
+                third_ranked_gene_explanation = explanation
+
+                if sources != "":
+                    sources = sources + "," + ",".join(source)
+
+                else:
+                    sources = sources + ",".join(source)
+
+            else:
+                logger.error(f"Unexpected rank value occured ({rank})!")
+
+        converted_list_of_answers = {
+                                     "prompt": prompt,
+                                     "1st ranked Gene": first_ranked_gene,
+                                     "1st ranked Gene explanation": first_ranked_gene_explanation,
+                                     "2nd ranked Gene": second_ranked_gene,
+                                     "2nd ranked Gene explanation": second_ranked_gene_explanation,
+                                     "3rd ranked Gene": third_ranked_gene,
+                                     "3rd ranked Gene explanation": third_ranked_gene_explanation,
+                                     "source": sources
+                                    }
+
+    else:
+        converted_list_of_answers = list_of_answers
+
+    if not isinstance(converted_list_of_answers, list):
+        if isinstance(converted_list_of_answers, dict):
+            converted_list_of_answers = [converted_list_of_answers]
+
+        else:
+            logger.error(f"The response format seems wrong and is not a dictionary!")
+            logger.error(f"Faulty response: {converted_list_of_answers}")
+
+    results = pd.DataFrame(converted_list_of_answers)
 
     return results
 
