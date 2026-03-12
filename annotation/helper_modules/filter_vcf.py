@@ -12,7 +12,7 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name, CONSTA
     CODING_VARIANTS = CONSTANT_DICTIONARY["CODING_VARIANTS"]
     SPLICE_VARIANTS = CONSTANT_DICTIONARY["SPLICE_VARIANTS"]
     SYNONYMOUS_VARIANTS = CONSTANT_DICTIONARY["SYNONYMOUS_VARIANTS"]
-    
+
     if filepath.endswith(".gz"):
         vcf_file_to_reformat = gzip.open(filepath, "rt")
 

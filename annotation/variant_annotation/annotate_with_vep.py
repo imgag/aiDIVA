@@ -136,7 +136,6 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_dict, annotat
     vep_command = f"{vep_command} --no_stats" + " "
     vep_command = f"{vep_command} --force_overwrite"
 
-    print(vep_command)
     subprocess.run(vep_command, shell=True, check=True)
     logger.debug("The VEP annotated VCF is saved as %s" % (output_vcf_file))
 
@@ -200,7 +199,6 @@ def call_vep_and_annotate_consequence_information(input_vcf_file, output_vcf_fil
     vep_command = f"{vep_command} --no_stats"
     vep_command = f"{vep_command} --force_overwrite"
 
-    print(vep_command)
     subprocess.run(vep_command, shell=True, check=True)
     logger.debug(f"The consequence annotated VCF is saved as {output_vcf_file}")
 
@@ -229,6 +227,7 @@ if __name__=="__main__":
 
     if args.threads is not None:
         num_threads = int(args.threads)
+
     else:
         num_threads = 1
 

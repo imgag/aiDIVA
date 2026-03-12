@@ -174,7 +174,7 @@ def extract_sample_information(row, sample, sample_header=None):
 
         if "GT" in format_entries:
             sample_gt_information = sample_fields[format_entries.index("GT")]
-        
+
         else:
             sample_gt_information = "./."
 
@@ -311,7 +311,7 @@ def compute_homAF(row):
         gnomAD_an = float(row["gnomAD_AN"])
 
     except Exception as e:
-        print("Missing gnomAD_hom/gnomAD_an")
+        logger.warning("Missing gnomAD_hom/gnomAD_an!")
 
     if (gnomAD_hom > 0.0) and (gnomAD_an > 0.0):
         gnomAD_homAF = gnomAD_hom / gnomAD_an
@@ -364,7 +364,7 @@ def get_most_severe_consequence(row, VARIANT_CONSEQUENCES):
 # binary coding of the variant impact (1: HIGH, 0: otherwise)
 def specify_impact_class(row):
     variant_impact = row["IMPACT"]
-    
+
     if variant_impact == "HIGH":
         return 1
 

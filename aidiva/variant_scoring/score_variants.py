@@ -59,7 +59,7 @@ def prepare_input_data(feature_list, allele_frequency_list, MEAN_DICT, MEDIAN_DI
 
         elif feature == "homAF":
             input_data[feature] = input_data[feature].fillna(0)
-            
+
         elif feature == "HIGH_IMPACT":
             input_data[feature] = input_data[feature].fillna(0)
 

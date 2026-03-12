@@ -108,12 +108,13 @@ optional parameters:
 
 aiDIVA will produce multiple different output files. The following lists all possible result files. Depending on your chosen mode (*aiDIVA-RF*, *aiDIVA-meta*, *aiDIVA-meta-RF*) to run aiDIVA you will only get a subset of these result files.
 
-+ *\<your-result-prefix\>\_aidiva\_result.tsv* -- The unfiltered result table (aiDIVA-RF).
-+ *\<your-result-prefix\>\_aidiva\_result\_filtered.tsv* -- The filtered result table (aiDIVA-RF) this table is also used for the subsequent analysis steps.
-+ *\<your-result-prefix\>\_aidiva\_random\_forest\_based\_llm\_result.tsv* -- The LLM results based on the random forest-based ranking.
-+ *\<your-result-prefix\>\_aidiva\_evidence\_dominant\_based\_llm\_result.tsv* -- The LLM results based on the evidence-based ranking (dominant model).
-+ *\<your-result-prefix\>\_aidiva\_evidence\_recessive\_based\_llm\_result.tsv* -- The LLM results based on the evidence-based ranking (recessive model).
-+ *\<your-result-prefix\>\_aidiva\_metascore\_results.tsv* -- The final result table with the variant ranking based on the meta model (aiDIVA-meta).
++ *\<your-result-prefix\>\_result\_aidiva-rf.tsv* -- The unfiltered result table (aiDIVA-RF).
++ *\<your-result-prefix\>\_result\_filtered\_aidiva-rf.tsv* -- The filtered result table (aiDIVA-RF) this table is also used for the subsequent analysis steps.
++ *\<your-result-prefix\>\_aidiva-rf\_based\_llm\_results.tsv* -- The LLM results based on the random forest-based ranking.
++ *\<your-result-prefix\>\_aidiva-eb-dom\_based\_llm\_result.tsv* -- The LLM results based on the evidence-based ranking (dominant model).
++ *\<your-result-prefix\>\_aidiva-eb-rec\_based\_llm\_result.tsv* -- The LLM results based on the evidence-based ranking (recessive model).
++ *\<your-result-prefix\>\_metascore\_results\_aidiva-meta-rf.tsv* -- The final result table with the variant ranking based on the meta-rf model (aiDIVA-meta-RF).
++ *\<your-result-prefix\>\_metascore\_results\_aidiva-meta.tsv* -- The final result table with the variant ranking based on the meta model (aiDIVA-meta).
 
 
 ## Overview of Necessary and Optional Columns in the Input Table

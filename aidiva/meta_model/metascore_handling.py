@@ -139,7 +139,7 @@ def get_llm_gene_candidates(data):
 def create_table_rf_based(in_data_rf_based, rf_gene_list, no_variant, CONSTANT_DICTIONARY):
     #get constants
     VARIANT_CONSEQUENCES = CONSTANT_DICTIONARY["VARIANT_CONSEQUENCES"]
-    
+
     meta_table_dict_list = []
 
     rf_gene_info_dict = extract_rf_rank_and_score(rf_gene_list, no_variant)
@@ -278,10 +278,10 @@ def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_e
         if gene in eb_rec_gene_info_dict.keys():
             if gene_variant == "":
                 gene_variant = eb_rec_gene_info_dict[gene][0]["variant"]
-            
+
             elif gene_variant != "" and gene_variant != eb_rec_gene_info_dict[gene][0]["variant"]:
                 gene_variant = gene_variant + ";" + eb_rec_gene_info_dict[gene][0]["variant"]
-            
+
             if len(eb_rec_gene_info_dict[gene]) > 1:
                 consequence_value = 50
 

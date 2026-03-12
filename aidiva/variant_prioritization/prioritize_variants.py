@@ -73,7 +73,7 @@ def parse_hpo_list(hpo_list_file):
 
     else:
         logger.warning("HPO score finalization will be skipped!")
-    
+
     return list(hpo_query)
 
 
@@ -739,7 +739,7 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
 
     if "REPEATMASKER" in list(variant.index):
         repeat_masker_data = str(variant["REPEATMASKER"]).strip()
-    
+
     else:
         logger.warning("REPEATMASKER entry not found in input data! Skip REPEATMASKER filter!")
         repeat_masker_data = ""

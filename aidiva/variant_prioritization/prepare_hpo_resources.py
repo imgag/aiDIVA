@@ -274,7 +274,7 @@ def create_gene2interacting_mapping(string_mapping, string_db_links):
             string2name[string_id] = gene_name.upper()
         
         else:
-            print(f"WARNING: string_id ({string_id}) already in mapping dictionary!")
+            logger.warning(f"string_id ({string_id}) already in mapping dictionary!")
 
     with gzip.open(string_db_links, "rt") as string_links_file: 
         string_interaction_mapping = dict()
@@ -298,7 +298,7 @@ def create_gene2interacting_mapping(string_mapping, string_db_links):
 
                 else:
                     string_interaction_mapping[gene_name] = [{"interacting_gene": interacting_gene, "confidence_experimental": confidence_experimental, "confidence_database": confidence_database}]
-    
+
     logger.info(f"Gene to interacting gene mapping successfully prepared.")
     return string_interaction_mapping
 
