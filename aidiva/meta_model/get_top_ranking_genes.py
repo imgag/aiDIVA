@@ -245,7 +245,7 @@ def extract_gene_info_gsvar(row, sample_id, VARIANT_CONSEQUENCES, CONSEQUENCE_MA
         logger.warning(f"Use of gene with unsupported variant type! Gene: {current_gene}, Consequence: {current_consequence}")
 
         if "&" in current_consequence:
-            current_consequence = get_most_severe_consequence(current_consequence)
+            current_consequence = get_most_severe_consequence(current_consequence, VARIANT_CONSEQUENCES)
 
         processed_genes.append(current_gene)
         processed_consequences.append(current_consequence)
@@ -276,7 +276,7 @@ def extract_top_ranking_entries_evidence_based(sample_id, in_data_evidence, maxi
     CONSEQUENCE_MAPPING = CONSTANT_DICTIONARY["CONSEQUENCE_MAPPING"]
 
     gsvar_header = extract_gsvar_header(in_data_evidence)
-    result_data_evidence = pd.read_csv(in_data_evidence, comment="#", names=gsvar_header, sep="\t", low_memory=False, on_bad_lines="warn")
+    result_data_evidence = pd.read_csv(in_data_evidence, comment="#", quotechar="\"", names=gsvar_header, sep="\t", low_memory=False, on_bad_lines="warn")
     top_ranking_results_evidence = result_data_evidence[result_data_evidence["GSvar_rank"] <= maximum_rank].copy(deep=True)
     top_ranking_results_evidence["extracted_gene_info"] = top_ranking_results_evidence.apply(lambda row: extract_gene_info_gsvar(row, sample_id, VARIANT_CONSEQUENCES, CONSEQUENCE_MAPPING), axis=1)
     top_ranking_entries_evidence = ";".join(top_ranking_results_evidence["extracted_gene_info"].to_list())
