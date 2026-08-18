@@ -130,9 +130,7 @@ def parallelize_dataframe_processing(dataframe, function, num_cores):
         dataframe_splitted = [dataframe]
 
     else:
-        ## TODO: replace np.array_split() with iloc to prevent problems in future pandas versions
         # usage of floor division (//) makes sure that we get an absolute number as result
-        #dataframe_splitted = np.array_split(dataframe, num_partitions) # -> uses deprecated functionality that will behave differently in future pandas versions
         chunk_size = dataframe.shape[0] // num_partitions
         dataframe_splitted = [dataframe[i:i+chunk_size].copy() for i in range(0, dataframe.shape[0], chunk_size)]
 
@@ -151,8 +149,8 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     # get constants
     VARIANT_CONSEQUENCES = CONSTANT_DICTIONARY["VARIANT_CONSEQUENCES"]
     CODING_VARIANTS = CONSTANT_DICTIONARY["CODING_VARIANTS"]
-    SPLICE_VARIANTS = ["SPLICE_VARIANTS"]
-    SYNONYMOUS_VARIANTS = ["SYNONYMOUS_VARIANTS"]
+    SPLICE_VARIANTS = CONSTANT_DICTIONARY["SPLICE_VARIANTS"]
+    SYNONYMOUS_VARIANTS = CONSTANT_DICTIONARY["SYNONYMOUS_VARIANTS"]
     MEAN_DICT = CONSTANT_DICTIONARY["MEAN_DICT"]
     MEDIAN_DICT = CONSTANT_DICTIONARY["MEDIAN_DICT"]
 

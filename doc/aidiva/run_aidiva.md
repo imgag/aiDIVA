@@ -15,6 +15,25 @@ Please be aware that the annotation from the [megSAP](https://github.com/imgag/m
 
 ## Modes for Running aiDIVA
 
+### aiDIVA-Score:
+
+```
+python3 run_aidiva-score.py --config configuration_aiDIVA.yaml --in_data input.tsv --out_prefix output_folder/aidiva_result [--workdir aidiva_workdir/] [--threads 1] [--log_file output_path/logs/aidiva_log.txt] [--log_level INFO]
+```
+mandatory parameters:
+
++ *config* -- YAML configuration file (in the `data` folder is an example configuration file)
++ *in\_data* -- TAB separated input table with the annotated variants
++ *out\_prefix* -- A prefix for the resulting output files the output folder can also be specified with that parameter
+
+optional parameters:
+
++ *workdir* -- Working directory, where all temporary files are created and saved \[optional\]
++ *threads* -- Number of threads that should be used (default: 1) \[optional\]
++ *log\_file* -- Specify a custom log file to store the log messages from the tool \[optional\]
++ *log\_level* -- Define logging level \[DEBUG, INFO\] (default: INFO) \[optional\]
+
+
 ### aiDIVA-RF:
 
 ```
@@ -108,6 +127,7 @@ optional parameters:
 
 aiDIVA will produce multiple different output files. The following lists all possible result files. Depending on your chosen mode (*aiDIVA-RF*, *aiDIVA-meta*, *aiDIVA-meta-RF*) to run aiDIVA you will only get a subset of these result files.
 
++ *\<your-result-prefix\>\_result\_aidiva-score.tsv* -- The result table with the predicted pathogenicity score (aiDIVA-Score) this table can be used as input for the other modes to skip the prediction part.
 + *\<your-result-prefix\>\_result\_aidiva-rf.tsv* -- The unfiltered result table (aiDIVA-RF).
 + *\<your-result-prefix\>\_result\_filtered\_aidiva-rf.tsv* -- The filtered result table (aiDIVA-RF) this table is also used for the subsequent analysis steps.
 + *\<your-result-prefix\>\_aidiva-rf\_based\_llm\_results.tsv* -- The LLM results based on the random forest-based ranking.
@@ -140,38 +160,38 @@ These columns give the basic information for each variant in the table.
 
 These column names must match the feature-list specified in the configuration file. The following shows the column names for the feature-list specified in the example configuration given in the `data` folder.
 
-+ *SIFT*
-+ *PolyPhen*
-+ *CADD_PHRED*
-+ *REVEL*
-+ *MAX_AF*
-+ *EIGEN_PHRED*
-+ *CONDEL*
-+ *FATHMM_XF*
-+ *MutationAssessor*
-+ *phastCons_mammal*
-+ *phastCons_primate*
-+ *phastCons_vertebrate*
-+ *phyloP_mammal*
-+ *phyloP_primate*
-+ *phyloP_vertebrate*
-+ *oe_lof*
-+ *homAF*
-+ *CAPICE*
-+ *ALPHA_MISSENSE_SCORE*
-+ *HIGH_IMPACT*
-+ *IS_INDEL*
++ *SIFT* -- SIFT score (float, minimum: 0.0, maximum 1.0)
++ *PolyPhen* -- PolyPhen2 score (float, minimum: 0.0, maximum 1.0)
++ *CADD_PHRED*  -- phred scaled CADD score (float, minimum: 0.0, maximum: ~40, no fixed upper limit)
++ *REVEL* -- REVEL score (float, minimum: 0.0, maximum: 1.0)
++ *MAX_AF* -- maximum allele frequency (float, minimum: 0.0, maximum: 1.0)
++ *EIGEN_PHRED* -- phred scaled Eigen score (float, minimum: 0.0, maximum: ~30, no fixed upper limit)
++ *CONDEL* -- CONDEL score (float, minimum: 0.0, maximum: 1.0)
++ *FATHMM_XF* -- FATHMM_XF score (float, minimum: 0.0, maximum: 1.0)
++ *MutationAssessor* -- MutationAssessor score (float, minimum: ~-5.5, maximum: ~6.0, no fixed range)
++ *phastCons_mammal* -- phastCons conservation score (float, minimum: 0.0, maximum: 1.0)
++ *phastCons_primate* -- phastCons conservation score (float, minimum: 0.0, maximum: 1.0)
++ *phastCons_vertebrate* -- phastCons conservation score (float, minimum: 0.0, maximum: 1.0)
++ *phyloP_mammal* -- phyloP conservation score (float, minimum: ~-10, maximum: ~10, no fixed range)
++ *phyloP_primate* -- phyloP conservation score (float, minimum: ~-10, maximum: ~10, no fixed range)
++ *phyloP_vertebrate* -- phyloP conservation score (float, minimum: ~-10, maximum: ~10, no fixed range)
++ *oe_lof* -- observed/expected loss-of-function ratio (float, minimum: 0.0, maximum: ~1.0, no fixed upper limit)
++ *homAF* -- homozygous allele frequency (float, minimum: 0.0, maximum: 1.0)
++ *CAPICE* -- CAPICE score (float, minimum: 0.0, maximum: 1.0)
++ *ALPHA_MISSENSE_SCORE* -- AlphaMissense score (float, minimum: 0.0, maximum: 1.0)
++ *HIGH_IMPACT* -- binary score indicating if a variants impact is HIGH or not (0=False, 1=True)
++ *IS_INDEL* --  binary score indicating if a variant is an indel (0=False, 1=True)
 
 
 ### Necessary Allele Frequency Columns
 
 These columns are necessary if the MAX_AF column from the feature list is not present in the table. Not restricted to the columns shown below. column names must match the entries in the allele-frequency-list specified in the configuration file.
 
-+ *gnomAD_AFR_AF*
-+ *gnomAD_AMR_AF*
-+ *gnomAD_EAS_AF*
-+ *gnomAD_NFE_AF*
-+ *gnomAD_SAS_AF*
++ *gnomAD_AFR_AF* -- allele frequency in the african subpopulation (float, minimum: 0.0, maximum: 1.0)
++ *gnomAD_AMR_AF* -- allele frequency in the american subpopulation (float, minimum: 0.0, maximum: 1.0)
++ *gnomAD_EAS_AF* -- allele frequency in the east asian subpopulation (float, minimum: 0.0, maximum: 1.0)
++ *gnomAD_NFE_AF* -- allele frequency in the non-finnish european subpopulation (float, minimum: 0.0, maximum: 1.0)
++ *gnomAD_SAS_AF* -- allele frequency in the south asian subpopulation (float, minimum: 0.0, maximum: 1.0)
 
 
 ### Necessary Splicing Features
@@ -213,6 +233,9 @@ The following columns are not necessarily needed to run aiDIVA.
 
 <br>
 
++ *low_conf_region* -- low confidence region annotation (is used as additional filter in the prioritization step of aiDIVA-RF)
+
+<br>
 
 + *HGNC_ID* -- HGNC gene ids to update outdated gene symbols in the HPO resources (can be annotated with VEP)
 

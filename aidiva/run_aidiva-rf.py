@@ -22,7 +22,7 @@ if __name__=="__main__":
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the sample relations of the current data")
     parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="In case of multisample data the kind of sample relation [SINGLE, TRIO, MULTI]")
     parser.add_argument("--skip_db_check", dest="skip_db_check", action="store_true", required=False, help="Flag to skip database (ClinVar, HGMD) lookup")
-    parser.add_argument("--rare_disease", dest="rare_disease", action="store_true", required=False, help="Set rare disease mode: Activate initial filtering to remove all variants with a maximum allele frequency of more than 2%. This setting is meant to speed up the software in a rare disease setting.")
+    parser.add_argument("--rare_disease", dest="rare_disease", action="store_true", required=False, help="Set rare disease mode: Activate initial filtering to remove all variants with a maximum allele frequency of more than two percent. This setting is meant to speed up the software in a rare disease setting.")
     parser.add_argument("--only_top_results", dest="only_top_results", action="store_true", required=False, help="Report only the top ranking variants as result. The desired rank can be given as parameter with '--top_rank' (default: 25)")
     parser.add_argument("--top_rank", type=str, dest="top_rank", metavar="25", required=False, help="Rank parameter for '--only_top_results' (default: 25)")
     parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use (default: 1)")
@@ -206,7 +206,17 @@ if __name__=="__main__":
     if (not variant_table.dropna(how='all').empty):
         # predict pathogenicity score
         logger.info("Score variants ...")
-        variant_table_predicted = predict.perform_pathogenicity_score_prediction(scoring_model, variant_table, allele_frequency_list, feature_list, CONSTANT_DICTIONARY, num_cores)
+        if "AIDIVA_SCORE" in variant_table.columns:
+            print("Skip scoring!")
+            logger.info("Skip scoring, AIDIVA_SCORE seems to be already present in the input table!")
+            if variant_table["AIDIVA_SCORE"].isna().all():
+                raise SystemExit("The input table seems to be prescored, but all rows are empty or have missing values!")
+
+            variant_table_predicted = variant_table
+            logger.info("Continue with prioritization step!")
+
+        else:
+            variant_table_predicted = predict.perform_pathogenicity_score_prediction(scoring_model, variant_table, allele_frequency_list, feature_list, CONSTANT_DICTIONARY, num_cores)
 
         # prioritize and filter variants
         logger.info("Prioritize variants and finalize score ...")

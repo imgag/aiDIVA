@@ -69,7 +69,7 @@ def parse_hpo_list(hpo_list_file):
         else:
             hpo_query = hpo_list_file.split(",")
             hpo_query.sort()
-            logger.error("The specified HPO list %s is not a valid file" % (hpo_list_file))
+            logger.info("The specified HPO list %s is treated like a list of comma separated terms" % (hpo_list_file))
 
     else:
         logger.warning("HPO score finalization will be skipped!")
@@ -188,12 +188,10 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
 
     if len(variant_data) <= num_partitions:
         # do not split dataframe
-        dataframe_splitted = np.array_split(variant_data, 1)
+        dataframe_splitted = [variant_data]
 
     else:
-        ## TODO: replace np.array_split() with iloc to prevent problems in future pandas versions
         # usage of floor division (//) makes sure that we get an absolute number as result
-        #dataframe_splitted = np.array_split(variant_data, num_partitions) # -> uses deprecated functionality that will behave differently in future pandas versions
         chunk_size = variant_data.shape[0] // num_partitions
         dataframe_splitted = [variant_data[i:i+chunk_size].copy() for i in range(0, variant_data.shape[0], chunk_size)]
 

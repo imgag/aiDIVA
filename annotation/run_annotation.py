@@ -18,7 +18,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "Annotate VCF in preparation for aiDIVA")
     parser.add_argument("--vcf", type=str, dest="vcf", metavar="input.vcf(.gz)", required=True, help="VCF file with the variants to annotate [required]")
     parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the parameters for the annotation [required]")
-    parser.add_argument("--out_folder", type=str, dest="out_folder", metavar="output_path/", required=True, help="Prefix that is used to save the annotated files [required]")
+    parser.add_argument("--out_folder", type=str, dest="out_folder", metavar="output_path/", required=True, help="Output folder that is used to save the annotated files [required]")
     parser.add_argument("--filtered", dest="filtered", action="store_true", required=False, help="Flag indicating that the filtered files already exist in the result folder (skips the prefiltering step to save time)")
     parser.add_argument("--filtered_folder", type=str, dest="filtered_folder", metavar="output_path/aidiva_filtered", required=False, help="Path to the prefiltered input VCF files")
     parser.add_argument("--compress", dest="compress", action="store_true", required=False, help="Flag to indicate that we want to compress our result with gzip.")
