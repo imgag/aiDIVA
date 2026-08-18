@@ -50,8 +50,8 @@ Model-Features:
 
 
 Variant-Effect-Predictor:
-    # Specify if vep is used as a container or from a local installation
-    vep-mode: APPTAINER # [LOCAL, APPTAINER/SINGULARITY]
+    # Specify if vep is used as a container, from a local installation or if it is included in a container
+    vep-mode: APPTAINER # [LOCAL, APPTAINER/SINGULARITY, INCLUDED]
 
     vep-local:
         # VEP: path to the VEP executable

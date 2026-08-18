@@ -1,0 +1,50 @@
+Bootstrap: docker
+From: python:3.12.3-slim
+
+%labels
+
+%help
+
+%environment
+    export LANG=C.UTF-8
+    export LC_ALL=C.UTF-8
+    export PATH=/bin:/usr/local/aidiva_env/bin:$PATH
+
+%post
+    # Release build:
+
+    set -e
+
+    apt-get update
+    apt-get install -y --no-install-recommends git
+    rm -rf /var/lib/apt/lists/*
+
+    git clone https://github.com/imgag/aiDIVA.git /opt/aidiva_local
+    cd /opt/aidiva_local
+    git checkout 1.4.0
+
+    python -m venv /usr/local/aidiva_env
+    . /usr/local/aidiva_env/bin/activate
+
+    python -m pip install --upgrade pip
+    python -m pip install -r /opt/aidiva_local/requirements.txt
+
+%environment
+    export LANG=C.UTF-8
+    export LC_ALL=C.UTF-8
+
+%runscript
+    echo "Available apps: aidiva-meta, aidiva-meta-rf, aidiva-rf, aidiva-score"
+    echo "Run with: apptainer run --app <app> image.sif [args]"
+
+%apprun aidiva-meta
+    exec /usr/local/aidiva_env/bin/python /opt/aidiva_local/aidiva/run_aidiva-meta.py "$@"
+
+%apprun aidiva-meta-rf
+    exec /usr/local/aidiva_env/bin/python /opt/aidiva_local/aidiva/run_aidiva-meta-rf.py "$@"
+
+%apprun aidiva-rf
+    exec /usr/local/aidiva_env/bin/python /opt/aidiva_local/aidiva/run_aidiva-rf.py "$@"
+
+%apprun aidiva-score
+    exec /usr/local/aidiva_env/bin/python /opt/aidiva_local/aidiva/run_aidiva-score.py "$@"

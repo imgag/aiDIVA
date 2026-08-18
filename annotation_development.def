@@ -1,0 +1,83 @@
+Bootstrap: docker
+From: ensemblorg/ensembl-vep:release_115.2
+
+%labels
+
+%help
+
+%environment
+    export LANG=C.UTF-8
+    export LC_ALL=C.UTF-8
+    export PATH=/bin:/usr/local/aidiva_env/bin:$PATH
+
+%files
+    . /opt/aidiva_local
+
+%post
+    # Development build:
+    # Source is copied from local working tree via %files
+
+    set -e
+    # update ubuntu packages and install build dependencies
+    apt-get update && \
+    apt-get install -y \
+    wget \
+    make \
+    build-essential \
+    zlib1g-dev \
+    bzip2 \
+    libssl-dev \
+    libffi-dev \
+    libbz2-dev \
+    liblzma-dev \
+    xz-utils
+
+    # install python 3.12.3
+    mkdir -p /opt/Python3.12.3
+    cd /opt
+    wget https://www.python.org/ftp/python/3.12.3/Python-3.12.3.tgz
+    tar -zxvf Python-3.12.3.tgz
+    cd Python-3.12.3
+    ./configure --prefix=/opt/python-3.12.3/ --enable-optimizations
+    make
+    make install
+    cd ..
+    rm -rf Python-3.12.3.tgz
+    rm -rf Python-3.12.3/
+
+    # cleanup build dependencies
+    cd /
+    apt-get remove --purge -y \
+        wget \
+        bzip2 \
+        build-essential \
+        make \
+        zlib1g-dev \
+        libssl-dev \
+        libffi-dev \
+        liblzma-dev \
+        libbz2-dev
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* 
+    find /opt/Python3.12.3 -name "*.pyc" -delete
+    find /opt -type d -name "__pycache__" -exec rm -r {} +
+
+    export PATH=/opt/python-3.12.3/bin:$PATH
+
+    python3 -m venv /usr/local/aidiva_env
+    . /usr/local/aidiva_env/bin/activate
+
+    python -m pip install --upgrade pip
+    python -m pip install --no-cache-dir  -r /opt/aidiva_local/requirements.txt
+
+%environment
+    export LANG=C.UTF-8
+    export LC_ALL=C.UTF-8
+
+%runscript
+    echo "Available apps: aidiva-annotate"
+    echo "Run with: apptainer run --app <app> image.sif [args]"
+
+%apprun aidiva-annotate
+    exec /usr/local/aidiva_env/bin/python /opt/aidiva_local/annotation/run_annotation.py "$@"

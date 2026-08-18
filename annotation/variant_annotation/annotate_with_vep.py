@@ -28,6 +28,10 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_dict, annotat
 
         plugin_path = vep_dict['vep-local']['vep-plugin-path'] + "/"
 
+    elif vep_mode == "INCLUDED":
+        logger.info("Using containerized version of the aiDIVA-annotate with VEP included.")
+        vep_command = "vep"
+
     elif vep_mode == "APPTAINER":
         logger.info("Using containerized VEP with Apptainer.")
         vep_command = f"apptainer exec --bind {annotation_dict['resources-base-path']}:{annotation_dict['resources-base-path']}:ro,{input_vcf_file}:{input_vcf_file}:ro"
@@ -43,6 +47,8 @@ def call_vep_and_annotate_vcf(input_vcf_file, output_vcf_file, vep_dict, annotat
     #    vep_command = f"docker run {vep_dict['vep-container']['vep-docker']} vep"
 
     else:
+        logger.error("Unrecognized vep mode!")
+        logger.error("Exit program!")
         sys.exit()
 
     cache_path = annotation_dict['vep-cache'] + "/"
@@ -156,6 +162,10 @@ def call_vep_and_annotate_consequence_information(input_vcf_file, output_vcf_fil
         else:
             os.environ["PERL5LIB"] = f"{vep_dict['vep-local']['vep']}/Bio/:{vep_dict['vep-local']['vep-plugin-path']}:{vep_dict['vep-local']['vep-cpan']}"
 
+    elif vep_mode == "INCLUDED":
+        logger.info("Using containerized version of the aiDIVA-annotate with VEP included.")
+        vep_command = "vep"
+
     elif vep_mode == "APPTAINER":
         logger.info("Using containerized VEP with Apptainer for consequence annotation.")
         vep_command = f"apptainer exec --bind {annotation_dict['resources-base-path']}:{annotation_dict['resources-base-path']}:ro,{input_vcf_file}:{input_vcf_file}:ro"
@@ -172,6 +182,8 @@ def call_vep_and_annotate_consequence_information(input_vcf_file, output_vcf_fil
     #    vep_command = f"{vep_command} {vep_dict['vep-container']['vep-docker']} vep"
 
     else:
+        logger.error("Unrecognized vep mode!")
+        logger.error("Exit program!")
         sys.exit()
 
     cache_path = annotation_dict['vep-cache'] + "/"
