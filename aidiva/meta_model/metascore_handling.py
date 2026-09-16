@@ -48,7 +48,7 @@ def choose_desired_transcript(gene_transcripts, VARIANT_CONSEQUENCES):
 
         for transcript in gene_transcripts:
             transcript_gene = gene_transcripts[0].replace(")", "").split("(")[0].upper()
-            transcript_consequence = choose_desired_variant_type(gene_transcripts[0].replace(")", "").split("(")[1])
+            transcript_consequence = choose_desired_variant_type(gene_transcripts[0].replace(")", "").split("(")[1], VARIANT_CONSEQUENCES)
 
             if VARIANT_CONSEQUENCES[transcript_consequence] < consequence_value:
                 gene = transcript_gene
@@ -56,10 +56,10 @@ def choose_desired_transcript(gene_transcripts, VARIANT_CONSEQUENCES):
 
     else:
         transcript_one_gene = gene_transcripts[0].replace(")", "").split("(")[0].upper()
-        transcript_one_consequence = choose_desired_variant_type(gene_transcripts[0].replace(")", "").split("(")[1])
+        transcript_one_consequence = choose_desired_variant_type(gene_transcripts[0].replace(")", "").split("(")[1], VARIANT_CONSEQUENCES)
 
         transcript_two_gene = gene_transcripts[1].replace(")", "").split("(")[0].upper()
-        transcript_two_consequence = choose_desired_variant_type(gene_transcripts[1].replace(")", "").split("(")[1])
+        transcript_two_consequence = choose_desired_variant_type(gene_transcripts[1].replace(")", "").split("(")[1], VARIANT_CONSEQUENCES)
 
         gene = transcript_one_gene
         variant_type = transcript_one_consequence
@@ -107,23 +107,16 @@ def extract_eb_rank_and_score(gene_rank_score_information, no_variant, VARIANT_C
         else:
             gene_variant = "Unknown"
 
-        # check for multiple transcripts
-        splitted_gene_names = gene_name.split("/")
+        gene_data = {"rank": gene_rank,
+                     "score": gene_score,
+                     "variant_type": gene_consequence,
+                     "variant": gene_variant}
 
-        if len(splitted_gene_names) == 1:
-            current_gene = splitted_gene_names[0].upper()
-            variant_type_info = splitted_gene_info[1]
-
-            variant_type = choose_desired_variant_type(variant_type_info, VARIANT_CONSEQUENCES)
-
-        elif len(splitted_gene_names) > 1:
-            current_gene, variant_type = choose_desired_transcript(gene_entry, VARIANT_CONSEQUENCES)
-
-        if current_gene in gene_info_dict_eb.keys():
-            gene_info_dict_eb[current_gene].append({"rank": gene_rank, "score": gene_score, "variant_type": gene_consequence, "variant": gene_variant})
+        if gene_name in gene_info_dict_eb.keys():
+            gene_info_dict_eb[gene_name].append(gene_data)
 
         else:
-            gene_info_dict_eb[current_gene] = [{"rank": gene_rank, "score": gene_score, "variant_type": gene_consequence, "variant": gene_variant}]
+            gene_info_dict_eb[gene_name] = [gene_data]
 
     return gene_info_dict_eb
 

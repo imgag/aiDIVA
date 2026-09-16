@@ -8,6 +8,8 @@ import random
 import re
 import time
 
+from operator import itemgetter
+
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +103,7 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
         if model_info == "rf":
             gene_name = entry.split("(")[0]
             gene_info = entry.split("(")[1].replace(")", "")
-            consequence = gene_info.split(",")[0].split(": ")[1]
+            gene_consequence = gene_info.split(",")[0].split(": ")[1]
             variant_type = gene_info.split(",")[1].split(": ")[1]
             rank = gene_info.split(",")[2].split(": ")[1]
             score = gene_info.split(",")[3].split(": ")[1]
@@ -110,7 +112,7 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
         elif model_info == "eb_dom" or model_info == "eb_rec":
             gene_name = entry.split("(")[0]
             gene_info = entry.split("(")[1].replace(")", "")
-            consequence = gene_info.split(",")[0].split(": ")[1]
+            gene_consequence = gene_info.split(",")[0].split(": ")[1]
             variant_type = gene_info.split(",")[1].split(": ")[1]
             rank = gene_info.split(",")[2].split(": ")[1]
             score = gene_info.split(",")[3].split(": ")[1]
@@ -228,31 +230,32 @@ def call_llm_api(client, prompt, llm_instructions, llm_output_schema, model_id, 
                 {"role": "user", "content": prompt}
                ]
 
-    if llm_api == "OPENAI":
-        # Make a request to the OpenAI API using the chat endpoint
-        if llm_structured_output:
-            response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1, response_format={"type": "json_schema", "json_schema": llm_json_schema})
-
-        else:
-            response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1)
-
-    elif llm_api == "LOCAL":
-        # Make a request to the OpenAI API using the chat endpoint
-        if llm_structured_output:
-            response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1, extra_body={"guided_json": llm_json_schema})
-
-        else:
-            response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1)
-
-    #elif llm_api == "MISTRALAI":
-    #    response = client.chat.complete(model=model_id, messages=messages, temperature=0.1)
-
-    else:
-        raise SystemExit(f"Unsupported API type ({llm_api})!!!")
-
     num_retries = 3
     for i in range(num_retries):
         try:
+            if llm_api == "OPENAI":
+                # Make a request to the OpenAI API using the chat endpoint
+                if llm_structured_output:
+                    response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1, response_format={"type": "json_schema", "json_schema": llm_json_schema})
+
+                else:
+                    response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1)
+
+            elif llm_api == "LOCAL":
+                # Make a request to the OpenAI API using the chat endpoint
+                if llm_structured_output:
+                    response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1, extra_body={"guided_json": llm_json_schema})
+
+                else:
+                    response = client.chat.completions.create(model=model_id, messages=messages, temperature=0.1)
+
+            #elif llm_api == "MISTRALAI":
+            #    response = client.chat.complete(model=model_id, messages=messages, temperature=0.1)
+
+            else:
+                raise SystemExit(f"Unsupported API type ({llm_api})!!!")
+
+
             # Extract the text of the response
             answer = response.choices[0].message.content.strip()
             finish_reason = response.choices[0].finish_reason
@@ -379,35 +382,6 @@ def call_llm_api(client, prompt, llm_instructions, llm_output_schema, model_id, 
     results = pd.DataFrame(converted_list_of_answers)
 
     return results
-
-
-def check_gene_rank(row):
-    causal_genes = row["causal genes"]
-
-    if not row.empty:
-        llm_gene_1 = str(llm_response["1st ranked Gene"].values[0]).upper()
-        llm_gene_2 = str(llm_response["2nd ranked Gene"].values[0]).upper()
-        llm_gene_3 = str(llm_response["3rd ranked Gene"].values[0]).upper()
-
-    else:
-        logger.warning("Empty result list!")
-        llm_gene_1 = "nan"
-        llm_gene_2 = "nan"
-        llm_gene_3 = "nan"
-
-    if llm_gene_1 in causal_genes:
-        llm_causal_rank = "1"
-
-    elif llm_gene_2 in causal_genes:
-        llm_causal_rank = "2"
-
-    elif llm_gene_3 in causal_genes:
-        llm_causal_rank = "3"
-
-    else:
-        llm_causal_rank = "-1"
-
-    return llm_causal_rank
 
 
 # for debugging

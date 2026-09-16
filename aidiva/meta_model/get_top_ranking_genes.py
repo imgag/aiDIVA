@@ -182,9 +182,6 @@ def get_most_severe_consequence(current_consequence, VARIANT_CONSEQUENCES):
         if VARIANT_CONSEQUENCES[consequence] < VARIANT_CONSEQUENCES[most_severe_consequence]:
             most_severe_consequence = consequence
 
-        else:
-            most_severe_consequence = found_consequences[0]
-
     return most_severe_consequence
 
 
