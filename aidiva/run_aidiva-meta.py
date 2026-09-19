@@ -267,8 +267,7 @@ if __name__=="__main__":
                         variant_table[allele_frequency] = variant_table[allele_frequency].fillna(0)
                         variant_table[allele_frequency] = variant_table.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
 
-                    #variant_table["MAX_AF"] = variant_table.apply(lambda row: pd.Series(np.nanmax([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
-                    variant_table["MAX_AF"] = variant_table[allele_frequency_list].apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
+                    variant_table["MAX_AF"] = variant_table.apply(lambda row: pd.Series(np.nanmax([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
                     variant_table = variant_table[variant_table["MAX_AF"] <= 0.02].reset_index(drop=True)
 
                 else:

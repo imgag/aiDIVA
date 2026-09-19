@@ -1,4 +1,5 @@
 import argparse
+import gzip
 import numpy as np
 import pandas as pd
 import warnings
@@ -66,7 +67,7 @@ def annotate_indels_with_combined_snps_information(row, grouped_expanded_vcf, fe
         warnings.filterwarnings(action='ignore', message='Mean of empty slice')
 
         if grouped_expanded_vcf[feature].get_group(row["INDEL_ID"]).empty:
-            logger.error(f"Could not combine expanded InDels, INDEL_ID {row['INDEL_ID']} missing in data!")
+            print(f"ERROR: Could not combine expanded InDels, INDEL_ID {row['INDEL_ID']} missing in data!")
             return np.nan
 
         else:
@@ -513,16 +514,16 @@ def extract_sample_header(header):
 
 
 def get_sample_information(row):
-    if str(row) == "1/0":
+    if str(row) == "1/0" or str(row) == "1|0":
         sample_information = "het"
 
-    elif str(row) == "0/1":
+    elif str(row) == "0/1" or str(row) == "0|1":
         sample_information = "het"
 
-    elif str(row) == "0/0":
+    elif str(row) == "0/0" or str(row) == "0|0":
         sample_information = "wt"
 
-    elif str(row) == "1/1":
+    elif str(row) == "1/1" or str(row) == "1|1":
         sample_information = "hom"
 
     else:
@@ -586,19 +587,19 @@ def extract_variant_information(row):
         transcript_id = str(row["Feature"])
 
     else:
-        exon_intron_number = ""
+        transcript_id = ""
 
     if str(row["Consequence"]) != "nan":
         consequence = str(row["Consequence"])
 
     else:
-        exon_intron_number = ""
+        consequence = ""
 
     if str(row["IMPACT"]) != "nan":
         impact = str(row["IMPACT"])
 
     else:
-        exon_intron_number = ""
+        impact = ""
 
     if str(row["EXON"]) != "nan":
         exon_intron_number = str(row["EXON"])
