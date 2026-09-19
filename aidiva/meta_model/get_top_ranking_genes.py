@@ -227,14 +227,14 @@ def extract_gene_info_gsvar(row, sample_id, VARIANT_CONSEQUENCES, CONSEQUENCE_MA
                 else:
                     current_alt_length = len(current_alt)
 
-                if current_ref_length > 1 and current_alt_length == 1:
+                if current_ref_length >= 1 and current_alt_length == 0:
                     if abs(current_ref_length - current_alt_length) % 3 == 0:
                         current_consequence_type = CONSEQUENCE_MAPPING["inframe_deletion"]
 
                     else:
                         current_consequence_type = CONSEQUENCE_MAPPING["frameshift_variant"]
 
-                if current_ref_length == 1 and current_alt_length > 1:
+                if current_ref_length == 0 and current_alt_length >= 1:
                     if abs(current_ref_length - current_alt_length) % 3 == 0:
                         current_consequence_type = CONSEQUENCE_MAPPING["inframe_insertion"]
 

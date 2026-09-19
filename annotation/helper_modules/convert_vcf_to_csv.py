@@ -244,7 +244,7 @@ def find_common_suffix(string_a, string_b):
     if suffix_start_position == 0:
         return ""
 
-    common_suffix = string_a[suffix_start_position:]
+    common_suffix = string_a[-suffix_start_position:]
 
     return common_suffix
 
@@ -457,7 +457,7 @@ def convert_vcf_to_pandas_dataframe(input_file, allele_frequency_list, process_i
         vcf_as_dataframe = vcf_as_dataframe.map(lambda cell: np.nan if isinstance(cell, str) and (not cell or cell.isspace()) else cell)
 
         # compute MAX_AF based on allele frequency list
-        vcf_as_dataframe["MAX_AF"] = vcf_as_dataframe.apply(lambda row: pd.Series(np.nanmax([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
+        vcf_as_dataframe["MAX_AF"] = vcf_as_dataframe.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
 
         # Check for VCF annotation of MutationAssessor
         if "VEP_MutationAssessor_MutationAssessor" in vcf_as_dataframe.columns:
@@ -486,7 +486,7 @@ def convert_vcf_to_pandas_dataframe(input_file, allele_frequency_list, process_i
 
         if not expanded_indel:
             spliceAI_columns = ["SpliceAI_pred_DS_AG", "SpliceAI_pred_DS_AL", "SpliceAI_pred_DS_DG", "SpliceAI_pred_DS_DL"]
-            vcf_as_dataframe["SpliceAI"] = vcf_as_dataframe.apply(lambda row: pd.Series(np.nanmax([float(value) for value in row[spliceAI_columns].tolist()], default=np.nan)), axis=1)
+            vcf_as_dataframe["SpliceAI"] = vcf_as_dataframe.apply(lambda row: pd.Series(max([float(value) for value in row[spliceAI_columns].tolist()], default=np.nan)), axis=1)
             vcf_as_dataframe["homAF"] = vcf_as_dataframe.apply(lambda x: pd.Series(compute_homAF(x)), axis=1)
 
     else:

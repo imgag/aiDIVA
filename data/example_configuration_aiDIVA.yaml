@@ -91,7 +91,7 @@ LLM-Input:
                         "items": {
                             "type": "object",
                             "additionalProperties": false,
-                            "required": ["rank", "gene_name", "explanation", "confidence", "sources"],
+                            "required": ["rank", "gene_name", "explanation", "sources"],
                             "properties": {
                                 "rank": {
                                     "type": "integer",

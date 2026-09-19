@@ -192,7 +192,7 @@ def extract_columns(cell, process_indel):
         else:
             print(f"DEBUG: Skip empty (NaNs are handled as empty) INFO field {field}")
 
-    max_af = np.nanmax([gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af], default=np.nan)
+    max_af = max([gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af], default=np.nan)
 
     if process_indel:
         extracted_columns = [indel_ID, annotation, phyloP_vertebrate, gnomAD_afr_af, gnomAD_amr_af, gnomAD_eas_af, gnomAD_nfe_af, gnomAD_sas_af, max_af, oe_lof, oe_mis, oe_syn, spliceAI, clinvar_details, hgmd_class, omim_details]
@@ -261,7 +261,7 @@ def find_common_suffix(string_a, string_b):
     if suffix_start_position == 0:
         return ""
 
-    common_suffix = string_a[suffix_start_position:]
+    common_suffix = string_a[-suffix_start_position:]
 
     return common_suffix
 
