@@ -29,19 +29,19 @@ with gzip.open(infile, "rt") as gnomad, open(outfile, "w") as prepared_gnomad:
                 prepared_gnomad.write("##INFO=<ID=Hom,Number=A,Type=Integer,Description=\"Count of homozygous individuals in samples\">\n")
 
             elif line.startswith("##INFO=<ID=AFR_AF,"):
-                prepared_gnomad.write("##INFO=<ID=AFR_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in AFR samples\">")
+                prepared_gnomad.write("##INFO=<ID=AFR_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in AFR samples\">\n")
 
             elif line.startswith("##INFO=<ID=AMR_AF,"):
-                prepared_gnomad.write("##INFO=<ID=AMR_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in AMR samples\">")
+                prepared_gnomad.write("##INFO=<ID=AMR_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in AMR samples\">\n")
 
             elif line.startswith("##INFO=<ID=EAS_AF,"):
-                prepared_gnomad.write("##INFO=<ID=EAS_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in EAS samples\">")
+                prepared_gnomad.write("##INFO=<ID=EAS_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in EAS samples\">\n")
 
             elif line.startswith("##INFO=<ID=NFE_AF,"):
-                prepared_gnomad.write("##INFO=<ID=NFE_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in NFE samples\">")
+                prepared_gnomad.write("##INFO=<ID=NFE_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in NFE samples\">\n")
 
             elif line.startswith("##INFO=<ID=SAS_AF,"):
-                prepared_gnomad.write("##INFO=<ID=SAS_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in SAS samples\">")
+                prepared_gnomad.write("##INFO=<ID=SAS_AF,Number=A,Type=Float,Description=\"Alternate allele frequency in SAS samples\">\n")
 
             elif line.startswith("##contig="):
                 prepared_gnomad.write(line)

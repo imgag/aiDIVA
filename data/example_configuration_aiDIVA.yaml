@@ -15,8 +15,8 @@ Analysis-Input:
 
     prioritization-information:
         # Identifier to get the score from the annotated file
-        repeat-identifier: simpleRepeat
-        duplication-identifier: segmentDuplication
+        repeat-identifier: SimpleRepeats
+        duplication-identifier: SegDup
 
         # Threshold used to filter the variants according to their maximum minor allele frequence
         allele-frequency-filter: 0.01
@@ -51,7 +51,7 @@ LLM-Input:
 
     # system instructions for the LLM
     # enable reasoning in the system intructions by adding 'Advanced reasoning ON' (works only when using a reasoning model)
-    llm-instruction: |
+    llm-instruction-normal: |
         Create a clinical expert in rare diseases that answers given prompts in the following way:
         Please create table with 8 columns with one row for each question. Do answer every question independently, treat every question as a new, standalone question and answer without referring to previous interactions.
         Write my complete prompt into the first column.
@@ -107,11 +107,6 @@ LLM-Input:
                                     "type": "string",
                                     "minLength": 1,
                                     "description": "Brief explanation/rationale."
-                                },
-                                "confidence": {
-                                    "type": "integer",
-                                    "enum": [1, 2, 3],
-                                    "description": "Confidence level (1=low, 2=moderate, 3=high)."
                                 },
                                 "sources": {
                                     "type": "array",

@@ -121,7 +121,7 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
             if "/" in gene_name:
                 if len(gene_consequence.split("/")) == 2:
                     if any(consequence in gene_consequence.split("/")[0] for consequence in CONSEQUENCE_MAPPING.keys()) and not any(consequence in gene_consequence.split("/")[1] for consequence in CONSEQUENCE_MAPPING.keys()):
-                        gene_info = gene_info.split("/")[0]
+                        gene_name = gene_name.split("/")[0]
                         variant_type = variant_type.split("/")[0]
 
                     elif any(consequence in gene_info.split("/")[1] for consequence in CONSEQUENCE_MAPPING.keys()) and not any(consequence in gene_info.split("/")[0] for consequence in CONSEQUENCE_MAPPING.keys()):
@@ -136,7 +136,7 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
                 variant_type = variant_type.split("/")[0]
 
             if "+" in variant_type:
-                consequences = [min([VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in variant_type.split("+")])]
+                consequences = [VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in variant_type.split("+")]
                 target_index = min(enumerate(consequences), key=itemgetter(1))[0]
                 variant_type = variant_type.split("+")[target_index]
 
@@ -168,7 +168,7 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
     if sex != "" and str(age) != "nan" and str(age) != ".":
         llm_prompt = f"A {sex} rare disease patient of age {int(age)} has the following symptoms: {phenotype_information}. "
 
-    elif sex != "" and str(age) == "nan" and str(age) != ".":
+    elif sex != "" and (str(age) == "nan" or str(age) == "."):
         llm_prompt = f"A {sex} rare disease patient has the following symptoms: {phenotype_information}. "
 
     elif sex == "" and str(age) != "nan" and str(age) != ".":
@@ -318,12 +318,10 @@ def call_llm_api(client, prompt, llm_instructions, llm_output_schema, model_id, 
             rank = str(element["rank"])
             gene_name = element["gene_name"]
             explanation = element["explanation"]
-            confidence = str(element["confidence"])
             source = element["sources"]
 
             if rank == "1":
                 first_ranked_gene = gene_name
-                first_ranked_gene_confidence = confidence
                 first_ranked_gene_explanation = explanation
 
                 if sources != "":
@@ -334,7 +332,6 @@ def call_llm_api(client, prompt, llm_instructions, llm_output_schema, model_id, 
 
             elif rank == "2":
                 second_ranked_gene = gene_name
-                second_ranked_gene_confidence = confidence
                 second_ranked_gene_explanation = explanation
 
                 if sources != "":
@@ -345,7 +342,6 @@ def call_llm_api(client, prompt, llm_instructions, llm_output_schema, model_id, 
 
             elif rank == "3":
                 third_ranked_gene = gene_name
-                third_ranked_gene_confidence = confidence
                 third_ranked_gene_explanation = explanation
 
                 if sources != "":

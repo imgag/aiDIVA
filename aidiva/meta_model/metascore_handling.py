@@ -51,6 +51,7 @@ def choose_desired_transcript(gene_transcripts, VARIANT_CONSEQUENCES):
             transcript_consequence = choose_desired_variant_type(gene_transcripts[0].replace(")", "").split("(")[1], VARIANT_CONSEQUENCES)
 
             if VARIANT_CONSEQUENCES[transcript_consequence] < consequence_value:
+                consequence_value = VARIANT_CONSEQUENCES[transcript_consequence]
                 gene = transcript_gene
                 variant_type = transcript_consequence
 
@@ -156,6 +157,7 @@ def create_table_rf_based(in_data_rf_based, rf_gene_list, no_variant, CONSTANT_D
 
                 for transcript in rf_gene_info_dict[gene]:
                     if VARIANT_CONSEQUENCES[transcript["variant_type"]] < consequence_value:
+                        consequence_value = VARIANT_CONSEQUENCES[transcript["variant_type"]]
                         rf_rank = int(transcript["rank"])
                         rf_score = float(transcript["score"])
 
@@ -231,6 +233,7 @@ def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_e
                         transcript["variant_type"] = "unknown"
 
                     if VARIANT_CONSEQUENCES[transcript["variant_type"]] < consequence_value:
+                        consequence_value = VARIANT_CONSEQUENCES[transcript["variant_type"]]
                         rf_rank = int(transcript["rank"])
                         rf_score = float(transcript["score"])
 
@@ -257,6 +260,7 @@ def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_e
                         transcript["variant_type"] = "unknown"
 
                     if VARIANT_CONSEQUENCES[transcript["variant_type"]] < consequence_value:
+                        consequence_value = VARIANT_CONSEQUENCES[transcript["variant_type"]]
                         eb_dom_rank = int(transcript["rank"])
                         eb_dom_score = float(transcript["score"])
 
@@ -283,6 +287,7 @@ def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_e
                         transcript["variant_type"] = "unknown"
 
                     if VARIANT_CONSEQUENCES[transcript["variant_type"]] < consequence_value:
+                        consequence_value = VARIANT_CONSEQUENCES[transcript["variant_type"]]
                         eb_rec_rank = int(transcript["rank"])
                         eb_rec_score = float(transcript["score"])
 

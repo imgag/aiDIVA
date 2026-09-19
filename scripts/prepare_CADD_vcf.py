@@ -20,7 +20,7 @@ with gzip.open(infile, "rt") as infile, open(outfile, "w") as writer:
 
         split = line.replace("\n", "").split("\t")
 
-        if str(split[4]) != "":
+        if str(split[5]) != "":
             writer.write(f"{split[0]}\t{split[1]}\t.\t{split[2]}\t{split[3]}\t.\t.\tCADD={str(split[5])}\n")
 
         else:

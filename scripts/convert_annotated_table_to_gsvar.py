@@ -4,16 +4,16 @@ import pandas as pd
 
 
 def get_sample_information(row):
-    if str(row) == "1/0":
+    if str(row) == "1/0" or str(row) == "1|0":
         sample_information = "het"
 
-    elif str(row) == "0/1":
+    elif str(row) == "0/1" or str(row) == "0|1":
         sample_information = "het"
 
-    elif str(row) == "0/0":
+    elif str(row) == "0/0" or str(row) == "0|0":
         sample_information = "wt"
 
-    elif str(row) == "1/1":
+    elif str(row) == "1/1" or str(row) == "1|1":
         sample_information = "hom"
 
     else:
@@ -83,19 +83,19 @@ def extract_variant_information(row):
         transcript_id = str(row["Feature"])
 
     else:
-        exon_intron_number = ""
+        transcript_id = ""
 
     if str(row["Consequence"]) != "nan":
         consequence = str(row["Consequence"])
 
     else:
-        exon_intron_number = ""
+        consequence = ""
 
     if str(row["IMPACT"]) != "nan":
         impact = str(row["IMPACT"])
 
     else:
-        exon_intron_number = ""
+        impact = ""
 
     if str(row["EXON"]) != "nan":
         exon_intron_number = str(row["EXON"])

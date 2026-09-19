@@ -90,6 +90,7 @@ def create_hpo_graph(hpo_ontology, phenotype_hpoa):
         # add information of the last entry of the file to the HPO edges file
         if token and not obsolete:
             hpo_edges[hpo_term] = parents
+
             if replacement != "":
                 replacements[hpo_term] = replacement
 

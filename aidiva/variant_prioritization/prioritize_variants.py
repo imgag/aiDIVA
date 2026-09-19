@@ -207,7 +207,7 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
 
 
 def parallelized_variant_processing(skip_db_check, transcript_dict, family, family_type, genes2exclude, gene_2_HPO, hgnc_2_gene, gene_2_interacting, HPO_graph, HPO_query, ic_per_nodes, node_ancestor_mapping, hpo_replacement_information, reference, feature_list, prioritization_weights, filter_identifiers, VARIANT_CONSEQUENCES, CODING_VARIANTS, SPLICE_VARIANTS, SYNONYMOUS_VARIANTS, variant_data):
-    genotype_column = [column for column in variant_data.columns if column.startswith("GT.")]
+    genotype_column = [column for column in variant_data.columns if column.startswith("GT_")]
 
     if genotype_column:
         variant_data = check_inheritance(variant_data, family_type, family)
@@ -427,6 +427,9 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
             if "HGNC_ID" in list(variant.index):
                 hgnc_id = str(variant["HGNC_ID"])
 
+                if hgnc_id.startswith("HGNC:"):
+                    hgnc_id = hgnc_id.split(":")[1]
+
             else:
                 hgnc_id = "nan"
                 logger.warning("HGNC_ID column missing! The tool cannot try to resolve unknown or deprecated gene symbols!")
@@ -447,9 +450,6 @@ def compute_hpo_relatedness_and_final_score(variant, genes2exclude, gene_2_HPO, 
 
                 else:
                     if (str(hgnc_id) != "nan") and (hgnc_id in hgnc_2_gene.keys()):
-                        if "HGNC:" in hgnc_id:
-                            hgnc_id = hgnc_id.split(":")[1]
-
                         gene_symbol = hgnc_2_gene[hgnc_id]
                         gene_HPO_list = gene_2_HPO.get(gene_symbol, [])
 
@@ -924,7 +924,7 @@ def check_compound(gene_variants, affected_child, parent_1, parent_2):
 
 
 def check_compound_single(gene_variants, variant_columns):
-    genotype_column = [column for column in variant_columns if column.startswith("GT.")][0]
+    genotype_column = [column for column in variant_columns if column.startswith("GT_")][0]
     num_variant_candidates = gene_variants.shape[0]
 
     if num_variant_candidates >= 2:

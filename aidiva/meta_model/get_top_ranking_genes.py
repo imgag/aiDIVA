@@ -41,7 +41,7 @@ def find_shared_suffix(string_a, string_b):
     if suffix_start_position == 0:
         return ""
 
-    shared_suffix = string_a[suffix_start_position:]
+    shared_suffix = string_a[-suffix_start_position:]
 
     return shared_suffix
 
@@ -132,6 +132,8 @@ def extract_gene_info(row, sample_id, CONSEQUENCE_MAPPING):
 
     # workaround to handle protein_altering_variant and coding_sequence_variant
     if current_consequence == "protein_altering_variant" or current_consequence == "coding_sequence_variant":
+        current_consequence_type = "unspecified variant"
+
         if len(current_ref) > 1 and len(current_alt) == 1:
             if abs(len(current_ref) - len(current_alt)) % 3 == 0:
                 current_consequence_type = CONSEQUENCE_MAPPING["inframe_deletion"]
@@ -211,15 +213,29 @@ def extract_gene_info_gsvar(row, sample_id, VARIANT_CONSEQUENCES, CONSEQUENCE_MA
 
             # workaround to handle protein_altering_variant and coding_sequence_variant
             if current_consequence == "protein_altering_variant" or current_consequence == "coding_sequence_variant":
-                if len(current_ref) > 1 and len(current_alt) == 1:
-                    if abs(len(current_ref) - len(current_alt)) % 3 == 0:
+                current_consequence_type = "unspecified variant"
+
+                if current_ref == "-":
+                    current_ref_length = 0
+
+                else:
+                    current_ref_length = len(current_ref)
+
+                if current_alt == "-":
+                    current_alt_length = 0
+
+                else:
+                    current_alt_length = len(current_alt)
+
+                if current_ref_length > 1 and current_alt_length == 1:
+                    if abs(current_ref_length - current_alt_length) % 3 == 0:
                         current_consequence_type = CONSEQUENCE_MAPPING["inframe_deletion"]
 
                     else:
                         current_consequence_type = CONSEQUENCE_MAPPING["frameshift_variant"]
 
-                if len(current_ref) == 1 and len(current_alt) > 1:
-                    if abs(len(current_ref) - len(current_alt)) % 3 == 0:
+                if current_ref_length == 1 and current_alt_length > 1:
+                    if abs(current_ref_length - current_alt_length) % 3 == 0:
                         current_consequence_type = CONSEQUENCE_MAPPING["inframe_insertion"]
 
                     else:

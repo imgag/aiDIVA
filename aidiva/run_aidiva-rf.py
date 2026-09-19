@@ -17,7 +17,7 @@ if __name__=="__main__":
     parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.tsv", required=True, help="TSV file with the annotated variants [required]")
     parser.add_argument("--out_prefix", type=str, dest="out_prefix", metavar="output_path/aidiva_result", required=True, help="Prefix that is used to save the results [required]")
     parser.add_argument("--workdir", type=str, dest="workdir", metavar="/tmp/aidiva_workdir/", required=False, help="Path to the working directory, here all intermediate files are saved (if not specified a temporary folder will be created and used)")
-    parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="hpo.txt", required=False, help="TXT file containing the HPO terms reported for the current patient")
+    parser.add_argument("--hpo_list", type=str, dest="hpo_list", metavar="HP:XXXXXX,HP:XXXXXX", required=False, help="Comma separated list of HPO terms reported for the current patient")
     parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion", metavar="gene_exclusion.txt", required=False, help="Tab separated file containing the genes to exclude in the analysis. Genes are assumed to be in the first column.")
     parser.add_argument("--family_file", type=str, dest="family_file", metavar="family.txt", required=False, help="TXT file showing the sample relations of the current data")
     parser.add_argument("--family_type", type=str, dest="family_type", metavar="SINGLE", required=False, help="In case of multisample data the kind of sample relation [SINGLE, TRIO, MULTI]")
@@ -183,7 +183,7 @@ if __name__=="__main__":
         if rare_disease:
             logger.info("Rare disease mode activated! Filter out all variants with allele frequence higher than 2%")
             if "MAX_AF" in variant_table.columns:
-                variant_table = variant_table[variant_table["MAX_AF"] <= 0.02]
+                variant_table = variant_table[variant_table["MAX_AF"] <= 0.02].reset_index(drop=True)
 
             else:
                 if allele_frequency_list:
@@ -192,7 +192,7 @@ if __name__=="__main__":
                         variant_table[allele_frequency] = variant_table.apply(lambda row: pd.Series(max([float(frequency) for frequency in str(row[allele_frequency]).split("&")], default=np.nan)), axis=1)
 
                     variant_table["MAX_AF"] = variant_table.apply(lambda row: pd.Series(max([float(frequency) for frequency in row[allele_frequency_list].tolist()], default=np.nan)), axis=1)
-                    variant_table = variant_table[variant_table["MAX_AF"] <= 0.02]
+                    variant_table = variant_table[variant_table["MAX_AF"] <= 0.02].reset_index(drop=True)
 
                 else:
                     raise SystemExit("Could not identify the allele frequency information in the input table!")

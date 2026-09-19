@@ -109,19 +109,6 @@ def predict_pathogenicity(rf_model, input_data, input_features):
     return input_data
 
 
-def parallel_pathogenicity_prediction(rf_model, input_data, input_features, num_cores):
-    try:
-        worker_pool = mp.Pool(num_cores)
-        predicted_data = pd.concat(worker_pool.apply(rf_model.predict_proba(), (input_features)))
-        input_data["AIDIVA_SCORE"] = predicted_data["Probability_Pathogenic"]
-
-    finally:
-        worker_pool.close()
-        worker_pool.join()
-
-    return input_data
-
-
 def parallelize_dataframe_processing(dataframe, function, num_cores):
     num_partitions = num_cores * 2
 
