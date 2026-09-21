@@ -17,7 +17,7 @@ aiDIVA comprises the following steps:
 
 If you use aiDIVA in your work please cite our publication:
 
-**aiDIVA – hybrid AI for rare disease diagnostics using evidence-based, machine learning and language models** ([link](https://www.medrxiv.org/content/10.1101/2025.09.04.25335099v1))
+**aiDIVA – hybrid AI for rare disease diagnostics using evidence-based, machine learning and language models** ([link](https://www.nature.com/articles/s41525-026-00611-x))
 
 ```
 @article{aiDIVA2026,
