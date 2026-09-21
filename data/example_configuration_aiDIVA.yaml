@@ -1,5 +1,5 @@
 ## aiDIVA -- augmented intelligence-based DIsease Variant Analysis
-# Configuration file specifiying all the parameters that are needed to run aiDIVA in the different modes
+# Configuration file specifying all the parameters that are needed to run aiDIVA in the different modes
 # if you modify the key names make sure to also update them in the run_aiDIVA.py script
 ---
 # used assembly build, valid values: [GRCh38]
@@ -44,13 +44,12 @@ LLM-Input:
     meta-model-rf: <full-path-to-file>/aidiva-meta-rf.pkl.gz
     
     # specify the LLM model that the api should call
-    llm-model: "meta/llama-3.1-8b-instruct" # ("meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "gpt-4o", ...)
+    llm-model: "meta/llama-3.1-8b-instruct" # ("meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct", "gpt-5.4", ...)
 
     # if mode is STRUCTURED the tool will pass a json schema to the model that is used to structure the output
     llm-output-mode: STRUCTURED # [STRUCTURED, NORMAL]
 
     # system instructions for the LLM
-    # enable reasoning in the system intructions by adding 'Advanced reasoning ON' (works only when using a reasoning model)
     llm-instruction-normal: |
         Create a clinical expert in rare diseases that answers given prompts in the following way:
         Please create table with 8 columns with one row for each question. Do answer every question independently, treat every question as a new, standalone question and answer without referring to previous interactions.
@@ -67,7 +66,6 @@ LLM-Input:
         Please provide the result table in plain json.
 
     # structured system instructions for the LLM
-    # enable reasoning in the system intructions by adding 'Advanced reasoning ON' (works only when using a reasoning model)
     llm-instruction-structured: |
         Create a clinical expert in rare diseases that answers given prompts in the following way: 
         Do answer every question independently, treat every question as a new, standalone question and answer without referring to previous interactions. 
@@ -164,7 +162,7 @@ Model-Features:
 
 
 # DO NOT CHANGE IF YOU DON'T KNOW WHAT YOU DO!
-# In case you change the following parameters (eg. if you updated the hpo resources) make sure to specify the full path to the new resources
+# In case you change the following parameters (e.g. if you updated the hpo resources) make sure to specify the full path to the new resources
 Internal-Parameters:
     # resources used in the tool
     # INFO if you did not put the downloaded resource file (see documentation for more information) into the data/hpo_resources folder you need to specify the full path to the files here
@@ -182,7 +180,7 @@ Internal-Parameters:
         # not used in the LLM part
         RANDOM_SEED: 14038
 
-        # number mapping of the calculated variant consequences from ensembl (https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html)
+        # number mapping of the calculated variant consequences of ensembl (https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html)
         # lower numbers means higher impact
         VARIANT_CONSEQUENCES:
             transcript_ablation: 1

@@ -1,7 +1,4 @@
-import pandas as pd
-import numpy as np
 import tempfile
-import argparse
 import gzip
 import logging
 
@@ -38,7 +35,7 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
             outfile_indel.write(line)
             continue
 
-        # skip empty lines if the VCF file is not correctly formatted (eg. if there are multiple blank lines in the end of the file)
+        # skip empty lines if the VCF file is not correctly formatted (e.g. if there are multiple blank lines in the end of the file)
         if line == "\n":
             continue
 
@@ -71,13 +68,3 @@ def split_vcf_file_in_indel_and_snps_set(filepath, filepath_snp, filepath_indel)
     outfile_snps.close()
     outfile_indel.close()
     tmp.close()
-
-
-if __name__== "__main__":
-    parser = argparse.ArgumentParser("Script to split the input VCF in a SNP and a InDel set")
-    parser.add_argument("--in_file", type=str, dest="in_file", metavar="input.vcf", required=True, help="Input file\n")
-    parser.add_argument("--snp_file", type=str, dest="snp_file", metavar="snps.vcf", required=True, help="File to save the SNP variants\n")
-    parser.add_argument("--indel_file", type=str, dest="indel_file", metavar="indels.vcf", required=True, help="File to save the InDel variants\n")
-    args = parser.parse_args()
-
-    split_vcf_file_in_indel_and_snps_set(args.in_file, args.snp_file, args.indel_file)

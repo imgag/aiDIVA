@@ -204,13 +204,13 @@ def extract_columns(cell, process_indel):
     return extracted_columns
 
 
-def extract_vep_annotation(cell, annotation_header, canonical_transcripts=[]):
+def extract_vep_annotation(cell, annotation_header, canonical_transcripts=None):
     annotation_fields = str(cell["CSQ"]).split(",")
     new_cols = []
 
     if (len(annotation_fields) >= 1) and (annotation_fields[0] != ""):
 
-        if canonical_transcripts:
+        if canonical_transcripts is not None:
             for annotation in annotation_fields:
                 transcript_index = annotation_header.index("Feature")
 
@@ -220,7 +220,7 @@ def extract_vep_annotation(cell, annotation_header, canonical_transcripts=[]):
 
         if new_cols == []:
             # choose the most severe annotation variant
-            # if new consequence terms were added to the database that are not yet handled from aiDIVA use default consequence "unknown" with lowest severity value
+            # if new consequence terms were added to the database that are not yet handled from aiDIVA use default consequence "unknown" with the lowest severity value
             consequences = [min([VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in field.split("|")[annotation_header.index("Consequence")].split("&")]) for field in annotation_fields]
             target_index = min(enumerate(consequences), key=itemgetter(1))[0]
             new_cols = annotation_fields[target_index].strip().split("|")
@@ -277,10 +277,10 @@ def convert_variant_representation(row):
     if ref != "" and alt != "" and ref[0] == alt[0]:
         ref = ref[1:]
         alt = alt[1:]
-        start_position +=1;
+        start_position +=1
 
     # remove common suffix
-    suffix_length = len(find_common_suffix(ref, alt));
+    suffix_length = len(find_common_suffix(ref, alt))
     if suffix_length > 0:
         ref = ref[:-suffix_length]
         alt = alt[:-suffix_length]
@@ -427,7 +427,7 @@ def convert_vcf_to_pandas_dataframe(input_file, process_indel, expanded_indel):
     canonical_transcripts = []
 
     sample_ids = []
-    # FORMAT column has index 8 (counted from 0) and sample columns follow afterwards (sample names are unique)
+    # FORMAT column has index 8 (counted from 0) and sample columns follow afterward (sample names are unique)
     # Check if FORMAT column exists
     if len(vcf_as_dataframe.columns) > 8:
         for i in range(9, len(vcf_as_dataframe.columns)):

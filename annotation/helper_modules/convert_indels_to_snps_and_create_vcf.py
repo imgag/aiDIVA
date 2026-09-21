@@ -1,4 +1,3 @@
-import argparse
 import logging
 import pandas as pd
 import pysam
@@ -87,14 +86,3 @@ def convert_indel_vcf_to_expanded_indel_vcf(in_data, out_data, ref_folder, CONST
 
     with open(out_data, "w", newline="") as outfile:
         write_data_information_to_file(input_data, outfile, ref_folder, header, RANDOM_SEED)
-
-
-if __name__=="__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="InDel VCF file to expand\n")
-    parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.vcf", required=True, help="Output VCF file\n")
-    parser.add_argument("--ref_path", type=str, dest="ref_path", metavar="/path/to/hg38/Homo_sapiens.GRCh38.dna.chromosome.[ID].fa", required=True, help="Path were the reference genome is found.\n")
-    args = parser.parse_args()
-
-    ref_folder = args.ref_path
-    convert_indel_vcf_to_expanded_indel_vcf(args.in_data, args.out_data, args.ref_path)

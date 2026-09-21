@@ -1,4 +1,3 @@
-import argparse
 import gzip
 import logging
 import tempfile
@@ -82,7 +81,7 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name, CONSTA
             outfile.write(line)
             continue
 
-        # skip empty lines if the VCF file is not correctly formatted (eg. if there are multiple blank lines in the end of the file)
+        # skip empty lines if the VCF file is not correctly formatted (e.g. if there are multiple blank lines in the end of the file)
         if line == "\n":
             continue
 
@@ -111,22 +110,8 @@ def filter_coding_variants(filepath, filepath_out, annotation_field_name, CONSTA
 
         else:
             logger.error("Annotation field missing!")
-            logger.warn("Variant filtering will be skipped!")
+            logger.warning("Variant filtering will be skipped!")
 
     vcf_file_to_reformat.close()
     outfile.close()
     tmp.close()
-
-
-if __name__=="__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--in_file", type=str, dest="in_file", metavar="input.vcf", required=True, help="VCF file to filter\n")
-    parser.add_argument("--out_file", type=str, dest="out_file", metavar="output.vcf", required=True, help="VCF file containing only the filtered coding variants\n")
-    parser.add_argument("--annotation_field", type=str, dest="annotation_field", metavar="CSQ", required=True, help="ID of the annotation field with the Consequence information\n")
-    args = parser.parse_args()
-
-    CONSTANT_DICTIONARY = {"CODING_VARIANTS": ["coding_sequence_variant", "frameshift_variant", "incomplete_terminal_codon_variant", "inframe_deletion", "inframe_insertion", "missense_variant", "protein_altering_variant", "start_lost", "stop_gained", "stop_lost"],
-                           "SPLICE_VARIANTS": ["splice_acceptor_variant", "splice_donor_5th_base_variant", "splice_donor_region_variant", "splice_donor_variant", "splice_polypyrimidine_tract_variant", "splice_region_variant"],
-                           "SYNONYMOUS_VARIANTS": ["start_retained_variant", "stop_retained_variant", "synonymous_variant"]}
-
-    filter_coding_variants(args.in_file, args.out_file, args.annotation_field, CONSTANT_DICTIONARY)

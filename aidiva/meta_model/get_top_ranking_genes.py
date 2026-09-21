@@ -1,11 +1,5 @@
-import argparse
-import gzip
-import json
 import logging
-import os
 import pandas as pd
-import random
-import re
 
 
 logger = logging.getLogger(__name__)
@@ -56,10 +50,10 @@ def convert_variant_representation(row):
     if ref != "" and alt != "" and ref[0] == alt[0]:
         ref = ref[1:]
         alt = alt[1:]
-        start_position +=1;
+        start_position +=1
 
     # remove shared suffix
-    suffix_length = len(find_shared_suffix(ref, alt));
+    suffix_length = len(find_shared_suffix(ref, alt))
     if suffix_length > 0:
         ref = ref[:-suffix_length]
         alt = alt[:-suffix_length]
@@ -195,7 +189,7 @@ def extract_gene_info_gsvar(row, sample_id, VARIANT_CONSEQUENCES, CONSEQUENCE_MA
     current_genotype = row[sample_id]
     current_gene_info = row["coding_and_splicing"]
 
-    # extract gene name and consequence from gene_info
+    # extract gene name and consequence of gene_info
     processed_genes = []
     processed_consequences = []
     processed_consequence_types = []
@@ -209,7 +203,7 @@ def extract_gene_info_gsvar(row, sample_id, VARIANT_CONSEQUENCES, CONSEQUENCE_MA
 
         # only coding variants are considered
         if any(supported_consequence in current_consequence for supported_consequence in CONSEQUENCE_MAPPING.keys()):
-            ## TODO: handle mutliple overlapping gene/consequence information for a single variant
+            ## TODO: handle multiple overlapping gene/consequence information for a single variant
 
             # workaround to handle protein_altering_variant and coding_sequence_variant
             if current_consequence == "protein_altering_variant" or current_consequence == "coding_sequence_variant":
@@ -266,18 +260,18 @@ def extract_gene_info_gsvar(row, sample_id, VARIANT_CONSEQUENCES, CONSEQUENCE_MA
 
     result_gene = processed_genes[0]
     result_consequence = processed_consequences[0]
-    resutl_consequence_type = processed_consequence_types[0]
+    result_consequence_type = processed_consequence_types[0]
 
     for i in range(len(processed_genes)):
         if VARIANT_CONSEQUENCES[processed_consequences[i]] < VARIANT_CONSEQUENCES[result_consequence]:
             result_gene = processed_genes[i]
             result_consequence = processed_consequences[i]
-            resutl_consequence_type = processed_consequence_types[i]
+            result_consequence_type = processed_consequence_types[i]
 
         else:
             continue
 
-    result_string = f"{result_gene}(Consequence: {result_consequence}, Type: {resutl_consequence_type}, Rank: {int(current_rank)}, Score: {current_score}, Genotype: {current_genotype}, Variant: {row['#chr']}:{row['start']}-{row['end']}_{current_ref}>{current_alt})"
+    result_string = f"{result_gene}(Consequence: {result_consequence}, Type: {result_consequence_type}, Rank: {int(current_rank)}, Score: {current_score}, Genotype: {current_genotype}, Variant: {row['#chr']}:{row['start']}-{row['end']}_{current_ref}>{current_alt})"
     logger.debug("Result string top ranking entries evidence based:", result_string)
 
     return result_string
@@ -322,29 +316,3 @@ def extract_gsvar_header(filepath):
     gsvar_header = header_line.split("\t")
 
     return gsvar_header
-
-
-# for debugging
-def main(infile, sample_id, rank, evidence):
-    if evidence:
-        gsvar_header = extract_gsvar_header(infile)
-        in_data = pd.read_csv(infile, comment="#", names=gsvar_header, sep="\t", low_memory=False, on_bad_lines="warn" )
-        top_ranking_genes = extract_top_ranking_entries_evidence_based(sample_id, in_data, rank)
-        print("Final top ranking genes evidence:", top_ranking_genes)
-
-    else:
-        in_data = pd.read_csv(infile, sep="\t", low_memory=False)
-        top_ranking_genes = extract_top_ranking_entries_random_forest_based(sample_id, in_data, rank)
-        print("Final top ranking genes random forest:", top_ranking_genes)
-
-
-## The possibility to directly run the script is mainly meant for testing und debugging
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description = "Create table with prompts for chatGPT")
-    parser.add_argument("--in_file", type=str, dest="in_file", required=True, help="Tab separated input file containing sample ids to choose [required]")
-    parser.add_argument("--sample_id", type=str, dest="sample_id", required=True, help="Sample id [required]")
-    parser.add_argument("--rank", type=str, dest="rank", required=True, help="Maximum rank to include in the variant/gene list [required]")
-    parser.add_argument("--evidence", action="store_true", required=False, help="Flag if data is evidence based.")
-    args = parser.parse_args()
-
-    main(args.in_file, args.sample_id, int(args.rank), args.evidence)

@@ -1,13 +1,8 @@
-import argparse
 import gzip
-import json
 import logging
-import os
 import pickle
 import numpy as np
 import pandas as pd
-import random
-import re
 
 
 logger = logging.getLogger(__name__)
@@ -187,7 +182,7 @@ def create_table_rf_based(in_data_rf_based, rf_gene_list, no_variant, CONSTANT_D
 
         meta_table_dict_list.append({"gene_name": gene, "variant": gene_variant, "rf_rank": rf_rank, "rf_score": rf_score, "rf_rank_llm": rf_rank_llm})
 
-    meta_table = pd.DataFrame.from_dict(meta_table_dict_list)
+    meta_table = pd.DataFrame(meta_table_dict_list)
 
     return meta_table
 
@@ -361,7 +356,7 @@ def create_table_rf_and_evidence_based(in_data_rf_based, rf_gene_list, in_data_e
 
         meta_table_dict_list.append({"gene_name": gene, "variant": gene_variant, "rf_rank": rf_rank, "rf_score": rf_score, "rf_rank_llm": rf_rank_llm, "eb_model": eb_model, "eb_rank": eb_rank, "eb_score": eb_score, "eb_rank_llm": eb_rank_llm})
 
-    meta_table = pd.DataFrame.from_dict(meta_table_dict_list)
+    meta_table = pd.DataFrame(meta_table_dict_list)
 
     return meta_table
 
@@ -405,38 +400,3 @@ def meta_scoring(metascore_table, meta_model, rf_only):
     metascore_table.reset_index(inplace=True, drop=True)
 
     return metascore_table
-
-
-# for debugging
-def main(in_rf_llm, in_eb_dom_llm, in_eb_rec_llm, rf_file, eb_dom_file, eb_rec_file, sample_id, out_file, no_variant):
-    rf_llm_res = pd.read_csv(in_rf_llm, sep="\t", low_memory=False)
-    eb_dom_llm_res = pd.read_csv(in_eb_dom_llm, sep="\t", low_memory=False)
-    eb_rec_llm_res = pd.read_csv(in_eb_rec_llm, sep="\t", low_memory=False)
-
-    in_data_rf = pd.read_csv(rf_file, sep="\t", low_memory=False)
-
-    top_ranking_genes_random_forest = top_ranking.extract_top_ranking_entries_random_forest_based(sample_id, in_data_rf, 10)
-    top_ranking_genes_evidence_dominant = top_ranking.extract_top_ranking_entries_evidence_based(sample_id, eb_dom_file, 10)
-    top_ranking_genes_evidence_recessive = top_ranking.extract_top_ranking_entries_evidence_based(sample_id, eb_rec_file, 10)
-
-    metascore_table = create_table_rf_and_evidence_based(rf_llm_res, top_ranking_genes_random_forest, eb_dom_llm_res, top_ranking_genes_evidence_dominant, eb_rec_llm_res, top_ranking_genes_evidence_recessive, no_variant)
-    metascore_table.to_csv(out_file, sep="\t", index=False)
-
-
-## The possibility to directly run the script is mainly meant for testing und debugging
-if __name__ == "__main__":
-    import get_top_ranking_genes as top_ranking
-
-    parser = argparse.ArgumentParser(description = "Create table with prompts for chatGPT")
-    parser.add_argument("--in_rf_llm", type=str, dest="in_rf_llm", required=True, help="List of sample IDs")
-    parser.add_argument("--in_eb_dom_llm", type=str, dest="in_eb_dom_llm", required=False, help="File with the RF ranks and scores")
-    parser.add_argument("--in_eb_rec_llm", type=str, dest="in_eb_rec_llm", required=False, help="File with the RF ranks and scores")
-    parser.add_argument("--rf_file", type=str, dest="rf_file", required=False, help="File with the RF ranks and scores")
-    parser.add_argument("--eb_dom_file", type=str, dest="eb_dom_file", required=False, help="File with the EB dom ranks and scores")
-    parser.add_argument("--eb_rec_file", type=str, dest="eb_rec_file", required=False, help="File with the EB rec ranks and scores")
-    parser.add_argument("--sample_id", type=str, dest="sample_id", required=False, help="File with the EB rec ranks and scores")
-    parser.add_argument("--out_file", type=str, dest="out_file", required=True, help="Output file")
-    parser.add_argument("--no_variant", action="store_true", dest="no_variant", required=False, help="Do not store variant")
-    args = parser.parse_args()
-
-    main(args.in_rf_llm, args.in_eb_dom_llm, args.in_eb_rec_llm, args.rf_file, args.eb_dom_file, args.eb_rec_file, args.sample_id, args.out_file, args.no_variant)

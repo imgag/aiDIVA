@@ -1,6 +1,3 @@
-import argparse
-import gzip
-import json
 import logging
 import multiprocessing as mp
 import networkx as nx
@@ -8,7 +5,6 @@ import numpy as np
 import os
 import pandas as pd
 import pysam
-import re
 
 from functools import partial
 from itertools import combinations
@@ -155,7 +151,7 @@ def prioritize_variants(variant_data, internal_parameter_dict, prioritization_we
     hgnc_information_f = get_resource_file(internal_parameter_dict["hgnc-information"])
     string_db_information_f = get_resource_file(internal_parameter_dict["string-db-information"])
     string_db_alias_f = get_resource_file(internal_parameter_dict["string-db-aliases"])
-    transcript_infromation_f = get_resource_file(internal_parameter_dict["transcript-information"])
+    transcript_information_f = get_resource_file(internal_parameter_dict["transcript-information"])
 
     if not (build == "GRCh37" or build == "GRCh38"):
         logger.error(f"Unrecognized assembly build given: {build}")
@@ -166,7 +162,7 @@ def prioritize_variants(variant_data, internal_parameter_dict, prioritization_we
     hgnc_2_gene = hpo_res.create_gene2hgnc_mapping(hgnc_information_f)
     gene_2_interacting = hpo_res.create_gene2interacting_mapping(string_db_alias_f, string_db_information_f)
     gene_2_hpo = hpo_res.generate_gene2hpo_dict(phenotype_to_genes_f)
-    transcript_length_mapping = hpo_res.create_transcript_length_mapping(transcript_infromation_f)
+    transcript_length_mapping = hpo_res.create_transcript_length_mapping(transcript_information_f)
 
     genes2exclude = parse_gene_list(gene_exclusion_file)
     hpo_query = parse_hpo_list(hpo_list_file)
@@ -195,13 +191,8 @@ def parallelize_dataframe_processing(variant_data, function, num_cores):
         chunk_size = variant_data.shape[0] // num_partitions
         dataframe_splitted = [variant_data[i:i+chunk_size].copy() for i in range(0, variant_data.shape[0], chunk_size)]
 
-    try:
-        pool = mp.Pool(num_cores)
+    with mp.Pool(num_cores) as pool:
         variant_data = pd.concat(pool.map(function, dataframe_splitted))
-
-    finally:
-        pool.close()
-        pool.join()
 
     return variant_data
 
@@ -796,7 +787,7 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
 
     # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
     if ((len(variant["REF"]) > 1 or len(variant["ALT"]) > 1)) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
-        # make sure to use the correct internal chromsome notation (with chr)
+        # make sure to use the correct internal chromosome notation (with chr)
         if "chr" in str(variant["#CHROM"]):
             chrom_id = str(variant["#CHROM"])
 
@@ -805,12 +796,6 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
 
         # Get sequence context (vicinity) of a variant for homopolymer check (5 bases up- and down-stream)
         # Get fewer bases when variant is at the start or end of the sequence
-        if "chr" in str(variant["#CHROM"]):
-            chrom_id = str(variant["#CHROM"])
-
-        else:
-            chrom_id = "chr" + str(variant["#CHROM"])
-
         try:
             in_fasta = pysam.FastaFile(reference)
 
@@ -822,7 +807,7 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
             sequence_context = sequence_context.upper()
 
         except Exception as e:
-            logger.warning("An error occured loading the sequence context from the reference file!")
+            logger.warning("An error occurred loading the sequence context from the reference file!")
             sequence_context = '.'
 
         homopolymer_flag, low_complexity_flag = homopolymer_filter(sequence_context)
@@ -845,7 +830,7 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
 
             return filter_passed, filter_comment
 
-    # check if there is something annoted from REPEATMASKER
+    # check if there is something annotated from REPEATMASKER
     # let variants with a high FINAL_AIDIVA_SCORE (>=0.7) pass to be more sensitive
     if (repeat_masker_data != "") and (repeat_masker_data != ".") and (repeat_masker_data != "nan") and (not repeat_masker_data.isspace()) and (float(variant["FINAL_AIDIVA_SCORE"]) < 0.7):
         filter_passed = 0 # masked repeat region
@@ -876,7 +861,7 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
                         filter_comment = "no HPO terms given"
 
                 else:
-                    filter_passed = 0 # no prediction present (eg. variant type not covered by the used ML models)
+                    filter_passed = 0 # no prediction present (e.g. variant type not covered by the used ML models)
                     filter_comment = "missing prediction"
 
         else:
@@ -1021,7 +1006,7 @@ def check_dominant(variant, family):
             continue
 
         # affected family members might be hom alt
-        # that"s the major difference to de novo...
+        # that's the major difference to de novo...
         elif zygosity == "1/1" and family[name] == 1:
             judgement = 1
             continue
@@ -1214,61 +1199,3 @@ def check_xlinked(variant, family):
             break
 
     return judgement
-
-
-if __name__=="__main__":
-    import get_HPO_similarity_score as gs
-    import prepare_hpo_resources as hpo_res
-
-    parser = argparse.ArgumentParser(description = "Filter variants and finalize the AIDIVA_SCORE based on the given HPO terms (if this information is present)")
-    parser.add_argument("--in_file", type=str, dest="in_file", required=True, help="Tab separated input annotated and scored file [required]")
-    parser.add_argument("--out_file", type=str, dest="out_filename", required=True, help="Name to save the results [required]")
-    parser.add_argument("--family", type=str, dest="family", required=False, help="Tab separated list of samples annotated with affection status.")
-    parser.add_argument("--family_type", type=str, choices=["TRIO", "FAMILY", "SINGLE"], dest="family_type", required=False, help="Choose if the data you provide is a trio or a larger family")
-    parser.add_argument("--gene_exclusion", type=str, dest="gene_exclusion_list", required=False, help="List of genes that should be excluded in the prioritization")
-    parser.add_argument("--hpo_list", type=str, dest="hpo_list", default=None, required=False, help="List of HPO terms that are observed in the patient. These terms are used to adjust the AIDIVA_SCORE\n")
-    parser.add_argument("--genome_build", type=str, dest="genome_build", default="GRCh38", required=True, help="Version of the genome build to use [GRCh37, GRCH38]\n")
-    parser.add_argument("--feature_list", type=str, dest="feature_list", required=True, help="Feature list used in the AIDIVA_SCORE prediction.\n")
-    parser.add_argument("--reference", type=str, dest="reference", required=True, help="Path to the refernce genome.\n")
-    parser.add_argument("--skip_db_check", action="store_true", required=False, help="Skip db check.\n")
-    parser.add_argument("--threads", type=str, dest="threads", default=1, required=False, help="Number of threads to use.\n")
-    args = parser.parse_args()
-
-    input_data = pd.read_csv(args.in_file, sep="\t", low_memory=False)
-
-    if args.family:
-        family_file = args.family
-
-    else:
-        family_file = None
-
-    if args.family_type and args.family_file is not None:
-        family_type = args.family_type
-
-    else:
-        family_type="SINGLE"
-
-    if args.genome_build:
-        genome_build = args.genome_build
-
-    else:
-        genome_build = "GRCh38"
-
-    internal_parameter_dict = {"hpo_ontology": "../../data/hpo_resources/hp.obo",
-                               "phenotype_information": "../../data/hpo_resources/phenotype.hpoa",
-                               "phenotype_to_genes": "../../data/hpo_resources/phenotype_to_genes.txt",
-                               "transcript_information": "../../data/hpo_resources/grch38_ensembl_transcript_length_and_strand.tsv",
-                               "hgnc_infromation": "../../data/hpo_resources/hgnc_complete_set.txt",
-                               "string_db_information": "../../data/hpo_resources/9606.protein.links.detailed.v12.0.txt.gz",
-                               "string_db_aliases": "../../data/hpo_resources/9606.protein.aliases.v12.0.txt.gz"}
-
-    if args.threads:
-        num_threads = int(args.threads)
-
-    else:
-        num_threads = 1
-
-    feature_list = args.feature_list.split(",")
-
-    prioritized_variants = prioritize_variants(input_data, internal_parameter_dict, args.reference, num_threads, genome_build, feature_list, args.skip_db_check, family_file, family_type, args.hpo_list, args.gene_exclusion_list)
-    prioritized_variants.to_csv(args.out_filename, sep="\t", index=False)

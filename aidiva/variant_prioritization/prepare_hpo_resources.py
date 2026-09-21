@@ -2,7 +2,6 @@ import gzip
 import logging
 import math
 import pandas as pd
-import sys
 import networkx as nx
 
 
@@ -113,7 +112,7 @@ def create_hpo_graph(hpo_ontology, phenotype_hpoa):
     # get replacements of obsolete nodes
     replacements = dict(hpo_edges.get("replacements", []))
 
-    # let"s build a graph
+    # let's build a graph
     hpo_graph = nx.DiGraph()
     hpo_graph.graph["alternatives"] = alternatives
     hpo_graph.graph["considerations"] = considerations

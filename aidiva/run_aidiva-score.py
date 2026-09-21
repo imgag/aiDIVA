@@ -1,12 +1,8 @@
 import argparse
 import logging
-import os
-import numpy as np
 import pandas as pd
 import tempfile
-import time
 import variant_scoring.score_variants as predict
-import variant_prioritization.prioritize_variants as prio
 import yaml
 import time
 
@@ -150,7 +146,7 @@ if __name__=="__main__":
         variant_table_predicted = variant_table_predicted.rename(columns={"CHROM": "#CHROM"})
         variant_table_predicted.to_csv(str(output_filename + "_result_aidiva-score.tsv"), sep="\t", index=False)
 
-        logger.info("Pipeline successfully finsished!")
+        logger.info("Pipeline successfully finished!")
 
     else:
         logger.warning("The given input file was empty!")

@@ -6,7 +6,6 @@ import helper_modules.filter_vcf as filt_vcf
 import helper_modules.split_vcf_in_indel_and_snp_set as split_vcf
 import logging
 import os
-import gzip
 import pandas as pd
 import tempfile
 import time

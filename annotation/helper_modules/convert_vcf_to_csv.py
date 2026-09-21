@@ -1,11 +1,9 @@
-import argparse
 import gzip
 import logging
 import multiprocessing as mp
 import numpy as np
 import os
 import pandas as pd
-import tempfile
 
 from functools import partial
 from operator import itemgetter
@@ -105,13 +103,13 @@ def extract_columns(cell, process_indel, USED_INFO_FIELDS):
     return extracted_columns
 
 
-def extract_vep_annotation(cell, annotation_header, VARIANT_CONSEQUENCES, canonical_transcripts=[]):
+def extract_vep_annotation(cell, annotation_header, VARIANT_CONSEQUENCES, canonical_transcripts=None):
     annotation_fields = str(cell["CSQ"]).split(",")
     new_cols = []
 
     if (len(annotation_fields) >= 1) and (annotation_fields[0] != ""):
     
-        if canonical_transcripts:
+        if canonical_transcripts is not None:
             for annotation in annotation_fields:
                 transcript_index = annotation_header.index("Feature")
 
@@ -121,7 +119,7 @@ def extract_vep_annotation(cell, annotation_header, VARIANT_CONSEQUENCES, canoni
 
         if new_cols == []:
             # choose the most severe annotation variant
-            # if new consequence terms were added to the database that are not yet handled from aiDIVA use default consequence "unknown" with lowest severity value
+            # if new consequence terms were added to the database that are not yet handled from aiDIVA use default consequence "unknown" with the lowest severity value
             consequences = [min([VARIANT_CONSEQUENCES.get(consequence) if consequence in VARIANT_CONSEQUENCES.keys() else VARIANT_CONSEQUENCES.get("unknown") for consequence in field.split("|")[annotation_header.index("Consequence")].split("&")]) for field in annotation_fields]
             target_index = min(enumerate(consequences), key=itemgetter(1))[0]
             new_cols = annotation_fields[target_index].strip().split("|")
@@ -259,10 +257,10 @@ def convert_variant_representation(row):
     if ref != "" and alt != "" and ref[0] == alt[0]:
         ref = ref[1:]
         alt = alt[1:]
-        start_position +=1;
+        start_position +=1
 
     # remove common suffix
-    suffix_length = len(find_common_suffix(ref, alt));
+    suffix_length = len(find_common_suffix(ref, alt))
     if suffix_length > 0:
         ref = ref[:-suffix_length]
         alt = alt[:-suffix_length]
@@ -428,7 +426,7 @@ def convert_vcf_to_pandas_dataframe(input_file, allele_frequency_list, process_i
                     canonical_transcripts.append(line.strip())
 
     sample_ids = []
-    # FORMAT column has index 8 (counted from 0) and sample columns follow afterwards (sample names are unique)
+    # FORMAT column has index 8 (counted from 0) and sample columns follow afterward (sample names are unique)
     # Check if FORMAT column exists
     if len(vcf_as_dataframe.columns) > 8:
         for i in range(9, len(vcf_as_dataframe.columns)):
@@ -506,36 +504,12 @@ def parallelize_dataframe_processing(vcf_as_dataframe, function, num_cores):
         chunk_size = vcf_as_dataframe.shape[0] // num_partitions
         dataframe_splitted = [vcf_as_dataframe[i:i+chunk_size].copy() for i in range(0, vcf_as_dataframe.shape[0], chunk_size)]
 
-    try:
-        pool = mp.Pool(num_cores)
+    with mp.Pool(num_cores) as pool:
         vcf_as_dataframe = pd.concat(pool.map(function, dataframe_splitted))
 
-    finally:
-        pool.close()
-        pool.join()
 
     return vcf_as_dataframe
 
 
 def write_vcf_to_csv(vcf_as_dataframe, out_file):
     vcf_as_dataframe.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.vcf", required=True, help="VCF file to convert file\n")
-    parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the converted VCF file\n")
-    parser.add_argument("--indel", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of indel variants or not.\n")
-    parser.add_argument("--expanded", action="store_true", required=False, help="Flag to indicate whether the file to convert consists of expanded indel variants.\n")
-    parser.add_argument("--transcript_ids", type=str, dest="transcript_ids", metavar="mane_v13_transcripts_ids.txt", required=True, help="File specifying the ensembl transcripts that should be used (e.g. MANE-SELECT).\n")
-    parser.add_argument("--threads", type=int, dest="threads", metavar="1", required=False, help="Number of threads to use.")
-    args = parser.parse_args()
-
-    if args.threads is not None:
-        num_cores = int(args.threads)
-
-    else:
-        num_cores = 1
-
-    vcf_as_dataframe = convert_vcf_to_pandas_dataframe(args.in_data, args.indel, args.expanded, args.transcript_ids, num_cores)
-    write_vcf_to_csv(vcf_as_dataframe, args.out_data)

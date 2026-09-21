@@ -1,4 +1,3 @@
-import argparse
 import logging
 import multiprocessing as mp
 import numpy as np
@@ -103,40 +102,13 @@ def parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, 
         chunk_size = vcf_as_dataframe.shape[0] // num_partitions
         dataframe_splitted = [vcf_as_dataframe[i:i+chunk_size].copy() for i in range(0, vcf_as_dataframe.shape[0], chunk_size)]
 
-    try:
-        function_to_parallelize = partial(combine_vcf_dataframes, feature_list, SPLICE_VARIANTS, SYNONYMOUS_VARIANTS, grouped_expanded_vcf)
-        pool = mp.Pool(num_cores)
+    function_to_parallelize = partial(combine_vcf_dataframes, feature_list, SPLICE_VARIANTS, SYNONYMOUS_VARIANTS, grouped_expanded_vcf)
+    with mp.Pool(num_cores) as pool:
         vcf_as_dataframe = pd.concat(pool.map(function_to_parallelize, dataframe_splitted))
 
-    finally:
-        pool.close()
-        pool.join()
 
     return vcf_as_dataframe
 
 
 def write_vcf_to_csv(vcf_combined_as_dataframe, out_file):
     vcf_combined_as_dataframe.to_csv(out_file, sep="\t", encoding="utf-8", index=False)
-
-
-if __name__=="__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--in_data", type=str, dest="in_data", metavar="input.csv", required=True, help="InDel CSV file to combine\n")
-    parser.add_argument("--in_data_expanded", type=str, dest="in_data_expanded", metavar="input_expanded.csv", required=True, help="Expanded InDel CSV file\n")
-    parser.add_argument("--out_data", type=str, dest="out_data", metavar="output.csv", required=True, help="CSV file containing the combined CSV files\n")
-    parser.add_argument("--feature_list", type=str, dest="feature_list", metavar="feature1,feature2,feature3", required=True, help="Comma separated list with the names of the previously annotated features\n")
-    parser.add_argument("--threads", type=str, dest="threads", metavar="1", required=False, help="Number of threads to use\n")
-    args = parser.parse_args()
-
-    if args.threads is not None:
-        num_cores = int(args.threads)
-
-    else:
-        num_cores = 1
-
-    vcf_as_dataframe = pd.read_csv(args.in_data, sep="\t", low_memory=False)
-    expanded_vcf_as_dataframe = pd.read_csv(args.in_data_expanded, sep="\t", low_memory=False)
-
-    feature_list = args.feature_list.split(",")
-    vcf_combined_as_dataframe = parallelized_indel_combination(vcf_as_dataframe, expanded_vcf_as_dataframe, feature_list, num_cores)
-    write_vcf_to_csv(vcf_combined_as_dataframe, args.out_data)

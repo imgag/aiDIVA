@@ -47,7 +47,7 @@ def compute_similarity_between_nodes(hpo_term_a, hpo_term_b, ic_per_nodes, node_
         pass
 
     else:
-        logger.error("An error occured while determining the similarity measure!")
+        logger.error("An error occurred while determining the similarity measure!")
 
     return nodes_similarity
 

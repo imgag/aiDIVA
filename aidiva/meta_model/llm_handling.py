@@ -1,11 +1,8 @@
-import argparse
-import gzip
 import json
 import logging
 import os
 import pandas as pd
 import random
-import re
 import time
 
 from operator import itemgetter
@@ -280,7 +277,7 @@ def call_llm_api(client, prompt, llm_instructions, llm_output_schema, model_id, 
             else:
                 json_answer = cleaned_answer[0]
 
-            logger.debug("JSON answer:\n", json_answer)
+            logger.debug("JSON answer: \n", json_answer)
 
             if json_answer.startswith("{"):
                 if not json_answer.endswith("}"):
@@ -351,7 +348,7 @@ def call_llm_api(client, prompt, llm_instructions, llm_output_schema, model_id, 
                     sources = sources + ",".join(source)
 
             else:
-                logger.error(f"Unexpected rank value occured ({rank})!")
+                logger.error(f"Unexpected rank value occurred ({rank})!")
 
         converted_list_of_answers = {
                                      "prompt": prompt,
@@ -378,13 +375,3 @@ def call_llm_api(client, prompt, llm_instructions, llm_output_schema, model_id, 
     results = pd.DataFrame(converted_list_of_answers)
 
     return results
-
-
-# for debugging
-def main(infile, outfile, result_path, rank):
-    pass
-
-
-## The possibility to directly run the script is mainly meant for testing und debugging
-if __name__ == "__main__":
-    pass

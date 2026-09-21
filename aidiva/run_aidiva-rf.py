@@ -1,10 +1,8 @@
 import argparse
 import logging
-import os
 import numpy as np
 import pandas as pd
 import tempfile
-import time
 import variant_scoring.score_variants as predict
 import variant_prioritization.prioritize_variants as prio
 import yaml
@@ -181,7 +179,7 @@ if __name__=="__main__":
 
         # prefilter input table for rare disease mode
         if rare_disease:
-            logger.info("Rare disease mode activated! Filter out all variants with allele frequence higher than 2%")
+            logger.info("Rare disease mode activated! Filter out all variants with allele frequency higher than 2%")
             if "MAX_AF" in variant_table.columns:
                 variant_table = variant_table[variant_table["MAX_AF"] <= 0.02].reset_index(drop=True)
 
@@ -242,7 +240,7 @@ if __name__=="__main__":
                 variant_table_prioritized_filtered[(variant_table_prioritized_filtered["XLINKED"] == 1)].to_csv(str(output_filename + "_result_filtered_xlinked_aidiva-rf.tsv"), sep="\t", index=False)
                 variant_table_prioritized_filtered[(variant_table_prioritized_filtered["RECESSIVE"] == 1)].to_csv(str(output_filename + "_result_filtered_recessive_aidiva-rf.tsv"), sep="\t", index=False)
 
-        logger.info("Pipeline successfully finsished!")
+        logger.info("Pipeline successfully finished!")
 
     else:
         logger.warning("The given input file was empty!")

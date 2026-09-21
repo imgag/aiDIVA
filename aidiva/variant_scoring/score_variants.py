@@ -1,4 +1,3 @@
-import argparse
 import gzip
 import logging
 import multiprocessing as mp
@@ -121,13 +120,8 @@ def parallelize_dataframe_processing(dataframe, function, num_cores):
         chunk_size = dataframe.shape[0] // num_partitions
         dataframe_splitted = [dataframe[i:i+chunk_size].copy() for i in range(0, dataframe.shape[0], chunk_size)]
 
-    try:
-        pool = mp.Pool(num_cores)
+    with mp.Pool(num_cores) as pool:
         dataframe = pd.concat(pool.map(function, dataframe_splitted))
-
-    finally:
-        pool.close()
-        pool.join()
 
     return dataframe
 
@@ -181,32 +175,3 @@ def perform_pathogenicity_score_prediction(rf_model, input_data, allele_frequenc
     predicted_data.loc[(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SYNONYMOUS_VARIANTS)) & ~(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(CODING_VARIANTS))) & ~(predicted_data["MOST_SEVERE_CONSEQUENCE"].str.contains("|".join(SPLICE_VARIANTS)))), "AIDIVA_SCORE"] = 0.0
 
     return predicted_data
-
-
-if __name__=="__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--in_data", type=str, dest="in_data", metavar="in.csv", required=True, help="CSV file containing the training data, used to train the random forest model\n")
-    parser.add_argument("--out_data", type=str, dest="out_data", metavar="out.csv", required=True, help="CSV file containing the test data, used to compute the model statistics\n")
-    parser.add_argument("--model", type=str, dest="model", metavar="model.pkl", required=True, help="Specifies the name of the trained model to import\n")
-    parser.add_argument("--feature_list", type=str, dest="feature_list", metavar="feature1,feature2,feature3", required=True, help="Comma separated list of the features used to train the model\n")
-    parser.add_argument("--allele_frequency_list", type=str, dest="allele_frequency_list", metavar="frequency1,frequecy2,frequency3", required=False, help="Comma separated list of allele frequency sources that should be used as basis to get the maximum allele frequency\n")
-    parser.add_argument("--threads", type=str, dest="threads", metavar="1", required=False, help="Number of threads to use.\n")
-    args = parser.parse_args()
-
-    input_data = read_input_data(args.in_data)
-    feature_list = args.feature_list.split(",")
-
-    if args.allele_frequency_list:
-        allele_frequency_list = args.allele_frequency_list.split(",")
-
-    else:
-        allele_frequency_list = []
-
-    if args.threads:
-        num_threads = int(args.threads)
-
-    else:
-        num_threads = 1
-
-    predicted_data = perform_pathogenicity_score_prediction(args.model, input_data, allele_frequency_list, feature_list, num_threads)
-    predicted_data.to_csv(args.out_data, index=False, sep="\t", na_rep="NA")

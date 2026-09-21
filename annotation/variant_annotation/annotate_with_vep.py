@@ -1,9 +1,6 @@
 import subprocess
-import argparse
-import tempfile
 import os
 import logging
-import yaml
 import sys
 
 
@@ -213,70 +210,3 @@ def call_vep_and_annotate_consequence_information(input_vcf_file, output_vcf_fil
 
     subprocess.run(vep_command, shell=True, check=True)
     logger.debug(f"The consequence annotated VCF is saved as {output_vcf_file}")
-
-
-if __name__=="__main__":
-    parser = argparse.ArgumentParser(description = "Annotation with VEP")
-    parser.add_argument("--in_data", type=str, dest="in_data", metavar="data.vcf", required=True, help="VCF file containing the data, you want to annotate with VEP\n")
-    parser.add_argument("--out_data", type=str, dest="out_data", metavar="out.vcf", required=True, help="Specifies the annotated output file\n")
-    parser.add_argument("--config", type=str, dest="config", metavar="config.yaml", required=True, help="Config file specifying the annotation parameters\n")
-    parser.add_argument("--reference", type=str, dest="reference", metavar="GRCh38.fa", required=True, help="Reference Genome used during variant calling\n")
-    parser.add_argument("--basic", dest="basic", action="store_true", required=False, help="Flag to perform basic annotation on InDels\n")
-    parser.add_argument("--expanded", dest="expanded", action="store_true", required=False, help="Flag to perform annotation on expanded InDels\n")
-    parser.add_argument("--inhouse_sample", dest="inhouse_sample", action="store_true", required=False, help="Flag to indicate that we are annotating an inhouse sample (skips leftNormalize since it is already performed)\n")
-    parser.add_argument("--threads", dest="threads", metavar=1, required=False, help="Number of threads to use during annotation\n")
-    args = parser.parse_args()
-
-    input_vcf_file = args.in_data
-    output_vcf_file = args.out_data
-
-    # parse configuration file
-    with open(args.config, "r") as config_file:
-        configuration = yaml.load(config_file, Loader=yaml.SafeLoader)
-
-    assembly_build = configuration["Assembly-Build"]
-    annotation_dict = configuration["Annotation-Resources"]
-
-    if args.threads is not None:
-        num_threads = int(args.threads)
-
-    else:
-        num_threads = 1
-
-    basic_annotation = args.basic
-    expanded_annotation = args.expanded
-    inhouse_sample = args.inhouse_sample
-
-    try:
-        # create intermediate temp files
-        tmp_sorted = tempfile.NamedTemporaryFile(mode="w+b", suffix="_sorted.vcf", delete=False)
-        tmp_vep_annot = tempfile.NamedTemporaryFile(mode="w+b", suffix="_vepAnnot.vcf", delete=False)
-        tmp_vcf_annot = tempfile.NamedTemporaryFile(mode="w+b", suffix="_vcfAnnot.vcf", delete=False)
-        tmp_bed_annot = tempfile.NamedTemporaryFile(mode="w+b", suffix="_bedAnnot.vcf", delete=False)
-        tmp_bigwig_annot = tempfile.NamedTemporaryFile(mode="w+b", suffix="_bigwigAnnot.vcf", delete=False)
-
-        # perform annotations
-        left_normalize_and_sort_vcf(input_vcf_file, tmp_sorted.name, annotation_dict, args.reference, inhouse_sample)
-        call_vep_and_annotate_vcf(tmp_sorted.name, tmp_vep_annot.name, annotation_dict, assembly_build, basic_annotation, expanded_annotation, num_threads)
-        annotate_from_vcf(tmp_vep_annot.name, tmp_vcf_annot.name, annotation_dict, expanded_annotation, basic_annotation, num_threads)
-
-        if basic_annotation:
-            annotate_from_bed(tmp_vcf_annot.name, tmp_bed_annot.name, annotation_dict, num_threads)
-            filter_regions(tmp_bed_annot.name, output_vcf_file, annotation_dict)
-
-        elif expanded_annotation:
-            annotate_from_bigwig(tmp_vcf_annot.name, output_vcf_file, annotation_dict, num_threads)
-
-        else:
-            annotate_from_bed(tmp_vcf_annot.name, tmp_bed_annot.name, annotation_dict, num_threads)
-            annotate_from_bigwig(tmp_bed_annot.name, tmp_bigwig_annot.name, annotation_dict, num_threads)
-            filter_regions(tmp_bigwig_annot.name, output_vcf_file, annotation_dict)
-
-    finally:
-        # clean up
-        os.remove(tmp_sorted.name)
-        os.remove(tmp_vep_annot.name)
-        os.remove(tmp_vcf_annot.name)
-        os.remove(tmp_bed_annot.name)
-        os.remove(tmp_bigwig_annot.name)
-

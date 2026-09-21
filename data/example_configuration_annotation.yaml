@@ -1,4 +1,4 @@
-# Configuration file specifiying all the parameters that are needed to run annotation
+# Configuration file specifying all the parameters that are needed to run annotation
 # if you modify the key names make sure to also update them in the respective scripts
 ---
 # used assembly build, valid values: [GRCh38]
@@ -60,7 +60,7 @@ Variant-Effect-Predictor:
         # VEP: path where the needed perl modules are installed
         vep-cpan: <full-path-to-folder>/ensembl-vep-release/cpan/
 
-        # VEP: path where the the VEP plugins were put
+        # VEP: path where the VEP plugins were put
         vep-plugin-path: <full-path-to-folder>/vep_plugins/
 
     vep-container:
@@ -136,7 +136,7 @@ Annotation-Resources:
 
 
 # DO NOT CHANGE THE FOLLOWING IF YOU DON'T KNOW WHAT YOU DO
-# In case you change the following parameters (eg. if you recomputed the hpo resources) make sure to specify the full path to the newly created resources
+# In case you change the following parameters (e.g. if you recomputed the hpo resources) make sure to specify the full path to the newly created resources
 Internal-Parameters:
     # defines constants used in different parts of the tool
     CONSTANTS:
@@ -144,7 +144,7 @@ Internal-Parameters:
         # not used in the LLM part
         RANDOM_SEED: 14038
 
-        # number mapping of the calculated variant consequences from ensembl (https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html)
+        # number mapping of the calculated variant consequences of ensembl (https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html)
         # lower numbers means higher impact
         VARIANT_CONSEQUENCES:
             transcript_ablation: 1
