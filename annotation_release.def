@@ -30,7 +30,7 @@ From: ensemblorg/ensembl-vep:release_115.2
 
     git clone https://github.com/imgag/aiDIVA.git /opt/aidiva_local
     cd /opt/aidiva_local
-    git checkout 1.4.0
+    git checkout 1.4.2
 
     # install python 3.12.3
     mkdir -p /opt/Python3.12.3
