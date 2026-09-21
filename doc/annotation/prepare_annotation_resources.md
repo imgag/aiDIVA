@@ -1,7 +1,7 @@
 # Preparation of Annotation Resources
 This document provides links to the annotation sources we used. If it is necessary to further prepare these files it is explained and shown in the respective section with a coode snippet.
 
-The preparation of the annotation resources needs a lot of disk space, you should make sure that you have at least 1000GB of free space available. Furthermore it is adviced to prepare one resource after another and to remove all files that are not needed after preparation to save disk space.
+The preparation of the annotation resources needs a lot of disk space, you should make sure that you have at least 1000GB of free space available. Furthermore, it is adviced to prepare one resource after another and to remove all files that are not needed after preparation to save disk space.
 
 ## Necessary Tools
 Make sure that the following tools are installed on your system:
@@ -100,7 +100,7 @@ rm clinvar.vcf.gz
 Please first download the FannsDB database from here: [https://bbglab.irbbarcelona.org/fannsdb/](https://bbglab.irbbarcelona.org/fannsdb/) 
 <br>
 <br>
-Afterwards the `prepare_Condel_vcf.py` script found in the _scripts_ folder can be used to create the VCF annotation file. For the annotation the VCF file needs to be _bgzipped_ and _indexed_
+Afterward the `prepare_Condel_vcf.py` script found in the _scripts_ folder can be used to create the VCF annotation file. For the annotation the VCF file needs to be _bgzipped_ and _indexed_
 
 Needs manual liftover!!!
 https://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver/hg19ToHg38.over.chain.gz
@@ -203,7 +203,7 @@ GRCh38:
 <br>
 --- NOTE ---
 Unfortunately the official MutationAssessor (r3) resource that we utilized for training the aiDIVA-RF model is not available anymore.
-We trained a new model with the same settings as before excluding the MutationAssessor feature. This new model can be found togehter with the previous models and in the release tab.
+We trained a new model with the same settings as before excluding the MutationAssessor feature. This new model can be found together with the previous models and in the release tab.
 If you use this model without MutationAssessor you need to also remove the feature from the feature list in the configuration file.
 
 As an alternative source for MutationAssessor you can use the dbNFSP database (the instructions shown here are for the academic version of the database). We show here the preparation for the latest academic legacy version (v4.9a) found [here](https://sites.google.com/site/jpopgen/dbNSFP). 
@@ -372,7 +372,7 @@ GRCh38
 !!! Google Account needed !!!
 <br>
 <br>
-Manually donwload the following files `AlphaMissense_hg38.tsv.gz`
+Manually download the following files `AlphaMissense_hg38.tsv.gz`
 <br>
 https://console.cloud.google.com/storage/browser/dm_alphamissense
 

@@ -1,7 +1,7 @@
 # Installation of Additional Tools
 This document provides links and instructions to download and install the necessary third party tools that are used in aiDIVA.
 
-The folder of each respective tool can be moved to another place after the installation, they should be self contained.
+The folder of each respective tool can be moved to another place after the installation, they should be self-contained.
 
 Just make sure to give the correct paths to the tools in the configuration file.
 
@@ -24,7 +24,7 @@ make build_tools_release
 ## Variant Effect Predictor (VEP)
 VEP is used for all annotations. Please check the official website for requirements that your system needs to fulfill before proceeding. VEP can be used in a containerized or locally installed version. Please head over to the official VEP documentation if you encounter any problems with VEP. ([VEP download and install](https://www.ensembl.org/info/docs/tools/vep/script/vep_download.html))
 
-Make sure to specify the correct paths for the VEP installation and the VEP cache data directory in the YAML configuration file. Otherwise the local installed modules cannot be found. (Alternatively you can install the perl modules system wide with sudo)
+Make sure to specify the correct paths for the VEP installation and the VEP cache data directory in the YAML configuration file. Otherwise, the local installed modules cannot be found. (Alternatively you can install the perl modules system-wide with sudo)
 For the containerized version you also need to specify the path to the folder, where all your annotation sources are lying. We need to bind that path to the container, otherwise VEP won't be able to read the data.
 
 # Container version

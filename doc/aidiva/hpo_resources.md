@@ -6,13 +6,13 @@ HPO graph:
 <br>
 THe given links should point to the latest version of the resources
 ```
-wget -c http://purl.obolibrary.org/obo/hp.obo
-wget -c http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa
+wget -c https://purl.obolibrary.org/obo/hp.obo
+wget -c https://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa
 ```
 
 Phenotype to gene mapping:
 ```
-wget -c http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt
+wget -c https://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt
 ```
 
 HGNC ID mapping:
@@ -35,12 +35,12 @@ wget -c -O grch37_ensembl_transcript_length_and_strand.tsv 'https://grch37.ensem
 ```
 
 ## Creation of Resources
-After you successfully downloaded the above mentioned resources you place the files into the folder `data/hpo_resources` so that aiDIVA can find the files. Alternatively you can change the path to the files in the config file by changing the path of the following keys in the Internal-Parameter section of the config file (see the `example_configuration_aiDIVA.yaml`) for aiDIVA: 
+After you successfully downloaded the above-mentioned resources you place the files into the folder `data/hpo_resources` so that aiDIVA can find the files. Alternatively you can change the path to the files in the config file by changing the path of the following keys in the Internal-Parameter section of the config file (see the `example_configuration_aiDIVA.yaml`) for aiDIVA:
 
 - hpo-ontology: \<your-full-path\>/hp.obo
 - phenotype-information: \<your-full-path\>/phenotype.hpoa
 - phenotype-to-genes: \<your-full-path\>/phenotype_to_genes.txt
 - transcript-information: \<your-full-path\>/grch38_ensembl_transcript_length_and_strand.tsv
-- hgnc-infromation: \<your-full-path\>/hgnc_complete_set.txt
+- hgnc-information: \<your-full-path\>/hgnc_complete_set.txt
 - string-db-information: \<your-full-path\>/9606.protein.links.detailed.v12.0.txt.gz
 - string-db-aliases: \<your-full-path\>/9606.protein.aliases.v12.0.txt.gz

@@ -1,14 +1,14 @@
 # Running aiDIVA
 
-aiDIVA expects a TAB separted table as input (see [here](https://github.com/imgag/aiDIVA/blob/master/doc/aidiva/run_aidiva.md#overview-of-necessary-and-optional-columns-in-the-input-table) for an overview of the necessary and optional columns) acompanied by a configuration file in the YAML format. Have a look in the `data` folder to get an example configuration file with placeholders. 
+aiDIVA expects a TAB separated table as input (see [here](https://github.com/imgag/aiDIVA/blob/master/doc/aidiva/run_aidiva.md#overview-of-necessary-and-optional-columns-in-the-input-table) for an overview of the necessary and optional columns) accompanied by a configuration file in the YAML format. Have a look in the `data` folder to get an example configuration file with placeholders.
 
-It is possible to run only parts of our software. In total we have three different modi in which our software can be run: *aiDIVA-RF*, *aiDIVA-meta*, *aiDIVA-meta-RF*.
+It is possible to run only parts of our software. In total, we have three different modi in which our software can be run: *aiDIVA-RF*, *aiDIVA-meta*, *aiDIVA-meta-RF*.
 
-Please be adviced that for the *aiDIVA-meta* mode you need the two evidence-based files *eb_dom.GSvar* and *eb_rec.GSvar*. These files can be created using the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool which is part of the [ngs-bits](https://github.com/imgag/ngs-bits) tool collection. The VariantRanking tool needs as input a GSvar file which can be created if you process your VCF file with the [megSAP](https://github.com/imgag/megSAP) pipeline. Please head over to these repositories to have detailled instructions on how to use the tools.
+Please be advised that for the *aiDIVA-meta* mode you need the two evidence-based files *eb_dom.GSvar* and *eb_rec.GSvar*. These files can be created using the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool which is part of the [ngs-bits](https://github.com/imgag/ngs-bits) tool collection. The VariantRanking tool needs as input a GSvar file which can be created if you process your VCF file with the [megSAP](https://github.com/imgag/megSAP) pipeline. Please head over to these repositories to have detailed instructions on how to use the tools.
 
-To test aiDIVA-meta without the need to install the whole [megSAP](https://github.com/imgag/megSAP) pipeline we included a conversion script to convert the annotated table into a basic GSvar file that includes all necessary information needed to run the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool (please be adviced that not all optional information used by [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) are included in htis converted file many of these informations are missing). This converison script is meant for initial tests, but is highly recommended to use the whole [megSAP](https://github.com/imgag/megSAP) pipeline to generate the GSvar files to use the full potential of the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool. The [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool was written specifically with the [megSAP](https://github.com/imgag/megSAP) annotation in mind.
+To test aiDIVA-meta without the need to install the whole [megSAP](https://github.com/imgag/megSAP) pipeline we included a conversion script to convert the annotated table into a basic GSvar file that includes all necessary information needed to run the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool (please be advised that not all optional information used by [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) are included in this converted file many of this information are missing). This conversion script is meant for initial tests, but is highly recommended to use the whole [megSAP](https://github.com/imgag/megSAP) pipeline to generate the GSvar files to use the full potential of the [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool. The [VariantRanking](https://github.com/imgag/ngs-bits/blob/master/doc/tools/VariantRanking/index.md) tool was written specifically with the [megSAP](https://github.com/imgag/megSAP) annotation in mind.
 
-Head over to the [documentation](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/run_annotation.md#convert-annotated-table-to-gsvar) of the annotion part to see how to use the conversion script.
+Head over to the [documentation](https://github.com/imgag/aiDIVA/blob/master/doc/annotation/run_annotation.md#convert-annotated-table-to-gsvar) of the annotation part to see how to use the conversion script.
 
 Please be aware that the annotation from the [megSAP](https://github.com/imgag/megSAP) pipeline and the annotation script shipped in this repository are not identical. 
 
@@ -53,7 +53,7 @@ optional parameters:
 + *family_file* -- TXT file containing the sample information if run on multisample VCF files \[optional\]
 + *family_type* -- Type of the family relation \[SINGLE, TRIO\] (default: SINGLE) \[optional\]
 + *skip\_db\_check* -- Skip the database checkup for existing entries in ClinVar (and HGMD) \[optional\]
-+ *rare\_disease* -- Adds initial allele frequence filter to only keep variants with allele frequence of less than 2%\[optional\]
++ *rare\_disease* -- Adds initial allele frequency filter to only keep variants with allele frequency of less than 2%\[optional\]
 + *only\_top\_results* -- Restrict the results to only report the top X variants (default: 25) \[optional\]
 + *top\_rank* -- Rank that should be used as maximum for the top ranking results to report (default: 25) \[optional\]
 + *threads* -- Number of threads that should be used (default: 1) \[optional\]
@@ -72,19 +72,19 @@ mandatory parameters:
 + *in\_data* -- TAB separated input table with the annotated variants
 + *out\_prefix* -- A prefix for the resulting output files the output folder can also be specified with that parameter
 + *sample\_id* -- Sample ID this is used to extract the genotype in the VCF file
++ *hpo\_list* -- Comma-separated list of HPO terms observed with the patient
 
 optional parameters:
 
 + *workdir* -- Working directory, where all temporary files are created and saved \[optional\]
-+ *hpo\_list* -- Comma-separated list of HPO terms observed with the patient
 + *gene\_exclusion* -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness \[optional\]
 + *family\_file* -- TXT file containing the sample information if run on multisample VCF files \[optional\]
 + *family\_type* -- Type of the family relation \[SINGLE, TRIO\] (default: SINGLE) \[optional\]
 + *skip\_db\_check* -- Skip the database checkup for existing entries in ClinVar (and HGMD) \[optional\]
-+ *rare\_disease* -- Adds initial allele frequence filter to only keep variants with allele frequence of less than 2%\[optional\]
++ *rare\_disease* -- Adds initial allele frequency filter to only keep variants with allele frequency of less than 2%\[optional\]
 + *only\_top\_results* -- Restrict the results to only report the top X variants (default: 25) \[optional\]
 + *top\_rank* -- Rank that should be used as maximum for the top ranking results to report (default: 25) \[optional\]
-+ *gender* -- Gender of the patient if known \[optional\]
++ *sex* -- Sex of the patient if known \[optional\]
 + *age* -- Age of the patient if known \[optional\]
 + *threads* -- Number of threads that should be used (default: 1) \[optional\]
 + *log\_file* -- Specify a custom log file to store the log messages from the tool \[optional\]
@@ -104,19 +104,19 @@ mandatory parameters:
 + *in\_eb\_rec* -- GSvar file containing the evidence-based ranking results of the sample using the recessive mode of the algorithm
 + *out\_prefix* -- A prefix for the resulting output files the output folder can also be specified with that parameter
 + *sample\_id* -- Sample ID this is used to access the genotype in the input table and the GSvar files
++ *hpo\_list* -- Comma-separated list of HPO terms observed with the patient
 
 optional parameters:
 
 + *workdir* -- Working directory, where all temporary files are created and saved \[optional\]
-+ *hpo\_list* -- Comma-separated list of HPO terms observed with the patient \[optional\]
 + *gene\_exclusion* -- TXT file containing genes that should be excluded during the analysis of the HPO relatedness \[optional\]
 + *family\_file* -- TXT file containing the sample information if run on multisample VCF files \[optional\]
 + *family\_type* -- Type of the family relation \[SINGLE, TRIO\] (default: SINGLE) \[optional\]
 + *skip\_db\_check* -- Skip the database checkup for existing entries in ClinVar (and HGMD) \[optional\]
-+ *rare\_disease* -- Adds initial allele frequence filter to only keep variants with allele frequence of less than 2%\[optional\]
++ *rare\_disease* -- Adds initial allele frequency filter to only keep variants with allele frequency of less than 2%\[optional\]
 + *only\_top\_results* -- Restrict the results to only report the top X variants (default: 25) \[optional\]
 + *top\_rank* -- Rank that should be used as maximum for the top ranking results to report (default: 25) \[optional\]
-+ *gender* -- Gender of the patient if known \[optional\]
++ *sex* -- Sex of the patient if known \[optional\]
 + *age* -- Age of the patient if known \[optional\]
 + *threads* -- Number of threads that should be used (default: 1) \[optional\]
 + *log\_file* -- Specify a custom log file to store the log messages from the tool \[optional\]
@@ -224,7 +224,7 @@ The following columns are not necessarily needed to run aiDIVA.
 
 <br>
 
-+ *segmentDuplication* -- Segment duplciation annotation if the variant lies in a segment duplicaiton region.
++ *segmentDuplication* -- Segment duplication annotation if the variant lies in a segment duplication region.
 + *simpleRepeat* -- Simple repeat annotation if the variant lies inside a tandem repeat region.
 
 <br>

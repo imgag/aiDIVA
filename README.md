@@ -15,9 +15,24 @@ aiDIVA comprises the following steps:
 
 ## Citing
 
-If you use aiDIVA in your work please cite our preprint: 
+If you use aiDIVA in your work please cite our publication:
 
-**aiDIVA - Diagnostics of Rare Genetic Diseases Using Large Language Models** ([link](https://www.medrxiv.org/content/10.1101/2025.09.04.25335099v1))
+**aiDIVA – hybrid AI for rare disease diagnostics using evidence-based, machine learning and language models** ([link](https://www.medrxiv.org/content/10.1101/2025.09.04.25335099v1))
+
+```
+@article{aiDIVA2026,
+  author = {Boceck, Dominic and Laugwitz, Lucia and Sturm, Marc and Bezdan, Daniela and Gschwind, Axel and Haack, Tobias B. and Ossowski, Stephan},
+  title = {aiDIVA – hybrid AI for rare disease diagnostics using evidence-based, machine learning and language models},
+  journal = {npj Genomic Medicine},
+  year = {2026},
+  volume = {11},
+  number = {1},
+  pages = {49},
+  doi = {10.1038/s41525-026-00611-x},
+  url = {https://doi.org/10.1038/s41525-026-00611-x},
+  isbn = {2056-7944}
+}
+```
 
 <!--
 <br><br>
@@ -78,7 +93,7 @@ The HPO resources required for the prioritization step need to be downloaded bef
 
 ## Pathogenicity Prediction
 
-There is one random forest model that is used in aiDIVA to predict the pathogenicity of a given variant. It is a combined model for SNV and inframe indel variants. The training data of the model consists of variants from Clinvar.
+There is one random forest model that is used in aiDIVA to predict the pathogenicity of a given variant. It is a combined model for SNV and inframe indel variants. The training data of the model consists of variants from ClinVar.
 
 The scripts used to train the model can be found in the following GitHub repository: [aiDIVA-Training](https://github.com/imgag/aiDIVA-Training)
 
@@ -90,7 +105,7 @@ A pretrained random forest model (*aidiva-rf*) using our current feature set can
 ## LLM Usage
 
 aiDIVA supports the use of the official [OpenAI API](https://platform.openai.com/docs/api-reference/introduction) to send the requests to GPT-4o or GPT-4.1 for example. To use the OpenAI API you need an account and an API-Key that needs to be specified in the configuration file.
-Alternatively it is possible to set up your own local LLM (eg., LLama-8b, Mistral-12b, ...) and provide it locally as a Webservice. For an easy deployment you could use the NVIDIA NIM Containers see [here](https://build.nvidia.com/meta/llama-3_1-8b-instruct/deploy) for more details on how to do that. These local LLMs use the same python package for inference you just have to specify the port and URL where to find the local model in the configuration file.
+Alternatively it is possible to set up your own local LLM (e.g., Llama-8b, Mistral-12b, ...) and provide it locally as a Webservice. For an easy deployment you could use the NVIDIA NIM Containers see [here](https://build.nvidia.com/meta/llama-3_1-8b-instruct/deploy) for more details on how to do that. These local LLMs use the same python package for inference you just have to specify the port and URL where to find the local model in the configuration file.
 
 
 ## Meta Model
