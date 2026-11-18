@@ -1,3 +1,4 @@
+import json
 import logging
 import multiprocessing as mp
 import networkx as nx
@@ -15,6 +16,18 @@ if not __name__=="__main__":
 
 
 logger = logging.getLogger(__name__)
+
+
+def load_from_json(json_file):
+    if json_file.endswith(".gz"):
+        with gzip.open(json_file, "rt") as json_f:
+            loaded_resource = json.load(json_f)
+
+    else:
+        with open(json_file, "r") as json_f:
+            loaded_resource = json.load(json_f)
+
+    return loaded_resource
 
 
 def parse_ped_file(family_file):
@@ -144,31 +157,42 @@ def prioritize_variants(variant_data, internal_parameter_dict, prioritization_we
     SPLICE_VARIANTS = CONSTANT_DICTIONARY["SPLICE_VARIANTS"]
     SYNONYMOUS_VARIANTS = CONSTANT_DICTIONARY["SYNONYMOUS_VARIANTS"]
 
-    # load HPO resources
-    hpo_ontology_f = get_resource_file(internal_parameter_dict["hpo-ontology"])
-    phenotype_information_f = get_resource_file(internal_parameter_dict["phenotype-information"])
-    phenotype_to_genes_f = get_resource_file(internal_parameter_dict["phenotype-to-genes"])
-    hgnc_information_f = get_resource_file(internal_parameter_dict["hgnc-information"])
-    string_db_information_f = get_resource_file(internal_parameter_dict["string-db-information"])
-    string_db_alias_f = get_resource_file(internal_parameter_dict["string-db-aliases"])
-    transcript_information_f = get_resource_file(internal_parameter_dict["transcript-information"])
-
     if not (build == "GRCh37" or build == "GRCh38"):
         logger.error(f"Unrecognized assembly build given: {build}")
 
     hpo_list_file = hpo_list
     gene_exclusion_file = gene_exclusion_list
 
-    hgnc_2_gene = hpo_res.create_gene2hgnc_mapping(hgnc_information_f)
-    gene_2_interacting = hpo_res.create_gene2interacting_mapping(string_db_alias_f, string_db_information_f)
-    gene_2_hpo = hpo_res.generate_gene2hpo_dict(phenotype_to_genes_f)
-    transcript_length_mapping = hpo_res.create_transcript_length_mapping(transcript_information_f)
+    # Load HPO resources from cache or read from given source files
+    if internal_parameter_dict["use-hpo-cache"]:
+        hgnc_2_gene = load_from_json(f"{internal_parameter_dict["hpo-resources-cache"]}/hgnc2gene.json")
+        gene_2_interacting = load_from_json(f"{internal_parameter_dict["hpo-resources-cache"]}/gene2interacting.json")
+        gene_2_hpo = load_from_json(f"{internal_parameter_dict["hpo-resources-cache"]}/hpo2gene.json")
+        hpo_replacement_information = load_from_json(f"{internal_parameter_dict["hpo-resources-cache"]}/hpo2replacement.json")
+        transcript_length_mapping = load_from_json(f"{internal_parameter_dict["hpo-resources-cache"]}/transcript2length.json")
+        hpo_graph = nx.read_gexf(f"{internal_parameter_dict["hpo-resources-cache"]}/hpo_graph.gexf")
+
+    else:
+        # load HPO resources
+        hpo_ontology_f = get_resource_file(internal_parameter_dict["hpo-resources-files"]["hpo-ontology"])
+        phenotype_information_f = get_resource_file(internal_parameter_dict["hpo-resources-files"]["phenotype-information"])
+        phenotype_to_genes_f = get_resource_file(internal_parameter_dict["hpo-resources-files"]["phenotype-to-genes"])
+        hgnc_information_f = get_resource_file(internal_parameter_dict["hpo-resources-files"]["hgnc-information"])
+        string_db_information_f = get_resource_file(internal_parameter_dict["hpo-resources-files"]["string-db-information"])
+        string_db_alias_f = get_resource_file(internal_parameter_dict["hpo-resources-files"]["string-db-aliases"])
+        transcript_information_f = get_resource_file(internal_parameter_dict["hpo-resources-files"]["transcript-information"])
+
+        # prepare HPO resources
+        hgnc_2_gene = hpo_res.create_gene2hgnc_mapping(hgnc_information_f)
+        gene_2_interacting = hpo_res.create_gene2interacting_mapping(string_db_alias_f, string_db_information_f)
+        gene_2_hpo = hpo_res.generate_gene2hpo_dict(phenotype_to_genes_f)
+        transcript_length_mapping = hpo_res.create_transcript_length_mapping(transcript_information_f)
+        hpo_graph, hpo_replacement_information = hpo_res.create_hpo_graph(hpo_ontology_f, phenotype_information_f)
 
     genes2exclude = parse_gene_list(gene_exclusion_file)
     hpo_query = parse_hpo_list(hpo_list_file)
     family = parse_ped_file(family_file)
 
-    hpo_graph, hpo_replacement_information = hpo_res.create_hpo_graph(hpo_ontology_f, phenotype_information_f)
     information_content_per_node = nx.get_node_attributes(hpo_graph, "IC")
     node_ancestor_mapping = {hpo_term: nx.ancestors(hpo_graph, hpo_term) for hpo_term in hpo_graph}
 
@@ -741,24 +765,19 @@ def check_filters(variant, genes2exclude, HPO_query, reference, filter_identifie
         logger.debug("Allele frequency entry could not be identified, use 0.0 instead!")
         maf = 0.0
 
-    # filter for low confidence regions (these are regions where often false positives were observed)
-    if "low_conf_region" in variant["FILTER"]:
-        filter_passed = 0 # low confidence region
-        filter_comment = "low confidence region"
-
-        return filter_passed, filter_comment
-
-    elif "off-target" in variant["FILTER"]:
-        filter_passed = 0 # off target
-        filter_comment = "off target"
-
-        return filter_passed, filter_comment
-
     # the new annotation is not in the FILTER column anymore
     if "low_conf_region" in list(variant.index):
         if str(variant["low_conf_region"]) != "" and str(variant["low_conf_region"]) != "nan":
             filter_passed = 0 # low confidence region
             filter_comment = "low confidence region"
+
+            return filter_passed, filter_comment
+
+    # filter all terms in the defined filter_exclusion_list
+    for entry in filter_identifiers["filter-exclusion-list"]:
+        if entry in variant["FILTER"]:
+            filter_passed = 0 # low confidence region
+            filter_comment = entry
 
             return filter_passed, filter_comment
 

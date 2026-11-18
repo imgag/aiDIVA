@@ -1,3 +1,4 @@
+import gzip
 import json
 import logging
 import os
@@ -50,7 +51,20 @@ def generate_hpo2name_dict(hpo_ontology):
             hpo_mapping[hpo_term]["synonyms"] = synonyms
 
     logger.info(f"HPO to name mapping successfully loaded and prepared")
+
     return hpo_mapping
+
+
+def load_from_json(json_file):
+    if json_file.endswith(".gz"):
+        with gzip.open(json_file, "rt") as json_f:
+            loaded_resource = json.load(json_f)
+
+    else:
+        with open(json_file, "r") as json_f:
+            loaded_resource = json.load(json_f)
+
+    return loaded_resource
 
 
 def get_resource_file(resource_path):
@@ -83,8 +97,13 @@ def create_llm_prompt(sex, age, hpo_terms, top_ranking_genes, model_info, intern
     SUPPORTED_VARIANT_TYPES = CONSTANT_DICTIONARY["SUPPORTED_VARIANT_TYPES"]
     RANDOM_SEED = CONSTANT_DICTIONARY["RANDOM_SEED"]
 
-    hpo_ontology_f = get_resource_file(internal_parameter_dict["hpo-ontology"])
-    hpo2name_mapping = generate_hpo2name_dict(hpo_ontology_f)
+    if internal_parameter_dict["use-hpo-cache"]:
+        hpo2name_mapping = load_from_json(f"{internal_parameter_dict["hpo-resources-cache"]}/hpo2translation.json")
+
+    else:
+        hpo_ontology_f = get_resource_file(internal_parameter_dict["hpo-ontology"])
+        hpo2name_mapping = generate_hpo2name_dict(hpo_ontology_f)
+
     hpo_translations = get_hpo_translations(hpo_terms, hpo2name_mapping)
     phenotype_information = ", ".join(hpo_translations)
     gene_list = top_ranking_genes

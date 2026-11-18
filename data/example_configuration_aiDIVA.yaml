@@ -21,6 +21,11 @@ Analysis-Input:
         # Threshold used to filter the variants according to their maximum minor allele frequence
         allele-frequency-filter: 0.01
 
+        # List of terms that from the FILTER column that should be excluded
+        filter-exclusion-list:
+            - low_conf_region
+            - off-target
+
     # Weights are used in the prioritization step
     # You can change these weights, but make sure that they sum up to 1.0
     # The default values were obtained through a simple weight optimization
@@ -165,6 +170,10 @@ Model-Features:
 # In case you change the following parameters (e.g. if you updated the hpo resources) make sure to specify the full path to the new resources
 Internal-Parameters:
     # resources used in the tool
+    # Use precomputed HPO resources
+    #use-hpo-cache: true
+    #hpo-resources-cache: <full-path>/hpo_cache/
+
     # INFO if you did not put the downloaded resource file (see documentation for more information) into the data/hpo_resources folder you need to specify the full path to the files here
     hpo-ontology: ../../data/hpo_resources/hp.obo
     phenotype-information: ../../data/hpo_resources/phenotype.hpoa

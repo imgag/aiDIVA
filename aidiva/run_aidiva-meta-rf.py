@@ -285,28 +285,38 @@ if __name__=="__main__":
         else:
             variant_table_predicted = predict.perform_pathogenicity_score_prediction(scoring_model, variant_table, allele_frequency_list, feature_list, CONSTANT_DICTIONARY, num_cores)
 
-        # prioritize and filter variants
-        logger.info("Prioritize variants and finalize score ...")
-        variant_table_prioritized = prio.prioritize_variants(variant_table_predicted, internal_parameter_dict, prioritization_weights, filter_identifiers, ref_path, num_cores, assembly_build, feature_list, CONSTANT_DICTIONARY, skip_db_check, family_file, family_type, hpo_terms, gene_exclusion_file)
-        variant_table_prioritized_filtered = variant_table_prioritized[variant_table_prioritized["FILTER_PASSED"] == 1].copy(deep=True)
-        variant_table_prioritized_filtered["AIDIVA_RANK"] = variant_table_prioritized_filtered["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
+        if "AIDIVA_RANK" in variant_table_predicted.columns and "FINAL_AIDIVA_SCORE" in variant_table_predicted.columns:
+            print("Skip RF prioritization!")
+            logger.info("Skip RF prioritization, AIDIVA_RANK and FINAL_AIDIVA_SCORE seem to be already present in the input table!")
+            if variant_table_predicted["AIDIVA_RANK"].isna().all() or variant_table_predicted["FINAL_AIDIVA_SCORE"].isna().all():
+                raise SystemExit("The input table seems to be already prioritized, but all rows are empty or have missing values!")
 
-        if only_top_results:
-            variant_table_prioritized_filtered[variant_table_prioritized_filtered["AIDIVA_RANK"] <= top_rank].to_csv(str(output_filename + "_result_filtered_aidiva-rf.tsv"), sep="\t", index=False)
-            logger.info(f"Only top ranking variants are reported as result (rank: {top_rank})!")
+            variant_table_prioritized_filtered = variant_table
+            logger.info("Continue with LLM refinement step!")
 
         else:
-            variant_table_prioritized = variant_table_prioritized.rename(columns={"CHROM": "#CHROM"})
-            variant_table_prioritized.to_csv(str(output_filename + "_result_aidiva-rf.tsv"), sep="\t", index=False)
-            variant_table_prioritized_filtered.to_csv(str(output_filename + "_result_filtered_aidiva-rf.tsv"), sep="\t", index=False)
+            # prioritize and filter variants
+            logger.info("Prioritize variants and finalize score ...")
+            variant_table_prioritized = prio.prioritize_variants(variant_table_predicted, internal_parameter_dict, prioritization_weights, filter_identifiers, ref_path, num_cores, assembly_build, feature_list, CONSTANT_DICTIONARY, skip_db_check, family_file, family_type, hpo_terms, gene_exclusion_file)
+            variant_table_prioritized_filtered = variant_table_prioritized[variant_table_prioritized["FILTER_PASSED"] == 1].copy(deep=True)
+            variant_table_prioritized_filtered["AIDIVA_RANK"] = variant_table_prioritized_filtered["FINAL_AIDIVA_SCORE"].rank(method='min', ascending=False)
 
-            ##TODO add additional condition for type FAMILY (this type is currently not supported)
-            if family_type == "TRIO":
-                variant_table_prioritized_filtered[(variant_table_prioritized_filtered["COMPOUND"] == 1)].to_csv(str(output_filename + "_result_filtered_compound_aidiva-rf.tsv"), sep="\t", index=False)
-                variant_table_prioritized_filtered[(variant_table_prioritized_filtered["DOMINANT_DENOVO"] == 1)].to_csv(str(output_filename + "_result_filtered_dominant_denovo_aidiva-rf.tsv"), sep="\t", index=False)
-                variant_table_prioritized_filtered[(variant_table_prioritized_filtered["DOMINANT"] == 1)].to_csv(str(output_filename + "_result_filtered_dominant_aidiva-rf.tsv"), sep="\t", index=False)
-                variant_table_prioritized_filtered[(variant_table_prioritized_filtered["XLINKED"] == 1)].to_csv(str(output_filename + "_result_filtered_xlinked_aidiva-rf.tsv"), sep="\t", index=False)
-                variant_table_prioritized_filtered[(variant_table_prioritized_filtered["RECESSIVE"] == 1)].to_csv(str(output_filename + "_result_filtered_recessive_aidiva-rf.tsv"), sep="\t", index=False)
+            if only_top_results:
+                variant_table_prioritized_filtered[variant_table_prioritized_filtered["AIDIVA_RANK"] <= top_rank].to_csv(str(output_filename + "_result_filtered_aidiva-rf.tsv"), sep="\t", index=False)
+                logger.info(f"Only top ranking variants are reported as result (rank: {top_rank})!")
+
+            else:
+                variant_table_prioritized = variant_table_prioritized.rename(columns={"CHROM": "#CHROM"})
+                variant_table_prioritized.to_csv(str(output_filename + "_result_aidiva-rf.tsv"), sep="\t", index=False)
+                variant_table_prioritized_filtered.to_csv(str(output_filename + "_result_filtered_aidiva-rf.tsv"), sep="\t", index=False)
+
+                ##TODO add additional condition for type FAMILY (this type is currently not supported)
+                if family_type == "TRIO":
+                    variant_table_prioritized_filtered[(variant_table_prioritized_filtered["COMPOUND"] == 1)].to_csv(str(output_filename + "_result_filtered_compound_aidiva-rf.tsv"), sep="\t", index=False)
+                    variant_table_prioritized_filtered[(variant_table_prioritized_filtered["DOMINANT_DENOVO"] == 1)].to_csv(str(output_filename + "_result_filtered_dominant_denovo_aidiva-rf.tsv"), sep="\t", index=False)
+                    variant_table_prioritized_filtered[(variant_table_prioritized_filtered["DOMINANT"] == 1)].to_csv(str(output_filename + "_result_filtered_dominant_aidiva-rf.tsv"), sep="\t", index=False)
+                    variant_table_prioritized_filtered[(variant_table_prioritized_filtered["XLINKED"] == 1)].to_csv(str(output_filename + "_result_filtered_xlinked_aidiva-rf.tsv"), sep="\t", index=False)
+                    variant_table_prioritized_filtered[(variant_table_prioritized_filtered["RECESSIVE"] == 1)].to_csv(str(output_filename + "_result_filtered_recessive_aidiva-rf.tsv"), sep="\t", index=False)
 
         result_data_random_forest = variant_table_prioritized_filtered.copy(deep=True)
 

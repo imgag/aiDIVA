@@ -119,13 +119,13 @@ if __name__=="__main__":
     scoring_model = configuration["Analysis-Input"]["scoring-model"]
 
     # load internal parameters
-    internal_parameter_dict = configuration["Internal-Parameters"]
+    #internal_parameter_dict = configuration["Internal-Parameters"]
     CONSTANT_DICTIONARY = configuration["Internal-Parameters"]["CONSTANTS"]
 
     allele_frequency_list = configuration["Model-Features"]["allele-frequency-list"]
     feature_list = configuration["Model-Features"]["feature-list"]
-    assembly_build = configuration["Assembly-Build"]
-    ref_path = configuration["Reference-Genome"]
+    #assembly_build = configuration["Assembly-Build"]
+    #ref_path = configuration["Reference-Genome"]
 
     # convert splitted input data to vcf and annotate
     if input_table is not None:
